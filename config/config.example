@@ -1,0 +1,18 @@
+# Machine-specific configuration
+# Copy to config/config.local and fill in values for your machine.
+# config.local is gitignored — never commit it.
+
+# Path to jaqg/sci-scripts repo on this machine
+SCI_SCRIPTS_DIR=~/Documents/GitHub/sci-scripts
+
+# Path to Obsidian vault on this machine
+VAULT_DIR=~/Documents/Universidad/vault
+
+# HPC cluster SSH alias (as defined in ~/.ssh/config)
+HPC_HOST=cobalto
+
+# HPC working directory for jobs
+HPC_WORKDIR=/datos_pool/mldata1
+
+# NotebookLM CLI command (if different from default)
+NOTEBOOKLM_CMD=notebooklm
