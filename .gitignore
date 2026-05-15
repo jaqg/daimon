@@ -2,3 +2,16 @@ config/config.local
 __pycache__/
 *.pyc
 .DS_Store
+
+# skill eval workspaces
+writing/skills/workflow-diagram-workspace/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# compiled PDFs (source .tex is committed; PDFs are build artifacts)
+writing/skills/workflow-diagram/examples/*.pdf
