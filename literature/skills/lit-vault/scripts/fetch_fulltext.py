@@ -152,13 +152,22 @@ def _save_cache(cache: dict, cache_path: str) -> None:
 # Fetch primitives
 # ---------------------------------------------------------------------------
 
+_LANDING_PAGE_PATTERNS = re.compile(
+    r"(sign in|log in|create account|purchase access|buy article"
+    r"|subscribe to|access options|download pdf|view pdf"
+    r"|cookie policy|accept cookies|your privacy)",
+    re.IGNORECASE,
+)
+
 def _fetch_html(url: str):
     """Fetch and strip HTML page. Returns (text, failure_reason)."""
     try:
         data, _ = _get(url, timeout=20, ua=UA_BROWSER)
         text = _strip_html(data.decode("utf-8", errors="replace"))
-        if len(text) < 500:
+        if len(text) < 1500:
             return None, "html-too-short"
+        if _LANDING_PAGE_PATTERNS.search(text[:3000]):
+            return None, "html-landing-page"
         return text, None
     except urllib.error.HTTPError as e:
         return None, f"html-http-{e.code}"
