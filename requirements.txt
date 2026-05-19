@@ -1,0 +1,3 @@
+# Optional — skills degrade gracefully without these
+pymupdf>=1.24       # PDF text extraction: lit-annotate, lit-vault, lit-search/chase
+qrcode[pil]>=7.4    # Python QR generation: qr-code (falls back to qrencode CLI)
