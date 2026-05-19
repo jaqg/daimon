@@ -1,77 +1,81 @@
-{
-  "skill_name": "galaxy",
-  "evals": [
-    {
-      "id": 0,
-      "prompt": "Scan /tmp/galaxy-eval0/vault and draft Galaxy skeletons for any missing concepts. Use --dry-run so nothing is written yet.",
-      "expected_output": "Detects 2 missing Galaxy concepts (electron-delocalization, interacting-quantum-atoms) from confirmed [[links]] in paper notes. Ignores commented-out <!--[[suggestions]]-->. Drafts 2 skeletons matching vault format (id, aliases, tags, status, type, subject frontmatter; ## Core idea, ## Key properties, ## Connections, ## Open questions, ## Sources sections). Prints skeletons to terminal. States dry-run, nothing written.",
-      "files": [],
-      "assertions": [
+[
+  {
+    "id": "scan_finds_missing",
+    "description": "Script output with 2 missing concepts → Claude drafts skeletons from excerpts only",
+    "scan_output": {
+      "missing": [
         {
-          "name": "detects-missing-concepts",
-          "description": "Reports exactly 2 missing concepts: electron-delocalization and interacting-quantum-atoms"
+          "slug": "electron-delocalization",
+          "title_case": "Electron Delocalization",
+          "source_papers": [
+            {
+              "key": "bader2022-topological",
+              "abstract_excerpt": "Topological analysis of electron density reveals regions of electron delocalization between bonded atoms through the Laplacian of the electron density.",
+              "summary_excerpt": "Key result: delocalization index quantifies extent of electron sharing between basins."
+            }
+          ]
         },
         {
-          "name": "ignores-commented-suggestions",
-          "description": "Does NOT draft skeleton for basis-set-superposition-error (it appears only as <!--[[basis-set-superposition-error]]--> in paper notes, not confirmed)"
-        },
-        {
-          "name": "skeleton-frontmatter-correct",
-          "description": "Each skeleton has frontmatter with id, aliases, tags, status: Seed, type: Concept, subject fields"
-        },
-        {
-          "name": "skeleton-sections-present",
-          "description": "Each skeleton has ## Core idea, ## Key properties, ## Connections, ## Open questions / to expand, ## Sources sections"
-        },
-        {
-          "name": "sources-populated",
-          "description": "## Sources section lists the paper notes that confirmed each link (not empty)"
-        },
-        {
-          "name": "dry-run-no-write",
-          "description": "No files written to 30-Galaxy/ — dry-run respected"
+          "slug": "interacting-quantum-atoms",
+          "title_case": "Interacting Quantum Atoms",
+          "source_papers": [
+            {
+              "key": "bader2022-topological",
+              "abstract_excerpt": "The IQA energy partitioning scheme decomposes molecular energy into intra- and interatomic contributions within QTAIM atomic basins.",
+              "summary_excerpt": "IQA provides additive energy decomposition: E_mol = sum of E_intra(A) + E_inter(A,B)."
+            },
+            {
+              "key": "smith2021-mlpotentials",
+              "abstract_excerpt": "Machine learning potentials trained on IQA energy components enable transferable force fields for molecular dynamics.",
+              "summary_excerpt": "IQA energies used as ML targets for atomic energy partitioning."
+            }
+          ]
         }
-      ]
+      ],
+      "already_exists": ["basis-set-superposition-error"],
+      "total_papers_scanned": 12,
+      "total_confirmed_links": 5
     },
-    {
-      "id": 1,
-      "prompt": "Scan /tmp/galaxy-eval1/vault for missing Galaxy concept notes and draft skeletons.",
-      "expected_output": "Finds 1 missing concept (density-functional-theory) and correctly identifies 2 concepts already present (molecular-fingerprints, electron-delocalization). Drafts skeleton only for the missing one. Reports existing ones as already present. Presents skeleton for approval, does not write without user confirmation.",
-      "files": [],
-      "assertions": [
-        {
-          "name": "only-missing-drafted",
-          "description": "Drafts skeleton only for density-functional-theory, not for molecular-fingerprints or electron-delocalization (those already exist)"
-        },
-        {
-          "name": "existing-reported",
-          "description": "Reports molecular-fingerprints and electron-delocalization as already existing in 30-Galaxy/"
-        },
-        {
-          "name": "approval-required",
-          "description": "Asks for user approval before writing — does not write automatically"
-        }
-      ]
+    "expected_behavior": "Drafts exactly 2 skeletons using excerpts from scan JSON. Does NOT read any vault files. Prints both skeletons. Reports basis-set-superposition-error as already existing. Asks for approval before writing.",
+    "must_contain": ["electron-delocalization", "interacting-quantum-atoms", "Electron Delocalization", "bader2022-topological", "Write to 30-Galaxy"],
+    "must_not_contain": ["Read(", "Glob(", "Grep(", "20-Sources/papers", "basis-set-superposition-error.md"]
+  },
+  {
+    "id": "all_exists_stops",
+    "description": "No missing concepts → report and stop",
+    "scan_output": {
+      "missing": [],
+      "already_exists": ["molecular-fingerprints", "electron-delocalization"],
+      "total_papers_scanned": 8,
+      "total_confirmed_links": 4
     },
-    {
-      "id": 2,
-      "prompt": "Use --concept 'real-space partitioning' to draft a Galaxy skeleton for that concept. Vault is at /tmp/galaxy-eval2/vault.",
-      "expected_output": "Normalizes 'real-space partitioning' to slug 'real-space-partitioning'. Finds paper notes in 20-Sources/papers/ that link to [[real-space-partitioning]] or [[real-space partitioning]] (case/space insensitive). Drafts skeleton with correct frontmatter and ## Core idea inferred from paper abstracts. Asks for approval before writing.",
-      "files": [],
-      "assertions": [
+    "expected_behavior": "Reports that all confirmed concepts already have Galaxy notes. Lists already_exists. Does not attempt to draft any skeleton. Does not write any files.",
+    "must_contain": ["already", "molecular-fingerprints", "electron-delocalization"],
+    "must_not_contain": ["Write to 30-Galaxy", "Drafted"]
+  },
+  {
+    "id": "dry_run_no_write",
+    "description": "--dry-run: skeletons printed but nothing written",
+    "scan_output": {
+      "missing": [
         {
-          "name": "slug-normalization",
-          "description": "Correctly normalizes 'real-space partitioning' → 'real-space-partitioning' as filename"
-        },
-        {
-          "name": "paper-sources-found",
-          "description": "## Sources section populated with paper notes that link to this concept"
-        },
-        {
-          "name": "core-idea-specific",
-          "description": "## Core idea is a specific domain definition, not a tautology or generic placeholder"
+          "slug": "iqa-energy-decomposition",
+          "title_case": "IQA Energy Decomposition",
+          "source_papers": [
+            {
+              "key": "duarte2025-energetic",
+              "abstract_excerpt": "IQA energy decomposition partitions molecular energy into atomic self-energies and interatomic interaction terms.",
+              "summary_excerpt": "Decomposes E_total into E_intra and E_inter(A,B) terms using QTAIM basins."
+            }
+          ]
         }
-      ]
-    }
-  ]
-}
+      ],
+      "already_exists": [],
+      "total_papers_scanned": 20,
+      "total_confirmed_links": 3
+    },
+    "expected_behavior": "Drafts skeleton for iqa-energy-decomposition and prints it. Then states 'dry run — nothing written' and stops. Does NOT ask for write approval. No Write tool calls.",
+    "must_contain": ["iqa-energy-decomposition", "dry run", "nothing written"],
+    "must_not_contain": ["Write to 30-Galaxy", "Options:\n  all"]
+  }
+]
