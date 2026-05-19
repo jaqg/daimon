@@ -6,7 +6,7 @@ description: >
   when the user says "process email" followed by a filename, or asks to handle pending inbox items.
   Categorises loose notes, routes email files by type, proposes Galaxy concept skeletons,
   and logs everything to 40-Meta/ai-changes.md.
-tools: Read, Write, Edit, Glob, Grep
+tools: Bash, Read, Write, Edit
 ---
 
 ## Vault layout (reference)
@@ -28,15 +28,27 @@ tools: Read, Write, Edit, Glob, Grep
 
 ## Execution steps
 
-### 1. Scan
+### 1. Scan (script)
 
-List all files directly in `00-Inbox/` (not in subdirectories). Split them into two groups:
-- **Email files**: match `email-*.md`
-- **Loose notes**: everything else that isn't a daily note (`YYYY-MM-DD.md`) or a draft/WIP already being worked on
+```bash
+CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+[ -f "$CONFIG" ] && source "$CONFIG"
+
+SCAN=$(find -L ~/.claude -path "*/process-inbox/scripts/scan_inbox.py" -type f | head -1)
+python3 "$SCAN" --vault-dir "$VAULT_DIR"
+```
+
+Output JSON: `{"emails": [...], "loose_notes": [...], "daily_notes": [...], "stats": {...}}`.
+
+- **Emails**: `email-*.md` — full content included.
+- **Loose notes**: everything else except daily notes (`YYYY-MM-DD.md`) — frontmatter + 200-char preview.
+- **Daily notes**: frontmatter only.
+
+Report pre-scan stats: `N total → emails: E | loose notes: L | daily notes: D`
 
 ### 2. Process email files
 
-For each email file, read the frontmatter `email-type` field and apply the matching rule:
+For each item in `scan_output["emails"]`, apply the matching rule for `email_type`:
 
 **conference**
 Extract from the email: conference name, abstract submission deadline, registration deadline, event dates, location, cost, all URLs (homepage, registration, abstract submission, etc.), and any notes (satellite events, funding, seat limits, etc.). Then:
@@ -73,7 +85,7 @@ After processing each email file, move it to `00-Inbox/processed/`. Never delete
 
 ### 3. Process loose notes
 
-For each loose note that is not an email file:
+For each item in `scan_output["loose_notes"]`:
 - If it looks like a **source note** (about a paper, dataset, or external resource): move to the appropriate subfolder under `20-Sources/`.
 - If it contains a **distilled, standalone idea** (concept with a clear definition, not just a reference or task): **draft a skeleton** for a Galaxy note and notify the user — do not write the permanent note. The user reviews and writes the final version. Threshold: the concept should be usable outside the context of a single paper or project.
 - If it belongs to a project: summarise any decisions and route them to the relevant `10-Projects/[project]/decisions-log.md`.
