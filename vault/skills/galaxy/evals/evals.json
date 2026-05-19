@@ -1,0 +1,77 @@
+{
+  "skill_name": "galaxy",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Scan /tmp/galaxy-eval0/vault and draft Galaxy skeletons for any missing concepts. Use --dry-run so nothing is written yet.",
+      "expected_output": "Detects 2 missing Galaxy concepts (electron-delocalization, interacting-quantum-atoms) from confirmed [[links]] in paper notes. Ignores commented-out <!--[[suggestions]]-->. Drafts 2 skeletons matching vault format (id, aliases, tags, status, type, subject frontmatter; ## Core idea, ## Key properties, ## Connections, ## Open questions, ## Sources sections). Prints skeletons to terminal. States dry-run, nothing written.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "detects-missing-concepts",
+          "description": "Reports exactly 2 missing concepts: electron-delocalization and interacting-quantum-atoms"
+        },
+        {
+          "name": "ignores-commented-suggestions",
+          "description": "Does NOT draft skeleton for basis-set-superposition-error (it appears only as <!--[[basis-set-superposition-error]]--> in paper notes, not confirmed)"
+        },
+        {
+          "name": "skeleton-frontmatter-correct",
+          "description": "Each skeleton has frontmatter with id, aliases, tags, status: Seed, type: Concept, subject fields"
+        },
+        {
+          "name": "skeleton-sections-present",
+          "description": "Each skeleton has ## Core idea, ## Key properties, ## Connections, ## Open questions / to expand, ## Sources sections"
+        },
+        {
+          "name": "sources-populated",
+          "description": "## Sources section lists the paper notes that confirmed each link (not empty)"
+        },
+        {
+          "name": "dry-run-no-write",
+          "description": "No files written to 30-Galaxy/ — dry-run respected"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Scan /tmp/galaxy-eval1/vault for missing Galaxy concept notes and draft skeletons.",
+      "expected_output": "Finds 1 missing concept (density-functional-theory) and correctly identifies 2 concepts already present (molecular-fingerprints, electron-delocalization). Drafts skeleton only for the missing one. Reports existing ones as already present. Presents skeleton for approval, does not write without user confirmation.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "only-missing-drafted",
+          "description": "Drafts skeleton only for density-functional-theory, not for molecular-fingerprints or electron-delocalization (those already exist)"
+        },
+        {
+          "name": "existing-reported",
+          "description": "Reports molecular-fingerprints and electron-delocalization as already existing in 30-Galaxy/"
+        },
+        {
+          "name": "approval-required",
+          "description": "Asks for user approval before writing — does not write automatically"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use --concept 'real-space partitioning' to draft a Galaxy skeleton for that concept. Vault is at /tmp/galaxy-eval2/vault.",
+      "expected_output": "Normalizes 'real-space partitioning' to slug 'real-space-partitioning'. Finds paper notes in 20-Sources/papers/ that link to [[real-space-partitioning]] or [[real-space partitioning]] (case/space insensitive). Drafts skeleton with correct frontmatter and ## Core idea inferred from paper abstracts. Asks for approval before writing.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "slug-normalization",
+          "description": "Correctly normalizes 'real-space partitioning' → 'real-space-partitioning' as filename"
+        },
+        {
+          "name": "paper-sources-found",
+          "description": "## Sources section populated with paper notes that link to this concept"
+        },
+        {
+          "name": "core-idea-specific",
+          "description": "## Core idea is a specific domain definition, not a tautology or generic placeholder"
+        }
+      ]
+    }
+  ]
+}
