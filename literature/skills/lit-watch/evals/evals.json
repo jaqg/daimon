@@ -1,0 +1,72 @@
+{
+  "skill_name": "lit-watch",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "dry-run-explicit-topics",
+      "prompt": "check for new papers on quantum chemistry and density functional theory since 2026-05-14, threshold 3, dry run mode — don't write anything to disk",
+      "expected_output": "Prints summary of what would be reported (paper count, scores). States dry-run mode. No digest .md file written to inbox. No state file modified.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "output mentions dry run (no files written)",
+          "check": "stdout or run_log.txt contains 'dry run' or 'Dry run' (case-insensitive)"
+        },
+        {
+          "text": "no digest file written to disk",
+          "check": "no lit-watch-*.md file created in vault inbox or cwd"
+        },
+        {
+          "text": "output reports paper scan count",
+          "check": "stdout or run_log.txt contains 'Scanned' or 'scanned' or 'papers' with a number"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "eval_name": "digest-format",
+      "prompt": "run lit-watch for machine learning molecular property prediction papers since 2026-05-15, threshold 3, save digest to /tmp/lit-watch-eval1-inbox/",
+      "expected_output": "Digest .md written to /tmp/lit-watch-eval1-inbox/. Digest contains header line with Period, Sources searched coverage statement, and relevance-scored papers section.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "digest .md file written to output dir",
+          "check": "lit-watch-*.md file exists in /tmp/lit-watch-eval1-inbox/"
+        },
+        {
+          "text": "digest contains period header (last_run → today)",
+          "check": "digest contains 'Period:' line"
+        },
+        {
+          "text": "digest contains coverage statement",
+          "check": "digest contains 'Coverage:' or 'Sources searched:'"
+        },
+        {
+          "text": "digest contains relevance section or no-papers message",
+          "check": "digest contains '## High-relevance' or 'No papers above threshold' or 'below threshold'"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "state-file-update",
+      "prompt": "run /lit-watch --topics 'neural networks, deep learning' --since 2026-05-15 --state /tmp/lit-watch-state-eval2/ --output-inbox /tmp/lit-watch-eval2-inbox/ --threshold 5",
+      "expected_output": "State file created at /tmp/lit-watch-state-eval2/lit-watch-state.json with last_run set to today. Digest or no-papers message written to /tmp/lit-watch-eval2-inbox/.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "state file created with last_run = today",
+          "check": "/tmp/lit-watch-state-eval2/lit-watch-state.json exists and contains '2026-05-17' as last_run"
+        },
+        {
+          "text": "state file contains seen_ids list",
+          "check": "state file contains 'seen_ids' key"
+        },
+        {
+          "text": "digest or no-papers output written to inbox dir",
+          "check": "lit-watch-*.md exists in /tmp/lit-watch-eval2-inbox/ OR run_log.txt mentions 'No papers above threshold'"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "skill_name": "lit-review",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "screen-only",
+      "prompt": "Screen /tmp/lit-review-eval0/papers.json for quantum chemistry relevance using PRISMA methodology, threshold 3. Only screening stage — no NLM, no bib needed. Save screened papers to /tmp/lit-review-eval0/papers-screened.json and print the PRISMA flowchart.",
+      "assertions": [
+        {"text": "PRISMA flowchart printed (stages: identified, title screening, abstract screening, included)"},
+        {"text": "papers-screened.json written with screening_status and screening_score fields"},
+        {"text": "irrelevant papers (climate change, social media) excluded"},
+        {"text": "core QC papers (DFT, CCSD, QTAIM, multireference) included"}
+      ]
+    },
+    {
+      "id": 1,
+      "eval_name": "no-notebooklm-report",
+      "prompt": "Run /lit-review --papers /tmp/lit-review-eval1/papers.json --no-notebooklm --output /tmp/lit-review-eval1/. Topic: quantum chemistry methods. Generate the full report and .bib file.",
+      "assertions": [
+        {"text": "report .md file written to output dir"},
+        {"text": "report contains Coverage section"},
+        {"text": "report contains PRISMA flowchart or PRISMA counts"},
+        {"text": "refs.bib file written to output dir"}
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "screening-criteria",
+      "prompt": "Screen /tmp/lit-review-eval2/papers.json with criteria: include only papers using quantum chemistry methods (DFT, post-HF, QTAIM). Exclude MD simulations, ML-only papers, biology, and non-chemistry topics. Save to /tmp/lit-review-eval2/papers-screened.json.",
+      "assertions": [
+        {"text": "papers-screened.json written with screening_status fields"},
+        {"text": "criteria text logged in output (in file or printed)"},
+        {"text": "MD simulation paper (protein folding) excluded"},
+        {"text": "DFT/CCSD/QTAIM/multireference papers included"}
+      ]
+    }
+  ]
+}
