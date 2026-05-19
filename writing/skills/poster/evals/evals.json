@@ -1,0 +1,65 @@
+[
+  {
+    "id": "generate_poster_body",
+    "description": "Claude receives partially-filled template + project context → generate %%POSTER_BODY%% content",
+    "fill_template_output": {
+      "remaining_placeholder": "%%POSTER_BODY%%",
+      "filled_placeholders": {
+        "AUTHOR": "José A. Quiñonero Gris",
+        "AFFILIATION": "Universidad de Oviedo — TCCM",
+        "EMAIL": "jose@uniovi.es",
+        "TITLE": "%%TITLE%%",
+        "CONFERENCE": "EuChemS 2026, Dublin",
+        "DATE": "2026-07-14",
+        "SIZE": "a0",
+        "ORIENTATION": "portrait",
+        "COLORTHEME": "um"
+      }
+    },
+    "project_context": {
+      "project_id": "PhD-Ch1-AIM4ML",
+      "objective": "Apply IQA energy decomposition to train ML models on QM40 molecular dataset",
+      "methods": ["AIMALL IQA", "ωB97X-D/6-31G*", "random forest + neural network"],
+      "key_results": ["IQA atomic energies as ML targets outperform global energy (R²=0.97 vs 0.91)", "Exchange-correlation dominates H-bond character", "80/20 train/test split on 40k conformers"]
+    },
+    "expected_behavior": "Generates 2-column portrait body with: Left col = Introduction (IQA motivation, QCT background, objective), Methods (AIMALL, DFT level, dataset). Right col = Results (R²=0.97, figure placeholder for learning curves), Key Result alertblock (R²=0.97 vs 0.91), Conclusions (3-4 bullets), References (\\printbibliography). LaTeX is syntactically valid. Figure placeholders use %% INSERT FIGURE format.",
+    "must_contain": ["\\begin{columns}", "\\begin{block}", "IQA", "R²=0.97", "%% INSERT FIGURE", "\\printbibliography"],
+    "must_not_contain": ["%%POSTER_BODY%%", "%%AUTHOR%%", "%%EMAIL%%"]
+  },
+  {
+    "id": "empty_flag_todo_skeleton",
+    "description": "--empty flag: fill_template.py runs, then Claude writes TODO skeleton for %%POSTER_BODY%%",
+    "fill_template_output": {
+      "remaining_placeholder": "%%POSTER_BODY%%",
+      "filled_placeholders": {
+        "AUTHOR": "José A. Quiñonero Gris",
+        "AFFILIATION": "Universidad de Oviedo",
+        "EMAIL": "jose@uniovi.es",
+        "TITLE": "%%TITLE%%",
+        "CONFERENCE": "%%CONFERENCE%%",
+        "DATE": "%%DATE%%",
+        "SIZE": "a0",
+        "ORIENTATION": "portrait",
+        "COLORTHEME": "um"
+      }
+    },
+    "flag": "--empty",
+    "expected_behavior": "Claude generates %%POSTER_BODY%% as structural skeleton with %% TODO: placeholders only. No project context loaded, no real content generated. Writes main.tex and support files. Reports list of %% TODO: markers by section name. Does NOT generate abstract or Q&A.",
+    "must_contain": ["%% TODO:", "\\begin{block}{Introduction}", "\\begin{block}{Methods}", "\\begin{block}{Results}", "%% TODO: markers"],
+    "must_not_contain": ["abstract:", "Q1:", "%%AUTHOR%%"]
+  },
+  {
+    "id": "abstract_generation",
+    "description": "--abstract flag: generate 300-400 word submission abstract from project context",
+    "project_context": {
+      "project_id": "PhD-Ch1-AIM4ML",
+      "objective": "Apply IQA energy decomposition to train ML models predicting atomic and interaction energies",
+      "methods": ["AIMALL IQA at ωB97X-D/6-31G*", "QM40 dataset (40k conformers)", "random forest baseline + neural network"],
+      "key_results": ["Atomic IQA energies: R²=0.97 on test set", "Interaction IQA terms (Vcl, Vxc) learnable independently", "Model generalises across functional groups in QM40"]
+    },
+    "conference": "EuChemS 2026, Dublin",
+    "expected_behavior": "Produces 300-400 word abstract. Opens with scientific problem (ML + QCT/IQA gap). States methods (IQA, QM40, model types). Reports key result (R²=0.97, atomic energies). Closes with conclusion and outlook. Followed by 5-8 keywords. Written to abstract.md. Printed inline in report.",
+    "must_contain": ["IQA", "QM40", "R²=0.97", "Keywords:", "abstract.md"],
+    "must_not_contain": ["%% TODO:", "%%POSTER_BODY%%"]
+  }
+]
