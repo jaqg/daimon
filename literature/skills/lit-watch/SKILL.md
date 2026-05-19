@@ -6,7 +6,7 @@ description: >
   Trigger for: "/lit-watch", "check for new papers", "weekly lit update", "what's new in the literature",
   "any new papers on X this week", "monitor new papers for my project", "run lit-watch".
   Designed to run weekly, manually or via /schedule.
-tools: Bash, Read, Write
+tools: Bash, Write
 ---
 
 # lit-watch
@@ -70,32 +70,31 @@ Extract: research topics, keywords, methodology terms.
 
 If no matching memory file found: fall back to `--topics` mode and warn user.
 
-## Step 2: Search for new papers
+## Step 2: Collect papers (all topics, parallel)
 
-Locate search script:
 ```bash
-SEARCH_SCRIPT=$(find -L ~/.claude -path "*/lit-search/scripts/search.py" -type f | head -1)
+COLLECT=$(find -L ~/.claude -path "*/lit-watch/scripts/collect.py" -type f | head -1)
+python3 "$COLLECT" \
+  --topics "TOPIC1, TOPIC2, ..." \
+  --results ${RESULTS:-50} \
+  [--since "$LAST_RUN"] \
+  [--domains "$DOMAINS"] \
+  [--project "$PROJECT_ID"] \
+  [--state-dir "$LIT_WATCH_STATE_DIR"]
 ```
 
-For each topic/keyword (from project context or --topics):
-```bash
-python3 "$SEARCH_SCRIPT" "TOPIC" \
-  --results $RESULTS \
-  --from-date "$LAST_RUN" \
-  --sort recency \
-  --output "/tmp/lit-watch-tmp-TOPIC.json"
-```
+Capture the output JSON. Key fields:
+- `new_papers[]` — papers not yet in seen_ids (score these)
+- `papers[]` — all merged results
+- `meta.new_unseen` — count of new papers
+- `meta.sources_coverage` — per-DB hit counts
+- `meta.errors[]` — any per-topic failures
 
-Merge all results:
-```bash
-# Append each topic result into a single combined file, deduplicating by ID
-```
+If `new_papers` is empty: skip Step 3, report "No new papers found since LAST_RUN."
 
 ## Step 3: Score relevance
 
-For each paper in combined results:
-
-Score 1–5 on title + abstract relevance to project context:
+Score each paper in `new_papers[]` on title + abstract relevance to project context:
 - **5**: directly addresses a core research question or methodology
 - **4**: clearly relevant to research area; likely worth reading
 - **3**: tangentially related; might be useful as background
@@ -110,12 +109,7 @@ Base scoring on:
 **Justification required**: every paper with score ≥ threshold must have a 1–2 sentence
 explanation citing specific project keywords it matches.
 
-## Step 4: Dedup against seen_ids
-
-Load seen_ids from state. Remove any paper whose canonical ID (arxiv:XXX or doi:XXX)
-is in seen_ids. This prevents re-reporting.
-
-## Step 5: Write digest
+## Step 4: Write digest
 
 If not `--dry-run`:
 
@@ -146,16 +140,17 @@ To act on these: `/lit-review --papers papers-watch-YYYY-MM-DD.json`
 Also save the combined papers.json as `papers-watch-YYYY-MM-DD.json` in cwd (or output-inbox dir)
 so the user can run `lit-review` on it immediately.
 
-## Step 6: Update state
+## Step 5: Update state
 
 If not `--dry-run`:
 ```bash
 python3 "$STATE_SCRIPT" --update --ids "$(cat new_ids.txt)" [--project PROJECT_ID]
 ```
 
-The script: extends seen_ids with all scanned paper IDs, updates last_run to today.
+The script: extends seen_ids with all scanned paper IDs (from `collect_output["papers"]`),
+updates last_run to today.
 
-## Step 7: Report to user
+## Step 6: Report to user
 
 ```
 lit-watch complete — YYYY-MM-DD
