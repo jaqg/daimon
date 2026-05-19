@@ -1,0 +1,64 @@
+[
+  {
+    "id": "ct_apply_change",
+    "description": "Single CT tag → apply rename, mark done",
+    "tags_json": [
+      {
+        "file": "/tmp/eval/main.tex",
+        "line": 3,
+        "type": "CT",
+        "content": "rename to Introducción",
+        "context_before": ["\\documentclass{article}", "\\begin{document}"],
+        "context_after": ["Some text here.", "$V = x^4$", "\\end{document}"]
+      }
+    ],
+    "expected_behavior": "Edits /tmp/eval/main.tex line 3: renames \\section{Introduction} to \\section{Introducción}. Changes %CT: to %(done)CT: on same line. No Read tool call needed (context sufficient).",
+    "must_contain": ["Introducción", "%(done)CT:"],
+    "must_not_contain": ["%CT:", "\\section{Introduction}"]
+  },
+  {
+    "id": "cq_comment_mode",
+    "description": "Single CQ tag → insert %ANSWER comment below",
+    "tags_json": [
+      {
+        "file": "/tmp/eval/main.tex",
+        "line": 5,
+        "type": "CQ",
+        "content": "should this be in display math instead?",
+        "context_before": ["\\section{Introduction}", "Some text.", ""],
+        "context_after": ["More text.", "\\end{document}"]
+      }
+    ],
+    "expected_behavior": "Inserts %ANSWER: line immediately below line 5. Changes %CQ: to %(done)CQ:. Answer is concise (1-3 lines). No claude-answer environment used.",
+    "must_contain": ["%ANSWER:", "%(done)CQ:"],
+    "must_not_contain": ["\\begin{claude-answer}", "%(done)CQ(render):"]
+  },
+  {
+    "id": "cqrender_render_mode",
+    "description": "CQrender tag → insert claude-answer environment",
+    "tags_json": [
+      {
+        "file": "/tmp/eval/main.tex",
+        "line": 8,
+        "type": "CQrender",
+        "content": "explain why we use discrete energy levels here",
+        "context_before": [
+          "The wavefunction $\\psi$ satisfies boundary conditions.",
+          "The energy spectrum is $E_n = n^2 \\pi^2 / 2mL^2$."
+        ],
+        "context_after": ["\\end{document}"]
+      }
+    ],
+    "expected_behavior": "Inserts \\begin{claude-answer}...\\end{claude-answer} below line 8. Answer is LaTeX prose (not a brief comment). Checks if claude-answer env is defined in root file and adds it if missing. Marks %(done)CQ(render):.",
+    "must_contain": ["\\begin{claude-answer}", "\\end{claude-answer}", "%(done)CQ(render):"],
+    "must_not_contain": ["%ANSWER:", "%(done)CQ:"]
+  },
+  {
+    "id": "empty_tags_stops",
+    "description": "Empty tag list → report no tags and stop",
+    "tags_json": [],
+    "expected_behavior": "Reports 'No open tags found.' immediately. No Edit calls. No file reads beyond what the script already provided.",
+    "must_contain": ["No open tags"],
+    "must_not_contain": ["Edit(", "%(done)"]
+  }
+]

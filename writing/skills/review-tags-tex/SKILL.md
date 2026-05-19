@@ -1,7 +1,7 @@
 ---
 name: review-tags-tex
 description: Process review tags embedded as LaTeX comments in .tex files. Use this skill whenever the user invokes /review-tags-tex, or asks to "process tags", "apply comments", "review tex tags", or mentions %CT / %CQ / %CQ(render) tags in .tex files. Given a .tex file or a folder of .tex files (defaults to the current working directory), find and act on two kinds of tags: (1) %CT: <comment> — apply the change described in <comment> to the surrounding code, then mark the tag done as %(done)CT; (2) %CQ: <question> — answer the question and insert the answer as %ANSWER: <answer> on the line below (or, with --render-notes, inside a rendered claude-answer environment in Claude's orange color using /scientific-writing), then mark the tag done as %(done)CQ; (3) %CQ(render): <question> — like %CQ but forces a rendered claude-answer environment for that specific tag even without --render-notes, marking it done as %(done)CQ(render). Always invoke this skill when the user says /review-tags-tex.
-tools: Read, Edit, Grep, Glob, Bash
+tools: Read, Edit, Bash
 ---
 
 > **Dependency:** `--render-notes` mode requires the `/scientific-writing` skill from the `claude-scientific-writer` plugin. Without it, render-mode tags will fall back to comment mode and a warning will be shown.
@@ -14,9 +14,9 @@ Process embedded review tags in LaTeX source files.
 
 | Tag | Meaning | Action |
 |-----|---------|--------|
-| `%CT: <comment>` | **C**hange **T**ag — instruction to modify the surrounding code | Apply the change near the tagged line |
-| `%CQ: <question>` | **C**hange **Q**uestion — a question about the surrounding code | Answer the question inline (as a comment by default) |
-| `%CQ(render): <question>` | Same as `%CQ` but forces a rendered answer for this tag | Answer rendered in a `claude-answer` environment, even without `--render-notes` |
+| `%CT: <comment>` | **C**hange **T**ag — instruction to modify surrounding code | Apply the change near the tagged line |
+| `%CQ: <question>` | **C**hange **Q**uestion — a question about surrounding code | Answer inline (comment by default) |
+| `%CQ(render): <question>` | Same as `%CQ` but forces rendered answer | Answer in `claude-answer` environment |
 
 ## Invocation
 
@@ -24,87 +24,92 @@ Process embedded review tags in LaTeX source files.
 /review-tags-tex [target] [--render-notes] [--remove-tags]
 ```
 
-- `target` can be a single `.tex` file or a directory (searched recursively for `*.tex`).
-- If no target is given, use the **current working directory** (the directory where the Claude Code session was started).
-- `--render-notes`: write **all** `%CQ` answers as rendered PDF content inside a `claude-answer` environment instead of as a comment (see below).
-- `--remove-tags`: after processing, delete the tag lines entirely instead of marking them `%(done)`.
+- `target`: single `.tex` file or directory (searched recursively). Default: current working directory.
+- `--render-notes`: write **all** `%CQ` answers as rendered PDF content in `claude-answer` environment.
+- `--remove-tags`: after processing, delete tag lines instead of marking `%(done)`.
 
-A `%CQ` tag can also carry a **per-tag render modifier**: `%CQ(render): <question>`. This forces that specific answer to be rendered inside a `claude-answer` environment regardless of whether `--render-notes` was passed. When `--render-notes` is active, all `%CQ` answers (including plain `%CQ:` ones) are rendered, so the `(render)` modifier is redundant but still valid.
+## Step 1 — Extract tags
 
-## Workflow
+```bash
+SCRIPT=$(find -L ~/.claude -path "*/review-tags-tex/scripts/extract_tags.py" -type f | head -1)
+python3 "$SCRIPT" <target>
+```
 
-### Step 1 — Discover tags
+The script outputs a JSON array. Each entry has:
+- `file` — absolute path to `.tex` file
+- `line` — 1-based line number
+- `type` — `"CT"`, `"CQ"`, or `"CQrender"`
+- `content` — text after the tag prefix (the instruction or question)
+- `context_before` — up to 15 lines before the tag
+- `context_after` — up to 15 lines after the tag
 
-Grep the target file(s) for lines matching `%CT:`, `%CQ:`, or `%CQ(render):` that have **not** yet been marked done (i.e. do not start with `%(done)`). Collect them with their file path and line number.
+Script already skips:
+- Tags inside `lstlisting`, `verbatim`, `Verbatim` environments
+- Tags already marked `%(done)...`
 
-If no open tags are found, tell the user and stop.
+If the array is empty: tell the user "No open tags found." and stop.
 
-### Step 2 — Process each tag
+## Step 2 — Process each tag
 
-Work through the tags in order (file by file, top to bottom). For each tag:
+Work through tags in order (file by file, top to bottom). For each tag, use `context_before`
+and `context_after` from the JSON to understand intent — only call Read if context is
+insufficient to interpret the change.
 
-#### %CT tags — apply a change
+### %CT tags — apply a change
 
-1. Read the line and its surrounding context (typically ±10–20 lines is enough to understand what needs changing).
-2. Interpret `<comment>` as a plain-language instruction about what to change *in or around* that location. The instruction is usually something like "rename this command", "add a label here", "fix the equation sign", "use \textbf instead of \textit", etc.
-3. Apply the change directly to the file using the Edit tool.
-4. Change `%CT:` to `%(done)CT:` on the tag line itself (leave the comment text intact).
+1. Interpret `content` as a plain-language instruction about what to change near that line.
+2. Apply the change to the file using Edit.
+3. Mark the tag done: change `%CT:` → `%(done)CT:` on that line (keep comment text).
 
-**Unless the user explicitly passes `--remove-tags` when invoking the skill**, keep the tag line — just update the prefix so it is clear the tag has been processed.
+If `--remove-tags`: delete the tag line instead of marking done.
 
-#### %CQ tags — answer a question
+### %CQ tags — answer a question
 
-When processing a `%CQ` tag, first determine the **render mode** for that tag:
-
-- **Render this answer** if either (a) the tag is `%CQ(render): <question>`, or (b) `--render-notes` was passed.
-- **Comment mode** otherwise (plain `%CQ:` without `--render-notes`).
+Determine render mode for each tag:
+- **Render** if `type == "CQrender"`, or if `--render-notes` was passed.
+- **Comment mode** otherwise.
 
 **Comment mode:**
+1. Compose a concise answer (1–3 lines; it lives as a LaTeX comment).
+2. Insert `%ANSWER: <answer>` on the line immediately below the `%CQ` line using Edit.
+3. Mark done: `%CQ:` → `%(done)CQ:` (keep question text).
 
-1. Read the line and its surrounding context to understand what the question refers to.
-2. Compose a concise, accurate answer. The answer will live as a LaTeX comment, so keep it to 1–3 lines; if a longer explanation is needed, summarise and offer to elaborate in the chat.
-3. Insert the answer on the line **immediately below** the `%CQ` line, formatted as:
-   ```
-   %ANSWER: <your answer>
-   ```
-4. Change `%CQ:` to `%(done)CQ:` on the original tag line (leave the question text intact).
-
-**Render mode** (applies to `%CQ(render):` tags, or all `%CQ` tags when `--render-notes` is passed):
-
-1. Read the line and its surrounding context to understand what the question refers to.
-2. Use the `/scientific-writing` skill to compose the answer (unless the user explicitly requests a different writing approach when invoking the skill). Write the answer as proper LaTeX prose — it will be rendered in the PDF, so it should be well-written, not a brief comment.
-3. Ensure the `claude-answer` environment exists in the project before inserting the answer:
-   - Find the root `.tex` file (the one with `\documentclass`).
-   - Check whether `\newenvironment{claude-answer}` is already defined anywhere in the project.
-   - If it is **not** defined, add the following block to the preamble of the root file (after `\usepackage` declarations, before `\begin{document}`):
+**Render mode:**
+1. Use `/scientific-writing` to compose the answer as LaTeX prose.
+2. Ensure `claude-answer` environment is defined in the root `.tex` file (the one with `\documentclass`):
+   - If `\newenvironment{claude-answer}` not already present, add to preamble:
      ```latex
      % claude-answer environment: renders Claude's answers in orange
      \usepackage{xcolor}
      \definecolor{claudeorange}{HTML}{D97757}
      \newenvironment{claude-answer}{\color{claudeorange}}{}
      ```
-     If `\usepackage{xcolor}` is already present, do **not** add it again. If `\definecolor{claudeorange}` is already defined, do **not** redefine it.
-4. Insert the answer on the line **immediately below** the `%CQ` line, wrapped in the environment:
+     Do not duplicate `\usepackage{xcolor}` or `\definecolor{claudeorange}` if already present.
+3. Insert immediately below the tag line:
    ```latex
    \begin{claude-answer}
-   <your answer in LaTeX prose>
+   <answer>
    \end{claude-answer}
    ```
-5. Change the tag to its done form: `%CQ(render):` → `%(done)CQ(render):`, plain `%CQ:` → `%(done)CQ:` (leave the question text intact).
+4. Mark done: `%CQ(render):` → `%(done)CQ(render):`, plain `%CQ:` → `%(done)CQ:`.
 
-### Step 3 — Report
+## Step 3 — Report
 
-After processing all tags, give the user a brief summary:
-- How many `%CT` tags were applied (and to which files).
-- How many `%CQ` tags were answered (and to which files).
-- Any tags that were ambiguous or that you were unsure about (explain your interpretation and what you did, and invite correction).
+```
+Processed N tags across M file(s):
+  %CT applied: K  (file1.tex:3, file2.tex:17)
+  %CQ answered: J  (file1.tex:5)
+  %CQ(render) answered: L
+  Skipped (ambiguous): 0
+```
+
+Flag any tags where interpretation was uncertain; show what was done and invite correction.
 
 ## Edge cases
 
-- **Ambiguous CT instruction**: if the instruction is unclear, make your best-effort interpretation, apply it, and flag the ambiguity in your report so the user can review.
-- **Nested or escaped percent signs**: only match lines where `%CT:` or `%CQ:` appears as the first non-whitespace content of a comment (i.e. after optional spaces and a `%`).
-- **Multiple tags on nearby lines**: process each independently in order; a change from one tag should not break the context of the next.
-- **Tag inside a lstlisting or verbatim environment**: skip it — modifying code inside verbatim blocks based on a comment tag is almost certainly unintended. Report these as skipped.
+- **Ambiguous CT instruction**: apply best-effort interpretation, flag in report.
+- **Multiple tags on nearby lines**: process each independently in order.
+- **`--render-notes` without `/scientific-writing`**: fall back to comment mode, warn user.
 
 ## Example
 
@@ -119,14 +124,9 @@ The energy levels are $E_n$.  %CQ(render): explain why we use discrete energy le
 ```latex
 \section{Introducción}   %(done)CT: rename to "Introducción"
 The potential is $V = x^4$.  %(done)CQ: should this be in display math instead?
-%ANSWER: For a standalone equation that deserves visual emphasis, yes — use \[ V = x^4 \] or an equation environment. As a short inline expression within a sentence it is fine as-is.
+%ANSWER: For a standalone equation, yes — use \[ V = x^4 \]. Inline is fine as-is.
 The energy levels are $E_n$.  %(done)CQ(render): explain why we use discrete energy levels here
 \begin{claude-answer}
-The discretisation of energy levels follows from the boundary conditions imposed on the
-wavefunction inside the potential well\ldots
+The discretisation of energy levels follows from the boundary conditions\ldots
 \end{claude-answer}
 ```
-
-Note that the plain `%CQ` got a comment answer while `%CQ(render)` was rendered in the `claude-answer` environment — even though `--render-notes` was not passed.
-
-**After (`--render-notes`):** all `%CQ` answers — including plain `%CQ:` — are rendered in `claude-answer` environments. The `(render)` modifier is redundant but still accepted.
