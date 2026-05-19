@@ -1,0 +1,66 @@
+[
+  {
+    "id": "conference_email_routing",
+    "description": "Conference email → extract metadata, append to events.md, move to processed/",
+    "scan_output": {
+      "emails": [
+        {
+          "file": "email-2024-03-15-iupac2025.md",
+          "email_type": "conference",
+          "frontmatter": {"type": "email", "email-type": "conference", "date": "2024-03-15"},
+          "content": "---\ntype: email\nemail-type: conference\ndate: 2024-03-15\n---\n\nIUPAC World Chemistry Congress 2025\nDates: August 10-15, 2025, Ottawa, Canada\nAbstract submission deadline: March 31, 2025\nRegistration deadline: June 30, 2025\nHomepage: https://iupac2025.org\nRegistration: https://iupac2025.org/register\nCost: CAD 1,200 (standard). Student rate: CAD 600.\nTopics: computational chemistry, molecular modelling, chemical informatics."
+        }
+      ],
+      "loose_notes": [],
+      "daily_notes": [],
+      "stats": {"total": 1, "emails": 1, "loose_notes": 0, "daily_notes": 0}
+    },
+    "expected_behavior": "Extracts: name=IUPAC World Chemistry Congress 2025, dates=2025-08-10–15, location=Ottawa Canada, abstract deadline=2025-03-31, registration deadline=2025-06-30, cost=CAD 1200/600, homepage=https://iupac2025.org. Reads research_interests.md for relevance rubric. Appends table row to events.md. Appends summary block under ## Event Summaries. Re-sorts table by registration deadline ascending. Moves file to 00-Inbox/processed/ via Bash mv. Logs action to 40-Meta/ai-changes.md.",
+    "must_contain": ["events.md", "IUPAC", "Ottawa", "2025-06", "processed/", "ai-changes.md"],
+    "must_not_contain": ["deleted", "skipped IUPAC"]
+  },
+  {
+    "id": "tutor_email_decisions",
+    "description": "Tutor email → summarise, extract decisions, promote to decisions-log.md, flag action items",
+    "scan_output": {
+      "emails": [
+        {
+          "file": "email-2024-03-16-supervisor.md",
+          "email_type": "tutor",
+          "frontmatter": {"type": "email", "email-type": "tutor", "date": "2024-03-16", "project": "PhD-Ch1-AIM4ML"},
+          "content": "---\ntype: email\nemail-type: tutor\ndate: 2024-03-16\nproject: PhD-Ch1-AIM4ML\n---\n\nFrom: Angel Pendes\nSubject: QM40 next steps\n\nWe agreed to run IQA on the full QM40 dataset before the June meeting.\nDecision: use AIMALL for all IQA calculations (consistent with previous chapter).\nAction item: send me the benchmark comparison by May 30.\nDecision: fixed-fraction 80/20 train/test split for Phase 3.\nThe DFT level should remain ωB97X-D/6-31G* for now."
+        }
+      ],
+      "loose_notes": [],
+      "daily_notes": [],
+      "stats": {"total": 1, "emails": 1, "loose_notes": 0, "daily_notes": 0}
+    },
+    "expected_behavior": "Summarises in 3-5 bullets. Extracts decisions: use AIMALL, 80/20 split, ωB97X-D/6-31G*. Promotes decisions to 10-Projects/PhD-Ch1-AIM4ML/decisions-log.md. Flags action item (benchmark comparison by May 30) explicitly in final report — does not silently drop it. Moves file to 00-Inbox/processed/. Logs to ai-changes.md.",
+    "must_contain": ["decisions-log.md", "AIMALL", "action item", "May 30", "processed/"],
+    "must_not_contain": ["action items: none", "no action items"]
+  },
+  {
+    "id": "loose_note_routing",
+    "description": "Loose notes — Paper type moves to 20-Sources/; Concept type proposes Galaxy skeleton (no write)",
+    "scan_output": {
+      "emails": [],
+      "loose_notes": [
+        {
+          "file": "bader1990-atoms-in-molecules.md",
+          "frontmatter": {"type": "Paper", "status": "Seed", "subject": "AIM"},
+          "first_200_chars": "Bader's foundational AIM monograph. Key framework for topological analysis of electron density."
+        },
+        {
+          "file": "electron-density-topology.md",
+          "frontmatter": {"type": "Concept", "status": "Seed", "subject": "QTAIM"},
+          "first_200_chars": "Topological analysis of the electron density field. Critical points: (3,-3) nuclei, (3,-1) BCPs, (3,+1) RCPs. Gradient vector field defines atomic basins."
+        }
+      ],
+      "daily_notes": [],
+      "stats": {"total": 2, "emails": 0, "loose_notes": 2, "daily_notes": 0}
+    },
+    "expected_behavior": "bader1990-atoms-in-molecules.md (type=Paper) → propose move to 20-Sources/papers/ via bash mv; log to ai-changes.md. electron-density-topology.md (type=Concept, standalone idea) → draft Galaxy skeleton in response and notify user; do NOT write to 30-Galaxy/ without user approval. Report lists both actions. ai-changes.md updated.",
+    "must_contain": ["20-Sources/papers", "30-Galaxy", "electron-density-topology", "ai-changes.md", "approval"],
+    "must_not_contain": ["wrote to 30-Galaxy", "created 30-Galaxy/electron-density-topology.md"]
+  }
+]
