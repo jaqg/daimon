@@ -190,13 +190,40 @@ $NLM source wait SOURCE_ID --notebook NOTEBOOK_ID --timeout 120
 
 ### Analysis per batch
 
-Default question (when no --goal):
-> "Based on these papers about [TOPIC], provide: (1) **State of the field** — key results,
-> open problems, recent trends, most promising approaches; (2) **Methodological comparison** —
-> how do these papers differ in technique, framework, computational approach? Where do they agree
-> or contradict? Be specific: cite papers by author and year. Note limitations and gaps."
+**Construct question before calling `$NLM ask`:**
 
-If `--goal`: use that question instead.
+If `--goal`: use that question verbatim (skip question construction below).
+
+Otherwise, build a structured question in two parts:
+
+**Part 1 — General analysis (always included):**
+```
+Based on these papers about [TOPIC], provide:
+(1) **State of the field** — key results, open problems, recent trends, most promising approaches.
+(2) **Methodological comparison** — how do these papers differ in technique, framework, or computational approach? Where do they agree or contradict?
+Be specific: cite papers by author and year. Note limitations and gaps.
+```
+
+**Part 2 — Project-specific analysis (only if `--project`):**
+
+Read the project memory file (same logic as Step 1 of lit-vault: find `$MEMORY_DIR/project_*.md`
+matching PROJECT_ID). Extract:
+- Research questions (lines under "research questions", "open questions", or "goals" headings)
+- Methodology keywords (domain terms, method names, computational approaches)
+- Known gaps (lines under "gaps", "missing", "unknown", or "limitations" headings)
+
+Append to the question:
+```
+(3) **Project-specific analysis** — For the [PROJECT_ID] project, address the following:
+[List extracted research questions as sub-bullets, e.g.:
+  - What mechanisms explain X?
+  - Which methods best address Y?
+  - What are known limitations of Z?]
+Focus on: [comma-separated methodology keywords].
+Flag any papers that directly address known gaps: [list extracted gaps].
+```
+
+If project memory file not found or yields no extractable questions/gaps: omit Part 2 entirely, log warning "No project context found for PROJECT_ID — using general question only."
 
 ```bash
 $NLM ask "QUESTION" --notebook NOTEBOOK_ID --json
