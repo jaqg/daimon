@@ -1,38 +1,70 @@
-{
-  "skill_name": "lit-review",
-  "evals": [
-    {
-      "id": 0,
-      "eval_name": "screen-only",
-      "prompt": "Screen /tmp/lit-review-eval0/papers.json for quantum chemistry relevance using PRISMA methodology, threshold 3. Only screening stage — no NLM, no bib needed. Save screened papers to /tmp/lit-review-eval0/papers-screened.json and print the PRISMA flowchart.",
-      "assertions": [
-        {"text": "PRISMA flowchart printed (stages: identified, title screening, abstract screening, included)"},
-        {"text": "papers-screened.json written with screening_status and screening_score fields"},
-        {"text": "irrelevant papers (climate change, social media) excluded"},
-        {"text": "core QC papers (DFT, CCSD, QTAIM, multireference) included"}
-      ]
+[
+  {
+    "id": "prefilter_keyword_exclusion",
+    "description": "prefilter auto-excludes papers with no keyword match in title",
+    "prefilter_input": {
+      "papers": [
+        {"id": "doi:1", "title": "DFT Study of Hydrogen Bonds", "year": 2024, "citations": 5, "abstract": "..."},
+        {"id": "doi:2", "title": "Protein Folding with Molecular Dynamics", "year": 2023, "citations": 15, "abstract": "..."},
+        {"id": "doi:3", "title": "QTAIM Charge Partitioning in Crystals", "year": 2025, "citations": 2, "abstract": "..."},
+        {"id": "doi:4", "title": "Machine Learning for Social Media Sentiment", "year": 2024, "citations": 8, "abstract": "..."}
+      ],
+      "keywords": ["dft", "qtaim", "iqa", "quantum", "chemical", "density", "functional"],
+      "exclude_terms": ["social media", "sentiment", "protein folding"]
     },
-    {
-      "id": 1,
-      "eval_name": "no-notebooklm-report",
-      "prompt": "Run /lit-review --papers /tmp/lit-review-eval1/papers.json --no-notebooklm --output /tmp/lit-review-eval1/. Topic: quantum chemistry methods. Generate the full report and .bib file.",
-      "assertions": [
-        {"text": "report .md file written to output dir"},
-        {"text": "report contains Coverage section"},
-        {"text": "report contains PRISMA flowchart or PRISMA counts"},
-        {"text": "refs.bib file written to output dir"}
-      ]
+    "expected_prefilter_output": {
+      "auto_excluded": ["doi:2", "doi:4"],
+      "auto_included": [],
+      "for_claude": ["doi:1", "doi:3"]
     },
-    {
-      "id": 2,
-      "eval_name": "screening-criteria",
-      "prompt": "Screen /tmp/lit-review-eval2/papers.json with criteria: include only papers using quantum chemistry methods (DFT, post-HF, QTAIM). Exclude MD simulations, ML-only papers, biology, and non-chemistry topics. Save to /tmp/lit-review-eval2/papers-screened.json.",
-      "assertions": [
-        {"text": "papers-screened.json written with screening_status fields"},
-        {"text": "criteria text logged in output (in file or printed)"},
-        {"text": "MD simulation paper (protein folding) excluded"},
-        {"text": "DFT/CCSD/QTAIM/multireference papers included"}
-      ]
-    }
-  ]
-}
+    "expected_behavior": "doi:2 excluded (title has exclude-term 'protein folding'). doi:4 excluded (title has 'social media'). doi:1 and doi:3 go to for_claude. Stats show 2 auto-excluded, 0 auto-included, 2 for_claude (50% reduction).",
+    "must_contain": ["auto_excluded", "for_claude", "50", "reduction"],
+    "must_not_contain": ["doi:1 excluded", "doi:3 excluded"]
+  },
+  {
+    "id": "prefilter_high_citation_include",
+    "description": "prefilter auto-includes highly cited established paper",
+    "prefilter_input": {
+      "papers": [
+        {"id": "arxiv:old", "title": "Foundational QTAIM Theory", "year": 2010, "citations": 2500, "abstract": "..."},
+        {"id": "arxiv:new", "title": "Recent IQA Applications", "year": 2025, "citations": 1, "abstract": "..."},
+        {"id": "doi:mid", "title": "QTAIM Bond Analysis", "year": 2022, "citations": 35, "abstract": "..."}
+      ],
+      "keywords": [],
+      "exclude_terms": []
+    },
+    "expected_prefilter_output": {
+      "auto_excluded": [],
+      "auto_included": ["arxiv:old"],
+      "for_claude": ["arxiv:new", "doi:mid"]
+    },
+    "expected_behavior": "arxiv:old (2010, 2500 citations, ≥5yr old, ≥100 citations) → auto-included at score 4. arxiv:new and doi:mid → for_claude. Stats: 0 excluded, 1 auto-included, 2 for_claude.",
+    "must_contain": ["auto_included", "arxiv:old", "for_claude"],
+    "must_not_contain": ["arxiv:old excluded"]
+  },
+  {
+    "id": "claude_screens_for_claude_set",
+    "description": "Claude screens only for_claude papers; auto groups bypass scoring",
+    "prefilter_output": {
+      "auto_excluded": [
+        {"id": "doi:irrel", "title": "Climate Change Impacts", "year": 2024, "citations": 10,
+         "screening_status": "excluded", "screening_score": 1, "exclusion_reason": "title contains none of the required keywords"}
+      ],
+      "auto_included": [
+        {"id": "doi:classic", "title": "QTAIM Foundational Paper", "year": 2008, "citations": 3200,
+         "screening_status": "included", "screening_score": 4, "exclusion_reason": null}
+      ],
+      "for_claude": [
+        {"id": "arxiv:new1", "title": "IQA Decomposition in Hydrogen Bonds", "year": 2025, "citations": 3,
+         "abstract": "We apply IQA decomposition to characterise hydrogen bonding in ice polymorphs using CCSD density.", "screening_status": "pending", "screening_score": null},
+        {"id": "arxiv:new2", "title": "Deep Learning Force Fields", "year": 2025, "citations": 5,
+         "abstract": "We train neural network potentials on MD trajectories of protein systems.", "screening_status": "pending", "screening_score": null}
+      ],
+      "stats": {"total": 4, "auto_excluded": 1, "auto_included": 1, "for_claude": 2, "reduction_pct": 50}
+    },
+    "screening_criteria": "Include: QTAIM, IQA, electron density, quantum chemistry. Exclude: ML-only, biology.",
+    "expected_behavior": "Claude scores only arxiv:new1 and arxiv:new2. arxiv:new1 (IQA + hydrogen bonds + CCSD) scores 4-5. arxiv:new2 (neural networks + proteins + MD) scores 1-2 and excluded. doi:irrel and doi:classic kept as-is from prefilter output. PRISMA flowchart shows all 4 papers with correct group breakdown.",
+    "must_contain": ["arxiv:new1", "included", "arxiv:new2", "excluded", "Records identified: 4"],
+    "must_not_contain": ["doi:classic excluded", "doi:irrel included"]
+  }
+]

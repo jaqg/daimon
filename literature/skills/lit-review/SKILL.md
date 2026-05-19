@@ -87,14 +87,35 @@ Display coverage statement and paper count. Proceed even if fewer than 5 papers 
 
 ## Stage 2: PRISMA Screening (if not --notebooklm or --report)
 
-Apply PRISMA methodology (from K-Dense literature-review plugin):
+### Phase 2a: Deterministic pre-filter (script)
 
-### Phase order
-1. **Identification**: total papers from search
-2. **Title screening**: exclude clearly irrelevant (score 1–2) on title alone
-3. **Abstract screening**: score remaining 1–5 on title + abstract
-4. **Full inclusion**: papers scoring ≥ 3 are included (or score ≥ threshold from --criteria)
-5. **PRISMA flowchart**: print ASCII counts at each stage
+Run before Claude sees any abstracts:
+
+```bash
+PREFILTER=$(find -L ~/.claude -path "*/lit-review/scripts/prisma_prefilter.py" -type f | head -1)
+python3 "$PREFILTER" \
+  --papers "$OUTPUT_DIR/papers-raw.json" \
+  [--keywords "K1,K2,..."] \
+  [--exclude-terms "T1,T2,..."]
+```
+
+Extract keywords from `--criteria` text or project memory (the nouns and domain terms).
+Extract exclude-terms from `--criteria` exclusion clauses (e.g. "Exclude: biology, MD simulations").
+
+Output: `{"auto_excluded": [...], "auto_included": [...], "for_claude": [...], "stats": {...}}`.
+
+Report pre-filter results:
+```
+Pre-filter: N total → auto-excluded: A (no keyword match) | auto-included: B (high citations) | for Claude: C (reduction_pct%)
+```
+
+### Phase 2b: Abstract screening (Claude — for_claude set only)
+
+Apply PRISMA methodology to `for_claude` papers only:
+
+1. **Title screening**: exclude clearly irrelevant (score 1–2) on title alone
+2. **Abstract screening**: score remaining 1–5 on title + abstract
+3. **Full inclusion**: papers scoring ≥ 3 included (or ≥ threshold from --criteria)
 
 Scoring rubric (domain-agnostic):
 - **5**: directly answers the review question / addresses core methodology
@@ -103,31 +124,31 @@ Scoring rubric (domain-agnostic):
 - **2**: shares topic but different scope or approach; exclude if papers abundant
 - **1**: not relevant; exclude
 
-**Citation-count impact thresholds** (from K-Dense):
-- Highly cited (>100 for >5yr paper, >20 for <3yr): default include even at score 3
-- Never exclude a paper solely on low citations
-
 **Venue tier** (informative, not decisive):
 - Tier 1: Nature, Science, Cell, JACS, PRL, Angew. Chem., NeurIPS/ICML/ICLR/JMLR
 - Tier 2: domain-leading journals (JCTC, PCCP, JCP, PRB for comp-chem; similar for other domains)
 
 **Criteria logging**: store `--criteria` text in output JSON for reproducibility.
 
-**Screening audit**: after exclusion, randomly re-examine 5% of excluded papers.
+**Screening audit**: after exclusion, randomly re-examine 5% of excluded papers (from for_claude set).
 Flag any that appear to have been wrongly excluded.
 
 **Abstract requirement**: flag papers without abstracts (cannot screen properly).
 
-Print PRISMA flowchart:
+### Phase 2c: Merge and PRISMA flowchart
+
+Merge all three groups. Print:
 ```
 Records identified: N
+  Auto-excluded (pre-filter): A
+  Auto-included (high-citation): B
 After title screening: N (excluded: N)
 After abstract screening: N (excluded: N)
 After criteria filter: N (excluded: N)
 Included for analysis: N
 ```
 
-Save screened `papers.json` with `screening_status` and `screening_score` filled in.
+Save screened `papers.json` with `screening_status` and `screening_score` filled in for all papers.
 
 ## Stage 3: NotebookLM Analysis (if not --screen, --bib, --no-notebooklm)
 
