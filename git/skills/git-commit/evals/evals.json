@@ -1,0 +1,73 @@
+[
+  {
+    "id": "simple_feat",
+    "description": "Single new file adds a feature → feat type, scope from path, no body needed",
+    "staged_diff_stat": "writing/skills/poster/scripts/fill_template.py | 143 ++++++++++++++++++++++++++++++++++++",
+    "staged_diff_excerpt": "diff --git a/writing/skills/poster/scripts/fill_template.py b/writing/skills/poster/scripts/fill_template.py\nnew file mode 100755\nindex 0000000..4c2e1b3\n--- /dev/null\n+++ b/writing/skills/poster/scripts/fill_template.py\n@@ -0,0 +1,143 @@\n+#!/usr/bin/env python3\n+\"\"\"Fill identity/layout placeholders in the poster LaTeX template.\"\"\"\n+import argparse, re, sys\n+from pathlib import Path\n+\n+SCALE_TABLE = {\"a0\": \"1.3\", \"a1\": \"1.1\", \"a2\": \"0.9\", \"a3\": \"0.7\"}\n+\n+def read_config(config_path):\n+    config = {}\n+    ...\n",
+    "recent_log": [
+      "a685894 vault backup: 2026-05-18 17:07:52",
+      "a04324e vault backup: 2026-05-18 17:04:43",
+      "f497c77 vault backup: 2026-05-18 16:59:50",
+      "d2c8b1a refactor(process-inbox): add scan_inbox.py for structured inbox discovery",
+      "b9f3c0e feat(qr-code): add generate_qr.py to replace inline script generation"
+    ],
+    "expected_behavior": "Generates: feat(poster): add fill_template.py for deterministic placeholder substitution. Subject ≤50 chars (may use shorter form like 'add fill_template.py script'). Type=feat (new capability). Scope=poster (from file path). Optional body notes what was replaced. No Co-Authored-By unless --coauthor.",
+    "must_contain": ["feat", "poster", "fill_template"],
+    "must_not_contain": ["Co-Authored-By", "fix", "docs"]
+  },
+  {
+    "id": "bug_fix_with_body",
+    "description": "Fix with non-obvious reason → fix type + body explaining the why",
+    "staged_diff_stat": "vault/skills/process-inbox/scripts/scan_inbox.py | 4 ++--",
+    "staged_diff_excerpt": "diff --git a/vault/skills/process-inbox/scripts/scan_inbox.py b/vault/skills/process-inbox/scripts/scan_inbox.py\nindex 2b3a1c9..7f4e8d2 100755\n--- a/vault/skills/process-inbox/scripts/scan_inbox.py\n+++ b/vault/skills/process-inbox/scripts/scan_inbox.py\n@@ -12,7 +12,7 @@ DAILY_PATTERN = re.compile(r\"^\\d{4}-\\d{2}-\\d{2}\\.md$\")\n def parse_frontmatter(text):\n     if not text.startswith(\"---\"):\n         return {}, text\n-    end = text.find(\"\\n---\")\n+    end = text.find(\"\\n---\", 3)\n     if end == -1:\n         return {}, text",
+    "recent_log": [
+      "d2c8b1a refactor(process-inbox): add scan_inbox.py for structured inbox discovery",
+      "a685894 vault backup: 2026-05-18 17:07:52",
+      "b9f3c0e feat(qr-code): add generate_qr.py to replace inline script generation"
+    ],
+    "expected_behavior": "Generates: fix(scan-inbox): stop frontmatter parser matching opening fence as closing delimiter. Body explains: find('\\n---') without offset 3 matched the opening '---' line itself when file starts with '---\\n', causing empty frontmatter parse. Type=fix. Scope=scan-inbox or process-inbox. Body present because the offset=3 trick is non-obvious without context.",
+    "must_contain": ["fix", "frontmatter", "---"],
+    "must_not_contain": ["feat", "Co-Authored-By"]
+  },
+  {
+    "id": "docs_only",
+    "description": "Only markdown documentation changed → docs type, no scope if single SKILL.md",
+    "staged_diff_stat": "git/skills/git-commit/SKILL.md | 18 ++++++++++++------",
+    "staged_diff_excerpt": "diff --git a/git/skills/git-commit/SKILL.md b/git/skills/git-commit/SKILL.md\nindex a3c1d22..9e7f4b1 100644\n--- a/git/skills/git-commit/SKILL.md\n+++ b/git/skills/git-commit/SKILL.md\n@@ -1,6 +1,8 @@\n ---\n name: git-commit\n+description: >\n+  Generate a conventional commit message from currently staged git changes.\n ...\n+## Error handling\n+| Problem | Action |\n+| Nothing staged | Inform user; suggest `git add`; stop |",
+    "recent_log": [
+      "b9f3c0e feat(qr-code): add generate_qr.py to replace inline script generation",
+      "a685894 vault backup: 2026-05-18 17:07:52"
+    ],
+    "expected_behavior": "Generates: docs(git-commit): expand SKILL.md with error table and description. Type=docs (only .md changed, no logic). Scope=git-commit (from file path). Subject describes what documentation was added/updated. No body needed — change is self-evident from subject.",
+    "must_contain": ["docs", "git-commit", "SKILL"],
+    "must_not_contain": ["feat", "fix", "Co-Authored-By"]
+  },
+  {
+    "id": "multi_concern_warning",
+    "description": "Staged diff spans two unrelated modules → warn user, then best-effort single message",
+    "staged_diff_stat": "literature/skills/lit-search/scripts/search.py | 12 ++++++\nvault/skills/galaxy/SKILL.md | 8 ++--",
+    "staged_diff_excerpt": "diff --git a/literature/skills/lit-search/scripts/search.py b/literature/skills/lit-search/scripts/search.py\n@@ -45,6 +45,18 @@ def search_openalex(query, limit=20):\n+    if not results:\n+        return []\n+    return [normalise(r) for r in results if r.get('title')]\n\ndiff --git a/vault/skills/galaxy/SKILL.md b/vault/skills/galaxy/SKILL.md\n@@ -30,7 +30,7 @@ tools: Read, Write, Bash\n-Run scan_links.py on all 20-Sources/papers/ notes.\n+SCAN=$(find -L ~/.claude -path '*/galaxy/scripts/scan_links.py' -type f | head -1)\n+python3 \"$SCAN\" --vault-dir \"$VAULT_DIR\"",
+    "recent_log": [
+      "a685894 vault backup: 2026-05-18 17:07:52",
+      "d2c8b1a refactor(process-inbox): add scan_inbox.py for structured inbox discovery"
+    ],
+    "expected_behavior": "Warns user that staged changes span two unrelated concerns (lit-search bug fix and galaxy SKILL.md update). Suggests git reset HEAD or git stash -p to split. Then generates best-effort single message covering both, e.g.: 'fix(lit-search): guard empty OpenAlex results; update galaxy script path'. Notes that message covers multiple concerns.",
+    "must_contain": ["Warning", "unrelated", "git reset", "lit-search", "galaxy"],
+    "must_not_contain": ["Co-Authored-By"]
+  },
+  {
+    "id": "large_diff_truncation",
+    "description": "Diff >300 lines → skill uses --stat + first 50 lines only, still generates valid message",
+    "staged_diff_stat": "literature/skills/lit-review/scripts/prisma_prefilter.py | 312 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+    "staged_diff_excerpt": "diff --git a/literature/skills/lit-review/scripts/prisma_prefilter.py b/literature/skills/lit-review/scripts/prisma_prefilter.py\nnew file mode 100755\n--- /dev/null\n+++ b/literature/skills/lit-review/scripts/prisma_prefilter.py\n@@ -0,0 +1,312 @@\n+#!/usr/bin/env python3\n+\"\"\"PRISMA pre-filter: auto-exclude/include papers before Claude screening.\"\"\"\n+import argparse, json, re\n+from pathlib import Path\n+\n+def title_keyword_match(title, keywords):\n+    title_lower = title.lower()\n+    return any(kw.lower() in title_lower for kw in keywords)\n+\n+def citation_tier(paper):\n+    citations = paper.get('citations', 0)\n+    age = paper.get('age_years', 0)\n+    if citations > 100 and age > 5:\n+        return 'auto_include'\n+    if citations > 20 and age < 3:\n+        return 'auto_include'\n+    return None\n+\n+# ... [262 more lines truncated — diff too large]\n",
+    "large_diff": true,
+    "recent_log": [
+      "b9f3c0e feat(qr-code): add generate_qr.py to replace inline script generation",
+      "d2c8b1a refactor(process-inbox): add scan_inbox.py for structured inbox discovery",
+      "a685894 vault backup: 2026-05-18 17:07:52"
+    ],
+    "expected_behavior": "Detects diff is >300 lines (312 in stat). Uses --stat + first 50 lines only (already truncated in input). Generates valid message from what it can see: feat(lit-review): add PRISMA pre-filter script for deterministic paper auto-include/exclude. Notes in output that diff was truncated and message is based on stat + excerpt.",
+    "must_contain": ["feat", "lit-review", "prisma", "truncated"],
+    "must_not_contain": ["Co-Authored-By", "fix", "docs"]
+  }
+]
