@@ -1,0 +1,84 @@
+[
+  {
+    "id": "single_feature_commit",
+    "description": "One modified source file → single commit",
+    "scan_output": {
+      "clean": false,
+      "tracked": [
+        {"path": "src/auth/login.py", "status": "M", "diff_stat": " src/auth/login.py | 12 ++++--", "diff_excerpt": "-    return None\n+    raise AuthError('invalid token')"}
+      ],
+      "untracked": [],
+      "already_staged": [],
+      "log": ["a1b2c3d fix(api): handle null session", "e4f5g6h feat(auth): add login route"]
+    },
+    "expected_behavior": "Groups into one commit. Type=fix or refactor. Scope=auth. Subject in imperative mood ≤50 chars.",
+    "must_contain": ["git add src/auth/login.py", "git commit -m"],
+    "must_not_contain": ["git check-ignore", "import subprocess", "scan.py output"]
+  },
+  {
+    "id": "multi_group_with_docs",
+    "description": "Source + test + docs → two commits",
+    "scan_output": {
+      "clean": false,
+      "tracked": [
+        {"path": "src/parser.py", "status": "M", "diff_stat": " src/parser.py | 8 ++++", "diff_excerpt": "+def parse_smiles(s): ..."},
+        {"path": "tests/test_parser.py", "status": "M", "diff_stat": " tests/test_parser.py | 15 ++++++", "diff_excerpt": "+def test_parse_benzene(): ..."},
+        {"path": "docs/api.md", "status": "M", "diff_stat": " docs/api.md | 5 ++", "diff_excerpt": "+## parse_smiles"}
+      ],
+      "untracked": [],
+      "already_staged": [],
+      "log": ["abc1234 feat(parser): add SMARTS support"]
+    },
+    "expected_behavior": "Two groups: [src/parser.py, tests/test_parser.py] → feat/refactor commit; [docs/api.md] → docs commit. Docs always separate.",
+    "must_contain": ["git add src/parser.py tests/test_parser.py", "git add docs/api.md", "docs:"],
+    "must_not_contain": ["git add src/parser.py tests/test_parser.py docs/api.md"]
+  },
+  {
+    "id": "ambiguous_untracked",
+    "description": "Untracked file with .log extension → ask user",
+    "scan_output": {
+      "clean": false,
+      "tracked": [
+        {"path": "src/main.py", "status": "M", "diff_stat": " src/main.py | 2 +-", "diff_excerpt": "-debug = True\n+debug = False"}
+      ],
+      "untracked": [
+        {"path": "build/output.log", "ignored": false, "ambiguous": true, "content_excerpt": ""}
+      ],
+      "already_staged": [],
+      "log": ["xyz9876 chore: bump version"]
+    },
+    "expected_behavior": "Asks user about build/output.log before including. Does NOT include it automatically. Regardless of answer, groups src/main.py into its own commit.",
+    "must_contain": ["build/output.log", "Include?"],
+    "must_not_contain": ["git add build/output.log"]
+  },
+  {
+    "id": "already_staged_warning",
+    "description": "File already staged → warn, do not re-stage",
+    "scan_output": {
+      "clean": false,
+      "tracked": [
+        {"path": "src/utils.py", "status": "M", "diff_stat": " src/utils.py | 4 ++--", "diff_excerpt": "-x = 1\n+x = 2"}
+      ],
+      "untracked": [],
+      "already_staged": ["src/models.py"],
+      "log": []
+    },
+    "expected_behavior": "Warns about src/models.py being already staged. Does NOT include it in any git add command. Proceeds with src/utils.py only.",
+    "must_contain": ["src/models.py", "already staged"],
+    "must_not_contain": ["git add src/models.py"]
+  },
+  {
+    "id": "clean_tree",
+    "description": "Nothing to commit",
+    "scan_output": {
+      "clean": true,
+      "tracked": [],
+      "untracked": [],
+      "already_staged": [],
+      "log": []
+    },
+    "expected_behavior": "Immediately reports 'Nothing to commit — working tree clean.' No git commands printed.",
+    "must_contain": ["Nothing to commit"],
+    "must_not_contain": ["git add", "git commit"]
+  }
+]

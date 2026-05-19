@@ -7,14 +7,14 @@ description: >
   changes", "save my work", "commit and push", "commit all my changes". Also invoke when the
   user says "I'm done working, push it" or "update the branch". Make sure to use this whenever
   the user wants to go from working tree → remote in one step.
-tools: Bash, Read
+tools: Bash
 ---
 
 # git-sync
 
-Reads the working tree, groups related changes into logical commits, shows you the proposed
+Reads the working tree, groups related changes into logical commits, shows the proposed
 grouping and messages, then prints the full command sequence to stage, commit, and push.
-By default it never executes git — it only prints the commands.
+By default never executes git — only prints commands.
 
 ## Flags
 
@@ -25,71 +25,44 @@ By default it never executes git — it only prints the commands.
 --execute     run all commands directly (confirms before push)
 ```
 
-## Step 0: Read the working tree
+## Step 0: Scan working tree
 
 ```bash
-git status --short
+SCRIPT=$(find -L ~/.claude -path "*/git-sync/scripts/scan.py" -type f | head -1)
+python3 "$SCRIPT"
 ```
 
-Parse the output. Each line has a two-character status code + filename:
-- ` M` / `M ` / `MM` — modified tracked file
-- `??` — untracked file
-- `A ` — already staged (warn user; do not re-stage)
-- `D ` / ` D` — deleted
+The script outputs JSON with:
+- `clean: true` → tell user "Nothing to commit — working tree clean." and stop
+- `tracked[]` — modified files with `status`, `diff_stat`, `diff_excerpt`
+- `untracked[]` — new files with `ambiguous: bool` and `content_excerpt`
+- `already_staged[]` — files already staged (warn user; do not re-stage)
+- `log[]` — recent commits for style context
 
-If the working tree is clean (no output), tell the user and stop:
+**Handle already-staged files first:** warn for each:
 ```
-Nothing to commit — working tree clean.
-```
-
-## Step 1: Handle untracked files
-
-For each `??` file:
-1. Run `git check-ignore -q <file>` — if exit code 0, it is gitignored; skip it silently.
-2. If not ignored, include it in the sync. If the file has an ambiguous extension (`.log`, `.tmp`,
-   `.pyc`, binary detected) ask the user before including:
-   ```
-   New file: build/output.log — looks like generated output. Include? (y/n)
-   ```
-3. Common source files (`.py`, `.js`, `.ts`, `.md`, `.yaml`, `.toml`, `.sh`, etc.) include
-   automatically without asking.
-
-## Step 2: Read diffs
-
-For modified tracked files, read their diffs:
-```bash
-git diff <file1> <file2> ...
+Warning: <path> is already staged — run git-commit first, or unstage with `git reset HEAD <path>`
 ```
 
-For untracked files that will be included, read their content:
-```bash
-cat <new-file>
+**Handle ambiguous untracked files:** for each `untracked` entry where `ambiguous: true`, ask:
 ```
-
-For very large diffs (>200 lines per file), use `--stat` + the first 40 lines of that file's diff.
-
-Also read recent history for style context:
-```bash
-git log --oneline -10
+New file: <path> — extension unrecognised or looks like generated output. Include? (y/n)
 ```
+Files where `ambiguous: false` include automatically.
 
-## Step 3: Group related changes
+## Step 1: Group related changes
 
-Cluster files into logical commits. A good group has a single coherent purpose — one reason to
-revert it. Use these signals:
+Receive the scan JSON. Cluster files into logical commits — one coherent purpose per group.
 
 **Group together:**
-- Source file + its test file (`src/foo.py` + `tests/test_foo.py` → one commit)
-- Multiple files in the same module/directory that address the same concern
-- Config file + the code that uses it, if changed together for the same reason
+- Source file + its test file → one commit
+- Multiple files in same module/directory for the same concern
+- Config file + the code using it (if changed for the same reason)
 
 **Separate into different commits:**
-- Documentation-only changes (`.md`, `.rst`, docstrings) → `docs:` commit
-- CI/build file changes (`.github/`, `Makefile`, `pyproject.toml`) → `ci:` or `build:` commit
-- Changes in clearly unrelated modules, even if small
-
-If the grouping is ambiguous, default to one commit per logical concern. It's better to have
-two well-named commits than one vague `chore: update files`.
+- Documentation-only changes (`.md`, `.rst`) → `docs:` commit
+- CI/build files (`.github/`, `Makefile`, `pyproject.toml`) → `ci:` or `build:` commit
+- Clearly unrelated modules
 
 **--dry-run output** (stop here if flag is set):
 ```
@@ -100,36 +73,30 @@ Proposed grouping:
 Run without --dry-run to generate messages and commands.
 ```
 
-## Step 4: Generate commit messages
-
-For each group, generate a conventional commit message using the same rules as git-commit:
+## Step 2: Generate commit messages
 
 Format: `type(scope): subject`
 
 **Type:** feat / fix / docs / chore / refactor / test / style / perf / ci / build  
-**Scope:** derived from file paths (e.g. `src/auth/` → `auth`; omit if multi-module)  
+**Scope:** derived from file paths (`src/auth/` → `auth`; omit if multi-module)  
 **Subject:** imperative mood, ≤50 chars, no trailing period  
-**Body:** add only if the *why* is non-obvious  
-**Footer:** `BREAKING CHANGE: <desc>` if public API/CLI/config changes incompatibly  
+**Body:** only if the *why* is non-obvious  
+**Footer:** `BREAKING CHANGE: <desc>` if public API/CLI/config changes incompatibly
 
-## Step 5: Print plan and commands together
+Use `log[]` from scan output for style context.
 
-Show the grouping plan and the full command sequence in the same response. The user can
-immediately run the commands, or ask you to adjust the grouping or messages.
+## Step 3: Print plan and commands
 
 ```
-Proposed commits (3 groups):
+Proposed commits (N groups):
 
   [1] feat(auth): add OAuth2 login flow
       Files: src/auth/oauth.py, tests/test_oauth.py
 
-  [2] fix(api): return 404 instead of 500 for missing resource
-      Files: src/api/handlers.py
-
-  [3] docs: update authentication section in README
+  [2] docs: update authentication section in README
       Files: docs/README.md
 
-Run these commands, or ask me to adjust the grouping or messages:
+Run these commands, or ask to adjust grouping or messages:
 
 ```bash
 # Group 1
@@ -137,34 +104,18 @@ git add src/auth/oauth.py tests/test_oauth.py
 git commit -m "feat(auth): add OAuth2 login flow"
 
 # Group 2
-git add src/api/handlers.py
-git commit -m "fix(api): return 404 instead of 500 for missing resource"
-
-# Group 3
 git add docs/README.md
 git commit -m "docs: update authentication section in README"
 
 git push
 ```
 
-For multi-line commit messages (with body), format the `-m` value correctly:
-```bash
-git commit -m "feat(users): add pagination to list endpoint
-
-Results capped at 100 per page. Use ?page=N to navigate.
-Prevents OOM on large datasets."
-```
-
-If `--no-push` is set, omit the final `git push` line.  
-If `--coauthor` is set, append to the body of every commit:
-```
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-```
+If `--no-push`: omit `git push`.  
+If `--coauthor`: append `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` to every commit body.
 
 ### With --execute
 
-Show the plan (Step 5), wait for confirmation, then run each command in sequence via Bash
-and display git's output. Before running `git push`, pause and confirm:
+Show plan (Step 3), wait for confirmation, then run each command via Bash. Before `git push`, confirm:
 ```
 About to run: git push
 Proceed? (y/n)
@@ -172,20 +123,16 @@ Proceed? (y/n)
 
 ## Guarantees
 
-- Never executes git unless `--execute` is passed explicitly.
+- Never executes git unless `--execute` is passed.
 - Never adds Co-Authored-By unless `--coauthor` is passed.
-- Always shows the full plan before printing or executing commands.
-- Gitignored files are never included.
-- Already-staged files are flagged, not double-staged.
+- Gitignored files are never included (filtered by scan.py).
+- Already-staged files are warned, never double-staged.
 
 ## Error handling
 
 | Problem | Action |
 |---------|--------|
-| Working tree clean | Inform user; stop |
-| Not in a git repo | Report git error; stop |
-| All changes gitignored | Inform user; stop |
-| Ambiguous untracked file | Ask before including |
-| Already-staged files exist | Warn: "X is already staged — run git-commit first, or unstage with `git reset HEAD X`" |
-| Diff too large | Use `--stat` + first 40 lines per file |
+| `clean: true` from scan | "Nothing to commit — working tree clean." |
+| scan.py exits non-zero | Report error from stderr; stop |
+| All untracked files ignored | Inform user; stop if nothing tracked either |
 | No remote configured | Omit push command; warn user |
