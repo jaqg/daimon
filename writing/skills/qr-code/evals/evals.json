@@ -1,0 +1,26 @@
+[
+  {
+    "id": "basic_png",
+    "description": "Basic PNG QR code with default options",
+    "input": "/qr-code https://github.com/jaqg",
+    "expected_behavior": "Runs generate_qr.py with --data https://github.com/jaqg --output qr --size 10 --format png --error H. Reports file path, size, encoded content. Prints both LaTeX snippets.",
+    "must_contain": ["generate_qr.py", "--data", "https://github.com/jaqg", "LaTeX"],
+    "must_not_contain": ["import qrcode", "qr.make_image", "inline Python"]
+  },
+  {
+    "id": "svg_format",
+    "description": "SVG format with custom output name",
+    "input": "/qr-code https://doi.org/10.1000/xyz123 --output paper-doi --format svg",
+    "expected_behavior": "Runs generate_qr.py with --format svg --output paper-doi. Reports paper-doi.svg. LaTeX snippet uses \\includesvg and notes svg package required.",
+    "must_contain": ["generate_qr.py", "--format svg", "--output paper-doi", "includesvg"],
+    "must_not_contain": ["import qrcode.image.svg", "inline"]
+  },
+  {
+    "id": "custom_size_error",
+    "description": "High-DPI with low error correction",
+    "input": "/qr-code https://example.com --size 20 --error L --output big-qr",
+    "expected_behavior": "Runs generate_qr.py with --size 20 --error L --output big-qr. Does NOT explain error correction levels inline — those are handled by the script.",
+    "must_contain": ["generate_qr.py", "--size 20", "--error L"],
+    "must_not_contain": ["box_size", "ERROR_CORRECT_L", "Write the generation code"]
+  }
+]

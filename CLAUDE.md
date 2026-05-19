@@ -69,6 +69,49 @@ Skills that depend on `config/config.local` values (e.g. `poster`, `process-inbo
 3. Run `bash setup.sh` to symlink it.
 4. If the skill ships helper scripts, put them in `<domain>/skills/<skill-name>/scripts/` or `<domain>/scripts/` and reference them with `find -L ~/.claude -path "*/<skill-name>/scripts/<file>" -type f | head -1` (the `-L` flag is required to follow the symlink).
 
+## Skill design principles
+
+Every skill must satisfy these criteria before being considered complete.
+
+**1. Claude-last**
+Scripts handle all deterministic operations. Invoke Claude only for: relevance judgment, content generation (commit messages, summaries, note drafts), ambiguity resolution, and synthesis. If a task can be expressed as code, it must be scripted.
+
+**2. Structured I/O boundary**
+Claude receives structured input (JSON, TSV, YAML) and returns structured output. Scripts own deserialization on the way in and serialization on the way out. Claude never parses raw text or free-form prose when a script can do it.
+
+**3. Pre-filter before Claude**
+Scripts apply hard constraints first: date range, keyword match, schema validation, exact deduplication. Claude sees only the residual ambiguous cases. Never send Claude N items when M can be eliminated deterministically.
+
+**4. Single-pass judgment**
+Design prompts for complete structured output in one call. No Claude loops for tasks completable in one shot. State machines, retries, and pipeline control live in scripts.
+
+**5. Minimal context surface**
+Project data to the fields Claude needs before passing it. If a relevance judgment needs 3 fields, strip the other 17 in scripts first. Smaller context = faster, cheaper, more focused.
+
+**6. Scripts own control flow**
+Pipeline stages, file routing, error handling, and retries all belong in scripts. Claude is a judgment oracle called at decision points — not an execution engine threading through steps.
+
+**7. Pre-written scripts, not inline generation**
+Logic lives in `scripts/`, pre-written and version-controlled. Claude must not generate and execute code inline during skill execution. Exception: truly stateless, one-off, non-reusable operations are acceptable inline, but the bar is high.
+
+**8. Approval gates for user-file writes**
+Any skill that writes to vault notes or modifies user files must show a diff preview and wait for explicit approval before writing. No silent overwrites.
+
+**9. Dual testability**
+Script paths: testable with fixtures (deterministic). Claude paths: covered by `evals/evals.json` with gold standards. A skill is not complete until both layers are tested.
+
+**10. Standard anatomy**
+```
+<domain>/skills/<skill-name>/
+  SKILL.md        ← Claude instructions: judgment layer only
+  scripts/        ← all deterministic logic
+  evals/
+    evals.json    ← Claude-path evals with gold standards
+    fixtures/     ← script-path test inputs (optional but preferred)
+```
+
+Shared logic across skills in the same domain belongs in `<domain>/scripts/` (e.g., `literature/scripts/papers_io.py`).
+
 ## Skill-specific notes
 
 **`writing/skills/poster`** — reads identity from `config/config.local` (`POSTER_AUTHOR`, `POSTER_AFFILIATION`, etc.) and project context from vault memory files. Has a `templates/portrait-poster/` LaTeX template that ships with the skill.
