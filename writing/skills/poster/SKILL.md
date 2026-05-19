@@ -52,24 +52,19 @@ SKILL_DIR=$(dirname "$(readlink -f "$(find -L ~/.claude/skills/poster -name SKIL
 DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
 CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 TEMPLATE_DIR="$SKILL_DIR/templates/portrait-poster"
+FILL_SCRIPT=$(find -L ~/.claude -path "*/poster/scripts/fill_template.py" -type f | head -1)
 ```
 
-Read `$CONFIG_LOCAL`. Extract:
-- `POSTER_AUTHOR`
-- `POSTER_AFFILIATION`
-- `POSTER_EMAIL`
-- `POSTER_LOGO_LEFT` (may be empty)
-- `POSTER_LOGO_RIGHT` (may be empty)
-- `VAULT_DIR` (for vault context lookup)
+Read `VAULT_DIR` from `$CONFIG_LOCAL` (needed for Step 2). All other identity values (`POSTER_AUTHOR`, `POSTER_AFFILIATION`, `POSTER_EMAIL`, `POSTER_LOGO_LEFT`, `POSTER_LOGO_RIGHT`) are handled by the fill script in Step 4c — do not read them manually.
 
-If `CONFIG_LOCAL` does not exist, warn and proceed with placeholder values — the user can fill them in later.
+If `CONFIG_LOCAL` does not exist, warn and proceed — the script uses `%%PLACEHOLDER%%` fallbacks.
 
 ## Step 1b — Early exit for `--empty`
 
 If `--empty` was passed, skip Steps 2–7 entirely. Instead:
 
-1. Derive layout parameters from `--size` and `--orientation` (same as Step 3).
-2. Build `%%POSTER_BODY%%` as a structural skeleton with `%% TODO:` placeholders:
+1. Run fill_template.py (Step 4c command) → get partially-filled template with `%%POSTER_BODY%%` remaining.
+2. Replace `%%POSTER_BODY%%` with a structural skeleton of `%% TODO:` placeholders:
 
 ```latex
 \begin{columns}[t]
@@ -212,24 +207,21 @@ Figure placeholders should be:
 
 ### 4c. Assemble the file
 
-Read `$TEMPLATE_DIR/main.tex`. Perform substitutions:
+Run fill_template.py to substitute all identity/layout placeholders, leaving only `%%POSTER_BODY%%`:
 
-| Placeholder | Value |
-|-------------|-------|
-| `%%SIZE%%` | value of `--size` |
-| `%%ORIENTATION%%` | value of `--orientation` |
-| `%%SCALE%%` | derived from size table |
-| `%%COLORTHEME%%` | value of `--colortheme` |
-| `%%COLUMN_LAYOUT%%` | `\setlength` lines from Step 3 |
-| `%%LOGO_LEFT%%` | `\logoleft{\includegraphics[height=5cm]{logos/logo-left.pdf}}` if `POSTER_LOGO_LEFT` set, else empty line |
-| `%%LOGO_RIGHT%%` | `\logoright{\includegraphics[height=5cm]{logos/logo-right.pdf}}` if `POSTER_LOGO_RIGHT` set, else empty line |
-| `%%CONFERENCE%%` | conference name + location |
-| `%%DATE%%` | event date |
-| `%%EMAIL%%` | `POSTER_EMAIL` from config |
-| `%%TITLE%%` | generated poster title |
-| `%%AUTHOR%%` | `POSTER_AUTHOR` from config |
-| `%%AFFILIATION%%` | `POSTER_AFFILIATION` from config |
-| `%%POSTER_BODY%%` | full generated column/block content |
+```bash
+python3 "$FILL_SCRIPT" \
+  --template "$TEMPLATE_DIR/main.tex" \
+  --config "$CONFIG_LOCAL" \
+  --size SIZE --orientation ORIENTATION \
+  --colortheme COLORTHEME \
+  --conference "CONFERENCE" \
+  --date "DATE" \
+  --title "TITLE" \
+  --output /tmp/poster-partial.tex
+```
+
+Script stderr reports which placeholders were filled and confirms `%%POSTER_BODY%%` is the only remaining one. Then replace `%%POSTER_BODY%%` in `/tmp/poster-partial.tex` with the content generated in Step 4b.
 
 ## Step 5 — Write output
 
