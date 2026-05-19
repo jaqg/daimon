@@ -8,10 +8,14 @@ import json
 import re
 import sys
 import time
+from pathlib import Path
 from urllib.parse import quote
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 import xml.etree.ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "scripts"))
+import papers_io
 
 
 def fetch(url, headers=None, timeout=30, retries=2, accept=None):
@@ -218,7 +222,8 @@ def process_papers(papers, style="phys", validate_doi=False):
 
     for p in papers:
         doi = p.get("doi")
-        arxiv_id = (p.get("id", "") or "").replace("arxiv:", "") if (p.get("id", "") or "").startswith("arxiv:") else p.get("arxiv_id")
+        _pid = papers_io.paper_id(p)
+        arxiv_id = _pid[len("arxiv:"):] if (_pid and _pid.startswith("arxiv:")) else None
         title = p.get("title", "")
         authors = p.get("authors", [])
         year = p.get("year", "")
@@ -283,9 +288,7 @@ if __name__ == "__main__":
     parser.add_argument("--validate", action="store_true")
     args = parser.parse_args()
 
-    with open(args.papers, encoding="utf-8") as f:
-        data = json.load(f)
-
+    data = papers_io.load(args.papers)
     entries, failed, manual = process_papers(data["papers"], args.style, args.validate)
     print(f"Fetched: {len(entries)} | Failed: {len(failed)} | Manual needed: {len(manual)}")
     for e in entries:

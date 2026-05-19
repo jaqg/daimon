@@ -67,31 +67,53 @@ def extract_pdf(path):
 # ---------------------------------------------------------------------------
 
 HEADERS = {"User-Agent": "daimon-lit-annotate/1.0 (research tool)"}
+HEADERS_BROWSER = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0"}
 
 
 def fetch_bytes(url, timeout=30):
-    req = urllib.request.Request(url, headers=HEADERS)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            content_type = resp.headers.get("Content-Type", "")
-            data = resp.read()
-            return data, content_type, None
-    except urllib.error.HTTPError as e:
-        return None, "", f"HTTP {e.code}: {e.reason}"
-    except urllib.error.URLError as e:
-        return None, "", f"URL error: {e.reason}"
-    except Exception as e:
-        return None, "", str(e)
+    for headers in (HEADERS, HEADERS_BROWSER):
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                data = resp.read()
+                return data, content_type, None
+        except urllib.error.HTTPError as e:
+            if e.code == 403 and headers is HEADERS:
+                continue
+            return None, "", f"HTTP {e.code}: {e.reason}"
+        except urllib.error.URLError as e:
+            return None, "", f"URL error: {e.reason}"
+        except Exception as e:
+            return None, "", str(e)
+    return None, "", "HTTP 403: Forbidden (both UAs blocked)"
+
+
+def math_alttext(m: re.Match) -> str:
+    opening = m.group(1)
+    alt = re.search(r'alttext="([^"]*)"', opening)
+    if not alt:
+        return " "
+    latex = (
+        alt.group(1)
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+        .replace("&quot;", '"')
+    )
+    display = bool(re.search(r'display=["\']block["\']', opening, re.IGNORECASE))
+    return f" $${latex}$$ " if display else f" ${latex}$ "
 
 
 def strip_html(html_text):
-    # Remove script/style blocks
-    html_text = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", html_text, flags=re.DOTALL | re.IGNORECASE)
-    # Remove all tags
+    html_text = re.sub(
+        r"<(math\b[^>]*)>.*?</math>", math_alttext, html_text, flags=re.DOTALL | re.IGNORECASE
+    )
+    html_text = re.sub(r"<script[^>]*>.*?</script>", " ", html_text, flags=re.DOTALL | re.IGNORECASE)
+    html_text = re.sub(r"<style[^>]*>.*?</style>", " ", html_text, flags=re.DOTALL | re.IGNORECASE)
     html_text = re.sub(r"<[^>]+>", " ", html_text)
-    # Collapse whitespace
-    html_text = re.sub(r"\s+", " ", html_text).strip()
-    return html_text
+    html_text = html_text.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
+    return re.sub(r"\s+", " ", html_text).strip()
 
 
 def arxiv_html_url(url):
