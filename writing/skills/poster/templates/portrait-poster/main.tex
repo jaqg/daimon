@@ -1,0 +1,94 @@
+\documentclass[final]{beamer}
+%% Possible paper sizes: a0, a0b, a1, a2, a3, a4.
+%% Possible orientations: portrait, landscape
+%% Font sizes can be changed using the scale option.
+\usepackage[size=%%SIZE%%,orientation=%%ORIENTATION%%,scale=%%SCALE%%]{beamerposter}
+
+\usetheme{gemini}
+% Available color themes: seagull, heriotwatt, um, cam, gemini, labsix, mit
+\usecolortheme{%%COLORTHEME%%}
+\useinnertheme{rectangles}
+
+% ====================
+% Packages
+% ====================
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{chemformula,array}
+\usepackage[version=4]{mhchem}
+\usepackage{physics}
+\usepackage{braket}
+
+% ====================
+% New commands
+% ====================
+\newcommand{\sepvert}{0.5cm}
+
+% ====================
+% Lengths
+% ====================
+
+% Portrait 2-col: (N+1)*sepwidth + N*colwidth = paperwidth
+% \setlength{\sepwidth}{0.03\paperwidth}
+% \setlength{\colwidth}{0.45\paperwidth}
+%
+% Landscape 3-col:
+% \setlength{\sepwidth}{0.025\paperwidth}
+% \setlength{\colwidth}{0.29\paperwidth}
+%%COLUMN_LAYOUT%%
+
+\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
+
+% ====================
+% Logos (optional)
+% ====================
+% Skill copies logos from POSTER_LOGO_LEFT / POSTER_LOGO_RIGHT (config.local) into logos/ here.
+% Set those paths in config.local; leave empty to omit logos.
+%%LOGO_LEFT%%
+%%LOGO_RIGHT%%
+
+% ====================
+% Footer (optional)
+% ====================
+
+\footercontent{
+    %%CONFERENCE%%
+    \hfill
+    %%DATE%%
+    \hfill
+    \href{mailto:%%EMAIL%%}{\texttt{%%EMAIL%%}}
+}
+% (can be left out to remove footer)
+
+% ====================
+% My own customization
+% - BibLaTeX
+% - Boxes with tcolorbox
+% - User-defined commands
+% ====================
+\input{custom-defs.tex}
+
+%% Reference Sources
+\addbibresource{refs.bib}
+\renewcommand{\pgfuseimage}[1]{\includegraphics[scale=2.0]{#1}}
+
+\title{%%TITLE%%}
+
+\author{%%AUTHOR%%}
+
+\institute[shortinst]{%%AFFILIATION%%}
+
+\date{%%DATE%%}
+
+\begin{document}
+
+\begin{frame}[t]
+
+%%POSTER_BODY%%
+
+\end{frame}
+\end{document}
