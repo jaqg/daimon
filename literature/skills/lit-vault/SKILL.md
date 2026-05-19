@@ -23,6 +23,8 @@ Updates the project memory file with a cumulative paper-pool summary.
 ```bash
 VAULT_DIR              # required — path to Obsidian vault root
 USER_EMAIL             # optional — improves Unpaywall rate limits (any email works)
+LIT_VAULT_CACHE_DIR    # optional — cache fetched full text; default: ~/.cache/daimon/lit-vault/
+LIT_VAULT_PDF_DIR      # optional — persist downloaded PDFs to this dir (omit to skip saving)
 ```
 
 Source config:
@@ -73,19 +75,25 @@ If no matching file: proceed without project context; omit project-framing from 
 ```bash
 FETCH_SCRIPT=$(find -L ~/.claude -path "*/lit-vault/scripts/fetch_fulltext.py" -type f | head -1)
 FULLTEXT_OUT="/tmp/lit-vault-fulltext-$(date +%s).json"
+CACHE_DIR="${LIT_VAULT_CACHE_DIR:-$HOME/.cache/daimon/lit-vault}"
 python3 "$FETCH_SCRIPT" \
   --papers "$FILTERED_PAPERS_JSON" \
   --output "$FULLTEXT_OUT" \
-  --email "${USER_EMAIL:-anonymous@example.com}"
+  --email "${USER_EMAIL:-anonymous@example.com}" \
+  --cache-dir "$CACHE_DIR" \
+  ${LIT_VAULT_PDF_DIR:+--pdf-dir "$LIT_VAULT_PDF_DIR"}
 ```
 
 The script tries per paper, in priority order:
 1. **arXiv HTML** — `https://arxiv.org/html/{id}` if `arxiv` field present
-2. **Unpaywall** — `https://api.unpaywall.org/v2/{doi}?email={email}` → OA PDF URL → PyMuPDF
-3. **Fallback** — abstract only; `full_text_available: false` in output
+2. **arXiv PDF** — fallback when no HTML version exists
+3. **Unpaywall** — all OA PDF URLs then all OA HTML URLs from `oa_locations`
+4. **Europe PMC** — full text XML via PMC ID (if DOI is indexed)
+5. **Fallback** — abstract only; `full_text_available: false` in output
 
-Output: single JSON `{paper_id: {full_text, source, full_text_available}, ...}`.
-Full text is stored in `/tmp/` only — never written to vault.
+Output: single JSON `{paper_id: {full_text, source, full_text_available, fetch_reason}, ...}`.
+Cache written to `$CACHE_DIR/fulltext-cache.json` — subsequent runs skip already-fetched papers.
+PDFs saved to `LIT_VAULT_PDF_DIR` if set; otherwise downloaded to `/tmp/` and discarded.
 
 After the script completes, load the JSON and map each paper ID to its full text and fetch source.
 
@@ -128,7 +136,7 @@ python3 "$SUGGEST_SCRIPT" \
 
 Output: JSON array of slugs (e.g. `["qtaim", "iqa-energy-decomposition", ...]`). Use these directly as the `<!--[[slug]]-->` lines in `## Connections`. If `SUGGEST_SCRIPT` is empty or script returns `[]`, omit `## Connections` block.
 
-**4d. Generate note** using the template below. Then write (or print if `--dry-run`).
+**4d. Generate note** using the template below. Then write to file. If `--dry-run`, print only the target filename (not the note content) — never print full notes to terminal.
 
 ---
 
@@ -210,6 +218,7 @@ If none found: write "None stated explicitly." — never omit this section.]
 - Always include `## Key points` — always draft content, never leave bullets blank
 - Always include `## Open questions` — never omit even if empty; write "None stated explicitly."
 - Prefer full text over abstract for key points and open questions; flag abstract-only sourcing as *(from abstract)*
+- If `source` is `arxiv-pdf` or `unpaywall-pdf`: full text is PyMuPDF-extracted from PDF — equations and numerical values may be garbled. Use the abstract for all quantitative claims (specific numbers, equations, error bars). Narrative text (methods description, conclusions) from PDF is reliable. Flag equation-dependent key results as *(verify — PDF source)*.
 - `> [!todo]` renders as Obsidian callout; keep it exactly as shown
 
 ### Step 5: Report
@@ -254,3 +263,4 @@ Rules:
 4. PDFs downloaded to `/tmp/` only — never persisted to disk beyond the session.
 5. Unpaywall and arXiv requests: 0.5 s delay between fetches; back off on HTTP 429.
 6. Memory update modifies only the `## Paper pool` section.
+
