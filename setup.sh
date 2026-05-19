@@ -29,7 +29,7 @@ for plugin in "${REQUIRED_PLUGINS[@]}"; do
         echo "  ok: $plugin"
     else
         echo "  MISSING: $plugin — run /install $plugin in Claude Code"
-        ((missing++))
+        ((++missing))
     fi
 done
 [[ $missing -gt 0 ]] && echo "Warning: $missing plugin(s) missing. See config/plugins.md." || echo "All plugins present."
@@ -49,8 +49,24 @@ for skill_dir in "$REPO_DIR"/*/skills/*/; do
     else
         ln -s "$skill_dir" "$target"
         echo "  linked: $skill_name"
-        ((skill_count++))
+        ((++skill_count))
     fi
 done
 
 echo "Done. $skill_count skill(s) linked to $CLAUDE_SKILLS_DIR"
+
+# Check vault-specific setup
+if [[ -f "$CONFIG_LOCAL" ]]; then
+    source "$CONFIG_LOCAL"
+    if [[ -n "${VAULT_DIR:-}" ]]; then
+        VAULT_HASH=$(echo "$VAULT_DIR" | sed 's|/|-|g')
+        MEMORY_DIR="$HOME/.claude/projects/$VAULT_HASH/memory"
+        if [[ ! -f "$MEMORY_DIR/research_interests.md" ]]; then
+            echo
+            echo "WARNING: memory/research_interests.md not found."
+            echo "  The process-inbox skill needs this for conference relevance scoring."
+            echo "  Template: $REPO_DIR/vault/skills/process-inbox/research_interests.template.md"
+            echo "  Copy it to: $MEMORY_DIR/research_interests.md and fill in your research areas."
+        fi
+    fi
+fi
