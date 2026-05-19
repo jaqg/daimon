@@ -16,3 +16,24 @@ HPC_WORKDIR=/datos_pool/mldata1
 
 # NotebookLM CLI command (if different from default)
 NOTEBOOKLM_CMD=notebooklm
+
+# Literature skills — all optional; skills degrade gracefully without these
+SEMANTIC_SCHOLAR_API_KEY=   # higher rate limits (free from semanticscholar.org)
+WOS_API_KEY=                # Web of Science — requires institutional subscription (request API access via your university library)
+SCOPUS_API_KEY=             # Scopus — requires institutional subscription (request API access via your university library)
+NCBI_API_KEY=               # PubMed higher rate limits (free from NCBI)
+ZOTERO_API_URL=http://localhost:23119   # Zotero local API (Better BibTeX required)
+ZOTERO_LIBRARY_ID=          # only for Zotero web API fallback
+ZOTERO_API_KEY=             # only for Zotero web API fallback
+LIT_WATCH_STATE_DIR=~/.config/daimon   # state file dir for lit-watch
+
+# lit-search --chase PDF mode: pip install pymupdf
+# (no config key needed — detected automatically)
+
+# Poster skill — personal identity injected into generated posters
+POSTER_AUTHOR="First Last"
+POSTER_AFFILIATION="Department, University"
+POSTER_EMAIL="you@example.com"
+# Paths to logo files for poster header (leave empty to omit logos)
+POSTER_LOGO_LEFT=""
+POSTER_LOGO_RIGHT=""

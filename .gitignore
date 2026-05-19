@@ -5,6 +5,7 @@ __pycache__/
 
 # skill eval workspaces
 writing/skills/workflow-diagram-workspace/
+literature/skills/*-workspace/
 
 # LaTeX build artifacts
 *.aux
@@ -15,3 +16,10 @@ writing/skills/workflow-diagram-workspace/
 
 # compiled PDFs (source .tex is committed; PDFs are build artifacts)
 writing/skills/workflow-diagram/examples/*.pdf
+vault/skills/galaxy-workspace/
+
+# git skill eval workspaces
+git/skills/*-workspace/
+
+# root-level build artifacts
+diagram-example.pdf
