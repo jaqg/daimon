@@ -89,15 +89,13 @@ Full text is stored in `/tmp/` only — never written to vault.
 
 After the script completes, load the JSON and map each paper ID to its full text and fetch source.
 
-### Step 3: Scan Galaxy for link candidates
+### Step 3: Locate Galaxy suggestion script
 
 ```bash
-GALAXY_DIR="${VAULT_DIR}/30-Galaxy"
-ls "${GALAXY_DIR}"/*.md 2>/dev/null | xargs -I{} basename {} .md
+SUGGEST_SCRIPT=$(find -L ~/.claude -path "*/lit-annotate/scripts/suggest_galaxy.py" -type f | head -1)
 ```
 
-Store the list of concept filenames (split on `-` and `_` to get tokens).
-Used per-paper in Step 4 to suggest relevant `[[links]]`.
+Used per-paper in Step 4c to score concept overlap. If not found, skip Galaxy suggestions and omit `## Connections` block.
 
 ### Step 4: Generate and write notes
 
@@ -120,9 +118,15 @@ Combine: paper `keywords` field (if present) + venue name tokens + abstract noun
 Keep 3–5 tags, lowercase, hyphenated. Example: `density-functional-theory`, `qtaim`, `basis-sets`.
 
 **4c. Galaxy link candidates:**
-Tokenize paper title + abstract (lowercase; drop stopwords).
-Score each Galaxy concept filename: count tokens in common with the paper token set.
-Return top 5 filenames with score > 0, ordered by score descending.
+
+```bash
+python3 "$SUGGEST_SCRIPT" \
+  --vault-dir "$VAULT_DIR" \
+  --text "PAPER_TITLE PAPER_ABSTRACT" \
+  --top 5
+```
+
+Output: JSON array of slugs (e.g. `["qtaim", "iqa-energy-decomposition", ...]`). Use these directly as the `<!--[[slug]]-->` lines in `## Connections`. If `SUGGEST_SCRIPT` is empty or script returns `[]`, omit `## Connections` block.
 
 **4d. Generate note** using the template below. Then write (or print if `--dry-run`).
 
