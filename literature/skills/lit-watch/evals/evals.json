@@ -1,72 +1,103 @@
-{
-  "skill_name": "lit-watch",
-  "evals": [
-    {
-      "id": 0,
-      "eval_name": "dry-run-explicit-topics",
-      "prompt": "check for new papers on quantum chemistry and density functional theory since 2026-05-14, threshold 3, dry run mode — don't write anything to disk",
-      "expected_output": "Prints summary of what would be reported (paper count, scores). States dry-run mode. No digest .md file written to inbox. No state file modified.",
-      "files": [],
-      "assertions": [
+[
+  {
+    "id": "score_high_relevance",
+    "description": "Score papers against project context — picks high-relevance ones",
+    "collect_output": {
+      "since": "2026-05-12",
+      "topics": ["QTAIM machine learning", "IQA energy decomposition"],
+      "new_papers": [
         {
-          "text": "output mentions dry run (no files written)",
-          "check": "stdout or run_log.txt contains 'dry run' or 'Dry run' (case-insensitive)"
+          "id": "doi:10.1021/acs.jctc.6b00234",
+          "title": "Machine Learning of Atomic Forces from IQA Energy Decomposition",
+          "authors": ["Smith, J.", "Jones, R."],
+          "year": 2026,
+          "venue": "J. Chem. Theory Comput.",
+          "citations": 0,
+          "abstract": "We develop a machine learning force field based on IQA energy decomposition from QTAIM. The atomic energies are predicted per-atom and used to construct a molecular energy...",
+          "url": "https://doi.org/10.1021/acs.jctc.6b00234",
+          "_topics": ["QTAIM machine learning", "IQA energy decomposition"]
         },
         {
-          "text": "no digest file written to disk",
-          "check": "no lit-watch-*.md file created in vault inbox or cwd"
-        },
-        {
-          "text": "output reports paper scan count",
-          "check": "stdout or run_log.txt contains 'Scanned' or 'scanned' or 'papers' with a number"
+          "id": "arxiv:2605.00001",
+          "title": "Protein Folding with Graph Neural Networks",
+          "authors": ["Lee, A."],
+          "year": 2026,
+          "venue": "NeurIPS",
+          "citations": 0,
+          "abstract": "We present a graph neural network approach to protein folding. Our model outperforms prior methods on several benchmarks.",
+          "url": "https://arxiv.org/abs/2605.00001",
+          "_topics": ["QTAIM machine learning"]
         }
-      ]
+      ],
+      "meta": {
+        "total_found": 2,
+        "after_dedup": 2,
+        "new_unseen": 2,
+        "topics_searched": ["QTAIM machine learning", "IQA energy decomposition"],
+        "sources_coverage": {"arxiv": 2, "semantic_scholar": 2},
+        "sources_skipped": [],
+        "errors": []
+      }
     },
-    {
-      "id": 1,
-      "eval_name": "digest-format",
-      "prompt": "run lit-watch for machine learning molecular property prediction papers since 2026-05-15, threshold 3, save digest to /tmp/lit-watch-eval1-inbox/",
-      "expected_output": "Digest .md written to /tmp/lit-watch-eval1-inbox/. Digest contains header line with Period, Sources searched coverage statement, and relevance-scored papers section.",
-      "files": [],
-      "assertions": [
+    "project_context": "PhD-Ch1-AIM4ML: machine learning of IQA/QTAIM atomic energies for molecular property prediction. Keywords: QTAIM, IQA, atomic energies, machine learning force fields.",
+    "threshold": 4,
+    "expected_behavior": "Paper 1 (IQA+QTAIM ML) scores 5/5 with justification citing QTAIM+IQA+machine learning keywords. Paper 2 (protein folding) scores 1-2/5. Only paper 1 appears in High-relevance section.",
+    "must_contain": ["5/5", "IQA", "QTAIM", "Why relevant"],
+    "must_not_contain": ["Protein Folding with Graph Neural Networks"]
+  },
+  {
+    "id": "dry_run_no_write",
+    "description": "dry-run mode — scores papers but writes nothing",
+    "collect_output": {
+      "since": "2026-05-12",
+      "topics": ["density functional theory"],
+      "new_papers": [
         {
-          "text": "digest .md file written to output dir",
-          "check": "lit-watch-*.md file exists in /tmp/lit-watch-eval1-inbox/"
-        },
-        {
-          "text": "digest contains period header (last_run → today)",
-          "check": "digest contains 'Period:' line"
-        },
-        {
-          "text": "digest contains coverage statement",
-          "check": "digest contains 'Coverage:' or 'Sources searched:'"
-        },
-        {
-          "text": "digest contains relevance section or no-papers message",
-          "check": "digest contains '## High-relevance' or 'No papers above threshold' or 'below threshold'"
+          "id": "arxiv:2605.00042",
+          "title": "Hybrid DFT for Excited States in Large Molecules",
+          "authors": ["Chen, X."],
+          "year": 2026,
+          "venue": "JCTC",
+          "citations": 0,
+          "abstract": "We benchmark hybrid DFT functionals for excited state energies in large conjugated molecules. TD-DFT with range-separated hybrids gives best accuracy.",
+          "url": "https://arxiv.org/abs/2605.00042",
+          "_topics": ["density functional theory"]
         }
-      ]
+      ],
+      "meta": {
+        "total_found": 1,
+        "after_dedup": 1,
+        "new_unseen": 1,
+        "topics_searched": ["density functional theory"],
+        "sources_coverage": {"arxiv": 1},
+        "sources_skipped": [],
+        "errors": []
+      }
     },
-    {
-      "id": 2,
-      "eval_name": "state-file-update",
-      "prompt": "run /lit-watch --topics 'neural networks, deep learning' --since 2026-05-15 --state /tmp/lit-watch-state-eval2/ --output-inbox /tmp/lit-watch-eval2-inbox/ --threshold 5",
-      "expected_output": "State file created at /tmp/lit-watch-state-eval2/lit-watch-state.json with last_run set to today. Digest or no-papers message written to /tmp/lit-watch-eval2-inbox/.",
-      "files": [],
-      "assertions": [
-        {
-          "text": "state file created with last_run = today",
-          "check": "/tmp/lit-watch-state-eval2/lit-watch-state.json exists and contains '2026-05-17' as last_run"
-        },
-        {
-          "text": "state file contains seen_ids list",
-          "check": "state file contains 'seen_ids' key"
-        },
-        {
-          "text": "digest or no-papers output written to inbox dir",
-          "check": "lit-watch-*.md exists in /tmp/lit-watch-eval2-inbox/ OR run_log.txt mentions 'No papers above threshold'"
-        }
-      ]
-    }
-  ]
-}
+    "flags": ["--dry-run"],
+    "expected_behavior": "Scores paper and shows what would be in digest. Reports 'Dry run — nothing written.' No digest .md file created. No state file updated.",
+    "must_contain": ["dry run", "nothing written"],
+    "must_not_contain": ["lit-watch-2026", "State updated"]
+  },
+  {
+    "id": "empty_new_papers",
+    "description": "collect_output has 0 new_papers — all seen before",
+    "collect_output": {
+      "since": "2026-05-12",
+      "topics": ["molecular fingerprints"],
+      "new_papers": [],
+      "meta": {
+        "total_found": 5,
+        "after_dedup": 5,
+        "new_unseen": 0,
+        "topics_searched": ["molecular fingerprints"],
+        "sources_coverage": {"arxiv": 5, "semantic_scholar": 3},
+        "sources_skipped": [],
+        "errors": []
+      }
+    },
+    "expected_behavior": "Reports 'No new papers found since 2026-05-12 (5 already seen).' Skips scoring step. No digest written (or writes a no-new-papers digest). Suggests checking next week or broadening topics.",
+    "must_contain": ["No new papers", "2026-05-12"],
+    "must_not_contain": ["Score:", "## High-relevance"]
+  }
+]
