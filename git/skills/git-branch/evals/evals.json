@@ -1,0 +1,96 @@
+[
+  {
+    "id": "default_suggest_push",
+    "description": "Default: uncommitted changes + ahead → suggest git-sync",
+    "script_output": {
+      "subcommand": "default",
+      "current_branch": "main",
+      "uncommitted_changes": true,
+      "status_short": " M src/auth.py\n?? tests/test_auth.py",
+      "tracking": {"name": "main", "upstream": "origin/main", "ahead": 3, "behind": 0},
+      "linked_worktrees": [],
+      "merged_stale": [],
+      "recent_log": ["a1b2c3d feat(auth): add login", "e4f5g6h fix(api): null check"]
+    },
+    "expected_behavior": "Shows current branch=main, 3 commits ahead, uncommitted changes. Suggests running /git-sync. Does NOT suggest --clean (merged_stale is empty).",
+    "must_contain": ["main", "uncommitted", "git-sync"],
+    "must_not_contain": ["--clean", "git branch -d"]
+  },
+  {
+    "id": "default_suggest_clean",
+    "description": "Default: merged stale branches → suggest --clean",
+    "script_output": {
+      "subcommand": "default",
+      "current_branch": "main",
+      "uncommitted_changes": false,
+      "status_short": "",
+      "tracking": {"name": "main", "upstream": "origin/main", "ahead": 0, "behind": 0},
+      "linked_worktrees": [{"branch": "feature/task-a", "path": "/home/user/myapp-task-a"}],
+      "merged_stale": ["feature/old-auth", "fix/bug-123"],
+      "recent_log": []
+    },
+    "expected_behavior": "Reports working tree clean. Lists linked worktree feature/task-a. Suggests /git-branch --clean for the 2 merged stale branches.",
+    "must_contain": ["feature/old-auth", "fix/bug-123", "--clean", "feature/task-a"],
+    "must_not_contain": ["git-sync", "git branch -d"]
+  },
+  {
+    "id": "new_branch_commands",
+    "description": "--new: prints worktree add commands, no execution",
+    "script_output": {
+      "subcommand": "new",
+      "branch": "feature/auth-refactor",
+      "worktree_path": "/home/user/myapp-auth-refactor",
+      "current_branch": "main",
+      "uncommitted_changes": false,
+      "branch_exists": false,
+      "path_exists": false
+    },
+    "expected_behavior": "Prints 'git worktree add -b feature/auth-refactor /home/user/myapp-auth-refactor'. No warning (no uncommitted changes). Reminds user to cd into worktree.",
+    "must_contain": ["git worktree add -b", "feature/auth-refactor", "/home/user/myapp-auth-refactor", "cd"],
+    "must_not_contain": ["Proceed?", "Warning"]
+  },
+  {
+    "id": "merge_strategy_choice",
+    "description": "--merge: multi-commit branch → present strategy options",
+    "script_output": {
+      "subcommand": "merge",
+      "branch": "feature/task-a",
+      "target": "main",
+      "commits": ["a1b2c3d feat: add parser", "e4f5g6h test: add parser tests", "x7y8z9w docs: update API"],
+      "commit_count": 3,
+      "diff_stat": " src/parser.py | 45 +++++\n tests/test_parser.py | 32 ++++\n docs/api.md | 8 +",
+      "ff_possible": false,
+      "worktree_path": "/home/user/myapp-task-a"
+    },
+    "expected_behavior": "Shows 3 commits and diff_stat. Presents all 3 strategy options. Default suggestion is strategy 1 (merge commit) since commit_count > 1. Generates squash commit message from commits[]. Includes worktree remove in all command sets.",
+    "must_contain": ["3 commit", "[1] merge commit", "[2] squash", "[3] rebase", "git worktree remove"],
+    "must_not_contain": ["branch_info.py", "script_output"]
+  },
+  {
+    "id": "clean_candidates",
+    "description": "--clean: lists deletion candidates and prints commands",
+    "script_output": {
+      "subcommand": "clean",
+      "candidates": [
+        {"name": "feature/old-auth", "age": "3 weeks ago", "worktree_path": null},
+        {"name": "fix/bug-123", "age": "2 days ago", "worktree_path": null}
+      ],
+      "orphaned_worktrees": []
+    },
+    "expected_behavior": "Prints both candidate branches with ages. Prints git branch -d and git push --delete commands for both. No orphaned worktree section (empty). Does NOT execute anything.",
+    "must_contain": ["feature/old-auth", "fix/bug-123", "git branch -d", "git push origin --delete"],
+    "must_not_contain": ["Proceed?", "Nothing to clean"]
+  },
+  {
+    "id": "clean_nothing",
+    "description": "--clean: no candidates → nothing to clean",
+    "script_output": {
+      "subcommand": "clean",
+      "candidates": [],
+      "orphaned_worktrees": []
+    },
+    "expected_behavior": "Reports 'Nothing to clean — no merged branches or orphaned worktrees found.' No git commands printed.",
+    "must_contain": ["Nothing to clean"],
+    "must_not_contain": ["git branch -d", "git push"]
+  }
+]
