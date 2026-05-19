@@ -209,6 +209,28 @@ Research Rabbit: [researchrabbitapp.com](https://www.researchrabbitapp.com)
 
 ---
 
+## Known limitations and future enhancements
+
+### PDF equation extraction (nougat / marker)
+
+`lit-vault` fetches full text via `fetch_fulltext.py`. For arXiv papers with HTML versions (2023+),
+equations are preserved via MathML `alttext` extraction — quality is good. For non-arXiv OA PDFs
+fetched via Unpaywall, PyMuPDF text extraction is used: equations, diacritics, and ligatures are
+often garbled. Notes from PDF sources carry `*(verify — PDF source)*` on equation-dependent claims.
+
+**Candidate tools for future improvement:**
+- **nougat** (Meta, `pip install nougat-ocr`) — PDF→Markdown with LaTeX equations; ~1.8 GB model,
+  slow on CPU (minutes/paper), good accuracy.
+- **marker** (VikParuchuri, `pip install marker-pdf`) — faster than nougat, CPU-viable, similar quality.
+
+**Integration point:** `fetch_fulltext.py → _extract_pdf()` — replace PyMuPDF call with nougat/marker
+when available, fall back to PyMuPDF otherwise.
+
+**Deferred:** batch fetch of 50–200 papers is impractically slow on CPU without GPU; dependency
+footprint is large. Revisit when a GPU is available or a lighter model emerges.
+
+---
+
 ## Shared data format
 
 All skills read/write `papers.json`. Schema: `schemas/papers.schema.json`. Shared I/O: `scripts/papers_io.py`.
