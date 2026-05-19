@@ -1,0 +1,101 @@
+{
+  "skill_name": "lit-search",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "search papers on machine learning for interacting quantum atoms and IQA energy decomposition, give me 20 papers sorted by impact score",
+      "expected_output": "papers.json file with ≥10 papers, human-readable summary, coverage statement, security warnings if applicable",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e0_schema",
+          "name": "papers.json has valid schema (meta + papers keys)",
+          "check": "json_key_exists",
+          "target": "papers.json"
+        },
+        {
+          "id": "e0_all_ids",
+          "name": "every paper has DOI or arXiv ID (no orphans)",
+          "check": "all_papers_have_id"
+        },
+        {
+          "id": "e0_coverage",
+          "name": "meta.sources_searched is non-empty list",
+          "check": "coverage_present"
+        },
+        {
+          "id": "e0_impact_scores",
+          "name": "papers have impact_score field (enables sorting)",
+          "check": "impact_scores_present"
+        },
+        {
+          "id": "e0_screening_status",
+          "name": "all papers have screening_status field",
+          "check": "screening_status_present"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "find recent papers on graph neural networks for molecular property prediction, last 2 years, at least 5 citations, comp-chem domain",
+      "expected_output": "papers.json with date filter, min_citations filter, domain=comp-chem in meta",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e1_schema",
+          "name": "papers.json has valid schema",
+          "check": "json_key_exists"
+        },
+        {
+          "id": "e1_date_filter",
+          "name": "meta contains from_date (date filter was applied)",
+          "check": "date_filter_present"
+        },
+        {
+          "id": "e1_citations_filter",
+          "name": "no paper with known citations < 5 (min-citations filter applied)",
+          "check": "min_citations_respected"
+        },
+        {
+          "id": "e1_all_ids",
+          "name": "every paper has DOI or arXiv ID",
+          "check": "all_papers_have_id"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "chase the citations of this paper: 10.1021/acs.jctc.1c00537 — both forward and backward, give me all papers that cite it and all its references",
+      "expected_output": "papers.json with chase_type field set, chase_source in meta, ≥1 paper found",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e2_schema",
+          "name": "papers.json has valid schema",
+          "check": "json_key_exists"
+        },
+        {
+          "id": "e2_chase_source",
+          "name": "meta.chase_source identifies the source paper",
+          "check": "chase_source_present"
+        },
+        {
+          "id": "e2_chase_type",
+          "name": "papers have chase_type field set (citing or cited_by)",
+          "check": "chase_type_present"
+        },
+        {
+          "id": "e2_all_ids",
+          "name": "every paper has DOI or arXiv ID",
+          "check": "all_papers_have_id"
+        },
+        {
+          "id": "e2_has_results",
+          "name": "at least 5 papers found",
+          "check": "min_papers_count",
+          "threshold": 5
+        }
+      ]
+    }
+  ]
+}

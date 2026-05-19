@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "papers.schema.json",
+  "title": "papers.json",
+  "description": "Shared paper list format for lit-search, lit-review, lit-bib, lit-watch",
+  "type": "object",
+  "required": ["meta", "papers"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["query", "generated_at", "sources_searched", "total_found", "after_dedup"],
+      "properties": {
+        "query": {"type": "string"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "sources_searched": {"type": "array", "items": {"type": "string"}},
+        "sources_skipped": {"type": "array", "items": {"type": "string"}},
+        "total_found": {"type": "integer"},
+        "after_dedup": {"type": "integer"},
+        "screening_criteria": {"type": "string"},
+        "domain": {"type": "string"},
+        "chase_source": {"type": "string"}
+      }
+    },
+    "papers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Canonical ID: 'arxiv:XXXXXX' or 'doi:10.xxx/yyy'"
+          },
+          "doi": {"type": ["string", "null"]},
+          "title": {"type": "string"},
+          "authors": {"type": "array", "items": {"type": "string"}},
+          "year": {"type": ["string", "null"]},
+          "venue": {"type": ["string", "null"]},
+          "citations": {"type": ["integer", "null"]},
+          "abstract": {"type": ["string", "null"]},
+          "url": {"type": ["string", "null"]},
+          "pdf_url": {"type": ["string", "null"]},
+          "sources": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Which databases returned this paper"
+          },
+          "impact_score": {"type": ["number", "null"]},
+          "chase_type": {
+            "type": ["string", "null"],
+            "enum": ["citing", "cited_by", null]
+          },
+          "screening_status": {
+            "type": ["string", "null"],
+            "enum": ["included", "excluded", "pending", null]
+          },
+          "screening_score": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+          "exclusion_reason": {"type": ["string", "null"]},
+          "notebooklm_batch": {"type": ["integer", "null"]},
+          "notebooklm_source_id": {"type": ["string", "null"]},
+          "bibtex_key": {"type": ["string", "null"]},
+          "bibtex_status": {
+            "type": ["string", "null"],
+            "enum": ["fetched", "manual-needed", "failed", null]
+          },
+          "zotero_key": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}
