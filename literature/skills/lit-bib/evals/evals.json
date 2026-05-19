@@ -1,0 +1,90 @@
+{
+  "skill_name": "lit-bib",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "fetch BibTeX for these DOIs and write refs.bib: 10.1021/acs.jctc.1c00537, 10.1103/PhysRevLett.77.3865",
+      "expected_output": "refs.bib with ≥1 valid BibTeX entry, summary of fetched/failed counts, no hallucinated fields",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e0_bib_written",
+          "name": "refs.bib file written to outputs/",
+          "check": "file_exists",
+          "target": "refs.bib"
+        },
+        {
+          "id": "e0_valid_bibtex",
+          "name": "refs.bib contains ≥1 valid BibTeX entry (starts with @)",
+          "check": "bibtex_entry_count_gte",
+          "threshold": 1
+        },
+        {
+          "id": "e0_has_citekey",
+          "name": "all entries have a non-empty citekey",
+          "check": "all_entries_have_citekey"
+        },
+        {
+          "id": "e0_summary_reported",
+          "name": "run_log.txt reports fetched/failed/manual-needed counts",
+          "check": "log_contains_summary"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "run lit-bib on the provided papers.json and save bibliography to my_refs.bib",
+      "expected_output": "my_refs.bib with ≥2 entries (2 DOI papers + 1 arXiv paper), summary report",
+      "files": [
+        "/home/jose/Documents/Universidad/aad-IA/daimon/literature/skills/lit-bib/evals/input_papers.json"
+      ],
+      "assertions": [
+        {
+          "id": "e1_bib_written",
+          "name": "my_refs.bib or refs.bib file written to outputs/",
+          "check": "any_bib_written"
+        },
+        {
+          "id": "e1_min_entries",
+          "name": "at least 2 BibTeX entries in output file",
+          "check": "bibtex_entry_count_gte",
+          "threshold": 2
+        },
+        {
+          "id": "e1_arxiv_entry",
+          "name": "arXiv entry present (eprint or archivePrefix field)",
+          "check": "bibtex_has_arxiv_field"
+        },
+        {
+          "id": "e1_no_excluded",
+          "name": "excluded papers (screening_status=excluded) skipped",
+          "check": "no_excluded_papers_in_bib"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "fetch BibTeX for arXiv paper 1706.03762 — it is the Transformer paper (Attention Is All You Need)",
+      "expected_output": "refs.bib with 1 arXiv-style entry containing eprint field and archivePrefix=arXiv, citekey generated",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e2_bib_written",
+          "name": "refs.bib written",
+          "check": "file_exists",
+          "target": "refs.bib"
+        },
+        {
+          "id": "e2_arxiv_style",
+          "name": "entry has eprint and archivePrefix fields",
+          "check": "bibtex_has_arxiv_field"
+        },
+        {
+          "id": "e2_has_citekey",
+          "name": "entry has non-empty citekey",
+          "check": "all_entries_have_citekey"
+        }
+      ]
+    }
+  ]
+}
