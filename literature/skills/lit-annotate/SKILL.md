@@ -10,7 +10,7 @@ description: >
   "I've read [paper]", "complete the notes for [paper]", "fill the skeleton", "process my reading
   notes", "I finished reading", "update the paper note". Use whenever the user has just read a paper
   and wants to convert their notes into structured vault content.
-tools: Bash, Read, Write, Edit, Glob, Grep
+tools: Bash, Read, Write, Edit
 ---
 
 # lit-annotate
@@ -67,21 +67,18 @@ Run `/lit-vault` first to create the structured skeleton, then re-run `/lit-anno
 
 Build `source_text` from the inputs provided, in priority order (use all that are available):
 
-1. **`--text`**: use as-is. This is the primary source — the user's own reading notes carry the
-   most signal.
+1. **`--text`**: use as-is. Primary source — user's own reading notes carry the most signal.
 
-2. **`--pdf`**: extract with PyMuPDF if available.
-   ```python
-   import fitz
-   doc = fitz.open(pdf_path)
-   text = "\n".join(page.get_text() for page in doc)
+2. **`--pdf`** or **`--url`**: extract with the script:
+   ```bash
+   EXTRACT=$(find -L ~/.claude -path "*/lit-annotate/scripts/extract_text.py" -type f | head -1)
+   python3 "$EXTRACT" [--pdf PATH | --url URL]
    ```
-   If PyMuPDF not installed: warn and skip this source.
+   Output JSON: `{"source", "text", "char_count", "truncated", "error"}`.
+   If `error` non-null: warn user and skip this source.
+   If `truncated: true`: note that text was capped at 20,000 chars.
 
-3. **`--url`**: fetch. If arXiv HTML (`arxiv.org/html/`): use `requests` + strip HTML tags.
-   If PDF URL: download to `/tmp/` → PyMuPDF extract → delete.
-
-4. **Existing abstract in note**: always included as baseline context.
+3. **Existing abstract in note**: always included as baseline context.
 
 If no source material beyond the abstract: warn "No reading notes or full text provided. Key points
 will be drafted from abstract only — may be shallow." Continue (user can edit after).
@@ -122,12 +119,23 @@ that already contain user-written text.
 `--pdf` is provided: offer to expand the existing Summary section. Show the existing summary and
 the proposed expansion. Only update if the user agrees (in Step 5 approval).
 
-**Additional Galaxy link candidates:** Tokenize `source_text` (lowercase, drop stopwords). Score
-each existing Galaxy concept filename (from `ls $VAULT_DIR/30-Galaxy/*.md`) by token overlap.
-Return top 3 candidates NOT already listed in the note's Connections block. Format as:
-`<!--[[concept-name]]-->  <!-- suggested by /lit-annotate from full text -->`
+**Additional Galaxy link candidates:** Run the suggest script:
+```bash
+SUGGEST=$(find -L ~/.claude -path "*/lit-annotate/scripts/suggest_galaxy.py" -type f | head -1)
+# Write source_text to a temp file first
+echo "$SOURCE_TEXT" > /tmp/lit-annotate-source.txt
+python3 "$SUGGEST" \
+  --vault-dir "$VAULT_DIR" \
+  --text-file /tmp/lit-annotate-source.txt \
+  --exclude "existing-slug-1,existing-slug-2" \
+  --top 3
+```
 
-Do NOT add Galaxy links that are already in the note (commented or confirmed).
+Pass all slugs already in the note's Connections block as `--exclude`.
+Output: JSON array of slug strings, e.g. `["qtaim", "iqa-energy-decomposition"]`.
+Format each as: `<!--[[slug]]-->  <!-- suggested by /lit-annotate from full text -->`
+
+Do NOT add Galaxy links already in the note (commented or confirmed).
 
 ### Step 5: Preview and approval
 

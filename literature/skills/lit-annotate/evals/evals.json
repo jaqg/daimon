@@ -1,77 +1,38 @@
-{
-  "skill_name": "lit-annotate",
-  "evals": [
-    {
-      "id": 0,
-      "prompt": "Annotate the vault note at /tmp/lit-annotate-eval0/vault/20-Sources/papers/smith2023-qtaim.md using the reading notes below. Fill in the Key points skeleton and suggest Galaxy links. The vault is at /tmp/lit-annotate-eval0/vault.\n\nReading notes:\n\"Key method: QTAIM + NCI analysis on a set of 40 hydrogen-bonded dimers using CCSD(T)/aug-cc-pVTZ density. Main result: electron density at BCPs correlates linearly with binding energy (R²=0.94) across all systems. IQA decomposition shows exchange-correlation term dominates stabilisation for strong H-bonds. Limitations: gas-phase only, no solvent effects, dimer geometry only. Interesting: IQA-Vcl term switches sign for weak H-bonds.\"",
-      "expected_output": "Key points section filled with Methods (QTAIM+NCI, CCSD(T)/aug-cc-pVTZ, 40 dimers), Key result (BCP correlation R²=0.94, IQA-Vcl sign switch), Limitations (gas phase, no solvent), Open questions. Galaxy suggestions for qtaim-related concepts. Approval prompt shown before writing. File written after approval.",
-      "files": [],
-      "assertions": [
-        {
-          "text": "key-points-filled",
-          "description": "All four Key points bullets contain non-empty content"
-        },
-        {
-          "text": "methods-specific",
-          "description": "Methods bullet names QTAIM, NCI, and CCSD(T) — not generic description"
-        },
-        {
-          "text": "key-result-quantitative",
-          "description": "Key result includes R²=0.94 or equivalent quantitative value from reading notes"
-        },
-        {
-          "text": "no-overwrite-guard",
-          "description": "Skill checks for existing content before writing; empty bullets filled, filled bullets untouched"
-        },
-        {
-          "text": "approval-gate",
-          "description": "Preview diff shown and user asked for confirmation before writing to file"
-        },
-        {
-          "text": "galaxy-suggestions-commented",
-          "description": "New Galaxy suggestions added as <!--[[...]]-->  not as confirmed [[links]]"
-        }
-      ]
+[
+  {
+    "id": "fill_key_points_from_text",
+    "description": "User text notes → fill all empty Key points bullets",
+    "note_content": "---\ntitle: \"Machine Learning of QTAIM Atomic Energies\"\nauthors: [\"Smith, J.\"]\nyear: 2023\ndoi: \"10.1021/jctc.3c00123\"\nfull_text_available: false\nstatus: Growing\ntype: Paper\n---\n\n## Summary\nApplies QTAIM to derive atomic energies for ML training.\n\n## Key points\n- **Methods:** \n- **Key result:** \n- **Limitations:** \n- **Open questions:** \n\n## Connections\n<!--[[qtaim-iqa-machine-learning]]-->\n",
+    "source_text": "Key method: QTAIM + NCI analysis on 40 H-bonded dimers at CCSD(T)/aug-cc-pVTZ. Main result: BCP electron density correlates linearly with binding energy (R²=0.94). IQA exchange-correlation term dominates for strong H-bonds. IQA-Vcl sign switches for weak H-bonds. Limitation: gas-phase only, no solvent, dimer geometry only.",
+    "suggest_galaxy_output": ["hydrogen-bonding", "iqa-energy-decomposition", "electron-density-topology"],
+    "expected_behavior": "Fills all four empty Key points bullets. Methods names QTAIM, NCI, CCSD(T)/aug-cc-pVTZ, 40 dimers. Key result includes R²=0.94. Limitations: gas-phase. Shows diff preview and asks approval. Adds Galaxy suggestions as <!--[[...]]-->. Does not touch existing <!--[[qtaim-iqa-machine-learning]]-->.",
+    "must_contain": ["R²=0.94", "CCSD", "gas-phase", "<!--[[", "Write these changes"],
+    "must_not_contain": ["overwrite", "qtaim-iqa-machine-learning-->  <!-- suggested"]
+  },
+  {
+    "id": "preserve_filled_bullet",
+    "description": "Methods bullet already filled — must not overwrite",
+    "note_content": "---\ntitle: \"ELF Basin Topology in Aromatics\"\nyear: 2024\nstatus: Seed\ntype: Paper\n---\n\n## Key points\n- **Methods:** ELF analysis with TopMod; B3LYP/6-311G** on PAHs\n- **Key result:** \n- **Limitations:** \n- **Open questions:** \n\n## Connections\n",
+    "source_text": "Main finding: ELF basins in aromatic rings show quantised electron counts matching Hückel rule. Only tested on PAHs, not heteroaromatics. Open question: does basin topology change with substituents?",
+    "suggest_galaxy_output": ["electron-localisation-function", "aromaticity"],
+    "expected_behavior": "Methods bullet left unchanged (already has 'ELF analysis with TopMod'). Key result, Limitations, Open questions filled from source_text. Shows approval gate. Only fills empty bullets.",
+    "must_contain": ["Key result", "Limitations", "Open questions", "Write these changes"],
+    "must_not_contain": ["ELF analysis with TopMod", "overwrite"]
+  },
+  {
+    "id": "extract_text_error_fallback",
+    "description": "extract_text.py returns error → graceful fallback to abstract only",
+    "note_content": "---\ntitle: \"IQA Decomposition Study\"\nyear: 2022\nabstract: \"We apply IQA to study covalent bonds in small molecules.\"\nstatus: Seed\ntype: Paper\n---\n\n## Key points\n- **Methods:** \n- **Key result:** \n- **Limitations:** \n- **Open questions:** \n\n## Connections\n",
+    "extract_text_output": {
+      "source": "pdf",
+      "path_or_url": "/tmp/garcia2022.pdf",
+      "text": "",
+      "char_count": 0,
+      "truncated": false,
+      "error": "PyMuPDF (fitz) not installed. Install with: pip install pymupdf"
     },
-    {
-      "id": 1,
-      "prompt": "I've read the paper at /tmp/lit-annotate-eval1/vault/20-Sources/papers/jones2024-elf.md. Fill in only the empty key points — the Methods bullet already has my notes. Vault at /tmp/lit-annotate-eval1/vault.\n\nMy notes: \"Main finding: ELF basins in aromatic rings show quantised electron counts matching Hückel rule. Limitation: only tested on PAHs, not heteroaromatics. Open question: does basin topology change with substituents?\"",
-      "expected_output": "Only empty Key points bullets filled (Key result, Limitations, Open questions). Methods bullet left unchanged because user already wrote it. Approval gate shown.",
-      "files": [],
-      "assertions": [
-        {
-          "text": "existing-methods-preserved",
-          "description": "Methods bullet content unchanged from what was in the fixture — skill did not overwrite"
-        },
-        {
-          "text": "empty-bullets-filled",
-          "description": "Key result, Limitations, and Open questions bullets contain new content"
-        },
-        {
-          "text": "approval-before-write",
-          "description": "Skill shows preview and requests confirmation before modifying the file"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "prompt": "Annotate /tmp/lit-annotate-eval2/vault/20-Sources/papers/garcia2022-iqa.md using the PDF at /tmp/lit-annotate-eval2/garcia2022.pdf. Vault at /tmp/lit-annotate-eval2/vault. This is for the PhD-Ch1-AIM4ML project.",
-      "expected_output": "Key points filled from PDF content. Open questions framed relative to AIM4ML project context (read from memory). Galaxy suggestions based on PDF content not already in the note. If PyMuPDF unavailable: graceful fallback message, skill continues with abstract.",
-      "files": [],
-      "assertions": [
-        {
-          "text": "pdf-source-used-or-fallback",
-          "description": "Either PDF content drives the annotation, or a clear fallback message explains PyMuPDF unavailable and skill continues"
-        },
-        {
-          "text": "project-context-framed",
-          "description": "Open questions bullet references AIM4ML project context (ML for QCT, transferability, etc.) — not generic"
-        },
-        {
-          "text": "no-write-outside-note",
-          "description": "Only the single note file is modified; no other vault files written"
-        }
-      ]
-    }
-  ]
-}
+    "expected_behavior": "Reports PyMuPDF unavailable. Continues with abstract as only source. Warns 'Key points will be drafted from abstract only — may be shallow.' Fills bullets from abstract text. Shows approval gate.",
+    "must_contain": ["abstract only", "PyMuPDF", "shallow"],
+    "must_not_contain": ["crash", "traceback", "Fatal"]
+  }
+]
