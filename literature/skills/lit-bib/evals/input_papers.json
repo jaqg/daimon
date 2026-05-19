@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "query": "IQA energy decomposition machine learning",
+    "generated_at": "2026-05-17T00:00:00Z",
+    "sources_searched": ["semantic_scholar", "arxiv"],
+    "total_found": 3,
+    "after_dedup": 3
+  },
+  "papers": [
+    {
+      "id": "doi:10.1021/acs.jctc.1c00537",
+      "doi": "10.1021/acs.jctc.1c00537",
+      "title": "Interacting Quantum Atoms: A Review",
+      "authors": ["Blanco, M. A.", "Martín Pendás, A.", "Francisco, E."],
+      "year": 2005,
+      "venue": "Journal of Chemical Theory and Computation",
+      "citations": 450,
+      "abstract": "Interacting quantum atoms (IQA) energy decomposition analysis.",
+      "impact_score": 9.1,
+      "screening_status": "included"
+    },
+    {
+      "id": "doi:10.1103/PhysRevLett.77.3865",
+      "doi": "10.1103/PhysRevLett.77.3865",
+      "title": "Generalized Gradient Approximation Made Simple",
+      "authors": ["Perdew, J. P.", "Burke, K.", "Ernzerhof, M."],
+      "year": 1996,
+      "venue": "Physical Review Letters",
+      "citations": 150000,
+      "abstract": "PBE generalized gradient approximation.",
+      "impact_score": 10.0,
+      "screening_status": "included"
+    },
+    {
+      "id": "arxiv:1706.03762",
+      "doi": null,
+      "title": "Attention Is All You Need",
+      "authors": ["Vaswani, A.", "Shazeer, N.", "Parmar, N."],
+      "year": 2017,
+      "venue": "NeurIPS",
+      "citations": 90000,
+      "abstract": "Transformer architecture based on attention mechanisms.",
+      "impact_score": 10.0,
+      "screening_status": "included"
+    }
+  ]
+}
