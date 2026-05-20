@@ -25,6 +25,8 @@ VAULT_DIR              # required — path to Obsidian vault root
 USER_EMAIL             # optional — improves Unpaywall rate limits (any email works)
 LIT_VAULT_CACHE_DIR    # optional — cache fetched full text; default: ~/.cache/daimon/lit-vault/
 LIT_VAULT_PDF_DIR      # optional — persist downloaded PDFs to this dir (omit to skip saving)
+ELSEVIER_API_KEY       # optional — ScienceDirect full text for 10.1016/* DOIs; register at dev.elsevier.com; institutional IP/VPN required at runtime
+WILEY_TDM_TOKEN        # optional — Wiley TDM PDF for 10.1002/*, 10.1111/* DOIs; get via ORCID at Wiley TDM portal; library must hold TDM agreement
 ```
 
 Source config:
@@ -81,21 +83,27 @@ python3 "$FETCH_SCRIPT" \
   --output "$FULLTEXT_OUT" \
   --email "${USER_EMAIL:-anonymous@example.com}" \
   --cache-dir "$CACHE_DIR" \
-  ${LIT_VAULT_PDF_DIR:+--pdf-dir "$LIT_VAULT_PDF_DIR"}
+  ${LIT_VAULT_PDF_DIR:+--pdf-dir "$LIT_VAULT_PDF_DIR"} \
+  ${ELSEVIER_API_KEY:+--elsevier-key "$ELSEVIER_API_KEY"} \
+  ${WILEY_TDM_TOKEN:+--wiley-token "$WILEY_TDM_TOKEN"}
 ```
 
-The script tries per paper, in priority order:
+The script tries per paper, in priority order — stops at first success:
 1. **arXiv HTML** — `https://arxiv.org/html/{id}` if `arxiv` field present
 2. **arXiv PDF** — fallback when no HTML version exists
 3. **Unpaywall** — all OA PDF URLs then all OA HTML URLs from `oa_locations`
 4. **Europe PMC** — full text XML via PMC ID (if DOI is indexed)
-5. **Fallback** — abstract only; `full_text_available: false` in output
+5. **Elsevier ScienceDirect** — XML then PDF via TDM API for `10.1016/*` DOIs (requires `ELSEVIER_API_KEY` + institutional IP/VPN)
+6. **Wiley TDM** — PDF via TDM API for `10.1002/*`, `10.1111/*` DOIs (requires `WILEY_TDM_TOKEN` + library TDM agreement)
+7. **Fallback** — abstract only; `full_text_available: false` in output
 
-Output: single JSON `{paper_id: {full_text, source, full_text_available, fetch_reason}, ...}`.
+Output: single JSON `{paper_id: {full_text, source, full_text_available, fetch_reason, publisher}, ...}`.
 Cache written to `$CACHE_DIR/fulltext-cache.json` — subsequent runs skip already-fetched papers.
 PDFs saved to `LIT_VAULT_PDF_DIR` if set; otherwise downloaded to `/tmp/` and discarded.
 
-After the script completes, load the JSON and map each paper ID to its full text and fetch source.
+**Manual download manifest**: script always writes `<output>-to-download.tsv` listing papers that fell back to abstract-only. Organized by publisher with download URLs and expected PDF filenames. Drop downloaded PDFs into `--pdf-dir` and re-run to pick them up.
+
+After the script completes, load the JSON and map each paper ID to its full text and fetch source. Report the manifest path to the user if it contains any entries.
 
 ### Step 3: Locate Galaxy suggestion script
 
