@@ -1,4 +1,7 @@
 config/config.local
+
+# local-only scripts (machine-specific, not for sharing)
+local/
 __pycache__/
 *.pyc
 .DS_Store
