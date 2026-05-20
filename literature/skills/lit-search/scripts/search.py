@@ -738,19 +738,26 @@ def main():
     data = to_papers_json(papers, args.query, active_sources, skipped_sources, args.domain, from_date, to_date, args.sort)
 
     # Handle --append
+    _append_saved = False
     if args.append:
-        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "scripts"))
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "scripts"))
         try:
             import papers_io
             base = papers_io.load(args.append)
             added = papers_io.merge(base, data)
             papers_io.save(base, args.append)
             print(f"Merged: {added} new papers added to {args.append}", file=sys.stderr)
+            _append_saved = True
         except Exception as e:
             print(f"WARNING: --append failed: {e}", file=sys.stderr)
 
-    # Output
-    if args.output:
+    # Output — skip if --append already wrote to the same path
+    _skip_output = (
+        _append_saved
+        and args.output
+        and Path(args.output).resolve() == Path(args.append).resolve()
+    )
+    if args.output and not _skip_output:
         out_path = Path(args.output)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
