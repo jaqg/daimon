@@ -14,7 +14,7 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError
 import xml.etree.ElementTree as ET
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "scripts"))
 import papers_io
 
 
