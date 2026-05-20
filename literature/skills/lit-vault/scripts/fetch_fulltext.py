@@ -82,6 +82,33 @@ _NOTE_STOPWORDS = {
     "analysis", "approach", "method",
 }
 
+_ELSEVIER_PREFIXES = {"10.1016/", "10.1006/", "10.1053/", "10.1054/", "10.1078/"}
+_WILEY_PREFIXES    = {"10.1002/", "10.1111/"}
+_ACS_PREFIXES      = {"10.1021/"}
+_RSC_PREFIXES      = {"10.1039/"}
+_SPRINGER_PREFIXES = {"10.1007/", "10.1038/"}
+
+
+def _detect_publisher(doi: str) -> str | None:
+    if not doi:
+        return None
+    for p in _ELSEVIER_PREFIXES:
+        if doi.startswith(p):
+            return "elsevier"
+    for p in _WILEY_PREFIXES:
+        if doi.startswith(p):
+            return "wiley"
+    for p in _ACS_PREFIXES:
+        if doi.startswith(p):
+            return "acs"
+    for p in _RSC_PREFIXES:
+        if doi.startswith(p):
+            return "rsc"
+    for p in _SPRINGER_PREFIXES:
+        if doi.startswith(p):
+            return "springer"
+    return None
+
 
 def _ascii_norm(s: str) -> str:
     return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("ascii")
@@ -332,6 +359,98 @@ def fetch_europepmc(doi: str):
         return None, None, f"europepmc-{type(e).__name__}"
 
 
+def fetch_elsevier(doi: str, api_key: str, save_path: str = None):
+    """Fetch full text from Elsevier ScienceDirect API (institutional IP/VPN required).
+    Tries XML first (no PyMuPDF), then PDF. Returns (text, source, failure_reason)."""
+    encoded = urllib.parse.quote(doi, safe="")
+    base = f"https://api.elsevier.com/content/article/doi/{encoded}"
+
+    # XML
+    try:
+        req = urllib.request.Request(
+            f"{base}?apiKey={api_key}&httpAccept=text/xml",
+            headers={"User-Agent": UA},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = resp.read()
+            ct = resp.headers.get("Content-Type", "")
+        if "xml" in ct or data[:5] in (b"<?xml", b"<els:"):
+            text = _strip_html(data.decode("utf-8", errors="replace"))
+            if len(text) >= 500:
+                return text, "elsevier-xml", None
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return None, None, f"elsevier-http-{e.code}-check-ip-or-key"
+        if e.code != 404:
+            return None, None, f"elsevier-xml-http-{e.code}"
+    except Exception as e:
+        return None, None, f"elsevier-xml-{type(e).__name__}"
+
+    # PDF fallback
+    pdf_url = f"{base}?apiKey={api_key}&httpAccept=application/pdf"
+    text, reason = _extract_pdf(pdf_url, save_path=save_path)
+    if text:
+        return text, "elsevier-pdf", None
+    return None, None, reason or "elsevier-pdf-failed"
+
+
+def fetch_wiley(doi: str, token: str, save_path: str = None):
+    """Fetch PDF from Wiley TDM API (ORCID token + library TDM agreement required).
+    Returns (text, source, failure_reason)."""
+    try:
+        import fitz
+    except ImportError:
+        return None, None, "pymupdf-not-installed"
+
+    encoded = urllib.parse.quote(doi, safe="")
+    url = f"https://api.wiley.com/onlinelibrary/tdm/v1/articles/{encoded}"
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": UA,
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/pdf",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+            ct = resp.headers.get("Content-Type", "")
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return None, None, f"wiley-http-{e.code}-check-token-or-agreement"
+        return None, None, f"wiley-http-{e.code}"
+    except Exception as e:
+        return None, None, f"wiley-{type(e).__name__}"
+
+    if "pdf" not in ct and not data[:4] == b"%PDF":
+        return None, None, "wiley-unexpected-content-type"
+
+    if save_path:
+        try:
+            actual = _resolve_save_path(save_path, data)
+            if actual:
+                with open(actual, "wb") as f:
+                    f.write(data)
+        except OSError:
+            pass
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        f.write(data)
+        tmp = f.name
+    try:
+        doc = fitz.open(tmp)
+        text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+        if len(text) < 500:
+            return None, None, "wiley-pdf-text-too-short"
+        return text, "wiley-pdf", None
+    except Exception as e:
+        return None, None, f"wiley-pdf-fitz-{type(e).__name__}"
+    finally:
+        os.unlink(tmp)
+
+
 # ---------------------------------------------------------------------------
 # Paper processor
 # ---------------------------------------------------------------------------
@@ -342,6 +461,8 @@ def process_paper(
     pdf_dir: str = None,
     cache: dict = None,
     cache_path: str = None,
+    elsevier_key: str = None,
+    wiley_token: str = None,
 ) -> dict:
     paper_id = paper.get("id", "")
 
@@ -352,6 +473,7 @@ def process_paper(
         paper_id if paper_id.startswith("arxiv:") else None
     )
     doi = paper.get("doi")
+    publisher = _detect_publisher(doi)
 
     save_path = None
     if pdf_dir:
@@ -372,6 +494,14 @@ def process_paper(
         full_text, source, reason = fetch_europepmc(doi)
         time.sleep(DELAY)
 
+    if not full_text and doi and elsevier_key and publisher == "elsevier":
+        full_text, source, reason = fetch_elsevier(doi, elsevier_key, save_path=save_path)
+        time.sleep(DELAY)
+
+    if not full_text and doi and wiley_token and publisher == "wiley":
+        full_text, source, reason = fetch_wiley(doi, wiley_token, save_path=save_path)
+        time.sleep(DELAY)
+
     if not full_text:
         source = "abstract"
 
@@ -380,6 +510,7 @@ def process_paper(
         "source": source,
         "full_text_available": full_text is not None,
         "fetch_reason": reason,
+        "publisher": publisher,
     }
 
     if cache is not None and cache_path and result["full_text_available"]:
@@ -393,6 +524,81 @@ def process_paper(
 # Main
 # ---------------------------------------------------------------------------
 
+def _write_manual_download_manifest(
+    papers: list,
+    results: dict,
+    out_path: str,
+    pdf_dir: str = None,
+) -> int:
+    """Write TSV manifest of papers that could not be fetched automatically.
+    Returns count of entries written."""
+    import datetime
+
+    manual = []
+    for paper in papers:
+        pid = paper.get("id", "")
+        res = results.get(pid, {})
+        if res.get("full_text_available"):
+            continue
+        doi = paper.get("doi", "")
+        publisher = res.get("publisher") or _detect_publisher(doi) or "unknown"
+        stem = _derive_note_stem(paper)
+        manual.append({
+            "publisher": publisher,
+            "filename": stem + ".pdf",
+            "doi": doi,
+            "title": (paper.get("title") or "")[:80],
+            "year": str(paper.get("year") or ""),
+            "venue": (paper.get("venue") or paper.get("journal") or ""),
+            "reason": res.get("fetch_reason") or "not-attempted",
+        })
+
+    if not manual:
+        return 0
+
+    # Sort: by publisher then year
+    manual.sort(key=lambda x: (x["publisher"], x["year"]))
+
+    date_str = datetime.date.today().isoformat()
+    drop_dir = pdf_dir or "<your-pdf-dir>"
+
+    lines = [
+        f"# Manual download list — {date_str}",
+        "# Papers that could not be fetched automatically.",
+        f"# Download PDFs via institutional access (VPN if off-campus).",
+        f"# Drop files in: {drop_dir}",
+        "# Name each PDF as shown in the FILENAME column.",
+        "# Re-run with --pdf-dir to pick them up.",
+        "#",
+        "# PUBLISHER\tFILENAME\tDOI\tTITLE\tYEAR\tVENUE\tFAIL_REASON",
+    ]
+
+    current_pub = None
+    for entry in manual:
+        pub = entry["publisher"]
+        if pub != current_pub:
+            current_pub = pub
+            hint = {
+                "acs": "https://pubs.acs.org/doi/{doi}",
+                "rsc": "https://pubs.rsc.org/en/content/articlehtml/{doi}",
+                "springer": "https://link.springer.com/article/{doi}",
+                "elsevier": "https://www.sciencedirect.com/science/article/pii/ (search by DOI) — check ELSEVIER_API_KEY + institutional IP",
+                "wiley": "https://onlinelibrary.wiley.com/doi/{doi} — check WILEY_TDM_TOKEN",
+            }.get(pub, "search by DOI")
+            lines.append(f"#")
+            lines.append(f"# === {pub.upper()} — {hint} ===")
+        row = "\t".join([
+            entry["publisher"], entry["filename"], entry["doi"],
+            entry["title"], entry["year"], entry["venue"], entry["reason"],
+        ])
+        lines.append(row)
+
+    with open(out_path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+    return len(manual)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--papers", required=True, help="Input papers.json path")
@@ -400,7 +606,18 @@ def main():
     parser.add_argument("--email", default="anonymous@example.com")
     parser.add_argument("--cache-dir", default=None, help="Dir for fulltext-cache.json (skip re-fetching cached papers)")
     parser.add_argument("--pdf-dir", default=None, help="Dir to save downloaded PDFs")
+    parser.add_argument("--elsevier-key", default=None, help="Elsevier API key (dev.elsevier.com; requires institutional IP/VPN)")
+    parser.add_argument("--wiley-token", default=None, help="Wiley TDM bearer token (ORCID-linked; requires library TDM agreement)")
+    parser.add_argument("--manual-download-out", default=None, help="Path for manual-download TSV manifest (default: <output>-to-download.tsv)")
     args = parser.parse_args()
+
+    elsevier_key = args.elsevier_key or os.environ.get("ELSEVIER_API_KEY") or None
+    wiley_token  = args.wiley_token  or os.environ.get("WILEY_TDM_TOKEN")  or None
+
+    if elsevier_key:
+        print("Elsevier API: enabled")
+    if wiley_token:
+        print("Wiley TDM API: enabled")
 
     # Load cache
     cache: dict = {}
@@ -434,6 +651,8 @@ def main():
             pdf_dir=args.pdf_dir,
             cache=cache if cache_path else None,
             cache_path=cache_path,
+            elsevier_key=elsevier_key,
+            wiley_token=wiley_token,
         )
         from_cache = result.pop("_from_cache", False)
         results[pid] = result
@@ -448,11 +667,21 @@ def main():
                 print(f"[{src}]")
         else:
             reason_str = result.get("fetch_reason") or "unknown"
+            pub = result.get("publisher") or ""
             abstract_count += 1
-            print(f"[abstract-only: {reason_str}]")
+            print(f"[abstract-only: {reason_str}{' (' + pub + ')' if pub else ''}]")
 
     with open(args.output, "w") as f:
         json.dump(results, f, indent=2)
+
+    # Manual download manifest
+    manifest_path = args.manual_download_out
+    if not manifest_path:
+        base = args.output
+        if base.endswith(".json"):
+            base = base[:-5]
+        manifest_path = base + "-to-download.tsv"
+    manual_count = _write_manual_download_manifest(papers, results, manifest_path, pdf_dir=args.pdf_dir)
 
     total = len(papers)
     fetched = sum(src_counts.values())
@@ -463,6 +692,8 @@ def main():
     )
     if cache_hit_count:
         print(f"Cache hits: {cache_hit_count}/{fetched} (skipped re-fetch)")
+    if manual_count:
+        print(f"Manual download list: {manual_count} papers → {manifest_path}")
     print(f"Output: {args.output}")
 
 
