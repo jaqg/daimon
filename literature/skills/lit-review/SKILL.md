@@ -247,12 +247,22 @@ exist in papers.json. Flag any citations that don't match.
 Synthesis response must explicitly reference content from all N batches.
 If any batch is absent from synthesis: run targeted follow-up question.
 
-### Deliverable (if requested)
+### Deliverable (default: briefing-doc; override with --deliverable)
+
+Always generate a briefing-doc report after analysis. If `--deliverable` is specified, generate that type instead (or in addition).
 
 ```bash
-$NLM generate TYPE --notebook NOTEBOOK_ID
-$NLM download TYPE output.FILE --notebook NOTEBOOK_ID
+$NLM generate report \
+  --format briefing-doc \
+  --notebook NOTEBOOK_ID \
+  [--append "GOAL or area instructions if --goal was provided"] \
+  --wait --json
+
+$NLM download report "$OUTPUT_DIR/nlm-briefing-YYYY-MM-DD.md" \
+  --notebook NOTEBOOK_ID --latest --force
 ```
+
+Read the downloaded markdown file and embed its full content verbatim in the report under `## NLM Deliverable`. Do not summarize or rewrite it.
 
 ## Stage 4: Generate .bib (if --bib or --full)
 
@@ -291,7 +301,7 @@ Papers identified: N → screened: N → included: N
 [PRISMA phase table]
 
 ## Analysis — [Batch 1/M or single]
-[NLM response]
+[verbatim NLM ask response]
 
 ## Synthesis [if multiple batches]
 [merged synthesis]
@@ -307,8 +317,12 @@ refs.bib: N entries | Manual-needed: N (see list below)
 ## Zotero
 [Sync result or "not synced"]
 
-## Deliverable
-[file path and type, or "none requested"]
+## NLM Deliverable
+**Format:** briefing-doc (or type if --deliverable override)
+**File:** nlm-briefing-YYYY-MM-DD.md
+**Sources loaded:** N/M (note any paywalled failures)
+
+[verbatim content of downloaded briefing-doc markdown]
 
 ## Notebook IDs
 [list all notebook IDs so user can open in NotebookLM]
