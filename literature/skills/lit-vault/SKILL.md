@@ -223,9 +223,21 @@ If none found: write "None stated explicitly." — never omit this section.]
 
 ### Step 5: Report
 
+Before reporting, verify actual files on disk — do not count papers attempted:
+```bash
+# confirm each expected file exists before including in report
+for expected_path in $WRITTEN_PATHS; do
+    [ -f "$expected_path" ] && echo "$expected_path"
+done
+```
+
+Only list notes whose file path was confirmed to exist. If a write was attempted but the file does not exist, log it as a write failure, not as imported.
+
 ```
 Imported:  N notes → VAULT_DIR/20-Sources/papers/
+  [list each confirmed filename, one per line]
 Skipped:   M files (already exist — use --overwrite to replace)
+Failed:    F writes (attempted but file not found — check permissions/path)
 Full text: K papers (arXiv: J | Unpaywall: L | abstract-only: P)
 ```
 
