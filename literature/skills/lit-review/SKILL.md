@@ -266,16 +266,27 @@ If any batch is absent from synthesis: run targeted follow-up question.
 
 Always generate a briefing-doc report after analysis. If `--deliverable` is specified, generate that type instead (or in addition).
 
+Always pass `--append` with topic context so NLM focuses the briefing on the correct subject — without it, NLM may default to whatever source it considers most prominent.
+
 ```bash
+# Build BRIEFING_CONTEXT: if --goal given, use that; otherwise use TOPIC string
+BRIEFING_CONTEXT="${GOAL:-$TOPIC}"
+
 $NLM generate report \
   --format briefing-doc \
   --notebook NOTEBOOK_ID \
-  [--append "GOAL or area instructions if --goal was provided"] \
+  --append "$BRIEFING_CONTEXT" \
   --wait --json
 
 $NLM download report "$OUTPUT_DIR/nlm-briefing-YYYY-MM-DD.md" \
   --notebook NOTEBOOK_ID --latest --force
 ```
+
+**Topic validation after download**: read the briefing-doc and verify its content is about TOPIC (not a random paper). Check: does the title/first paragraph match the review subject?
+
+- If content matches: proceed.
+- If content is off-topic (NLM defaulted to wrong subject): re-run `generate report` once with a more explicit `--append "Provide a comprehensive briefing on TOPIC based on all sources in this notebook."` then re-download.
+- If still off-topic after retry: **stop and report error to user** — do not embed wrong-topic content in the report. Do not fall back to existing report files.
 
 Read the downloaded markdown file and embed its full content verbatim in the report under `## NLM Deliverable`. Do not summarize or rewrite it.
 
