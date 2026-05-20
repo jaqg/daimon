@@ -175,13 +175,28 @@ Assign each paper to a batch (`notebooklm_batch` field in papers.json).
 
 ### Add sources
 
-For each paper in batch, add URL as source:
-```bash
-$NLM source add "URL" --notebook NOTEBOOK_ID --json
-```
+For each paper in batch, add source in priority order — stop at first success:
 
-Priority: arXiv abstract URL > open-access PDF > DOI URL.
-If source add fails: log failure, continue. Note in report.
+1. **Local PDF** (if `--pdf-dir` given and file exists for this paper ID):
+   ```bash
+   $NLM source add "PATH/paperId.pdf" --type file --mime-type application/pdf --notebook NOTEBOOK_ID --json
+   ```
+2. **arXiv PDF URL** (if paper has `arxiv` field):
+   ```bash
+   $NLM source add "https://arxiv.org/pdf/{arxiv_id}" --notebook NOTEBOOK_ID --json
+   ```
+3. **Unpaywall OA PDF URL** (from `oa_locations` where `url_for_pdf` is set):
+   ```bash
+   $NLM source add "OA_PDF_URL" --notebook NOTEBOOK_ID --json
+   ```
+4. **DOI URL** (last resort — likely abstract only):
+   ```bash
+   $NLM source add "https://doi.org/{doi}" --notebook NOTEBOOK_ID --json
+   ```
+
+Do NOT use arXiv abstract URL (`arxiv.org/abs/...`) — NLM gets abstract only. arXiv PDF URL (`arxiv.org/pdf/...`) gives full paper.
+
+If source add fails at all levels: log failure, continue. Note in report.
 
 Wait for sources to process:
 ```bash
