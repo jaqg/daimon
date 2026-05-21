@@ -169,6 +169,7 @@ full_text_available: true
 
 # FirstAuthorLastname YEAR — Short keyword phrase from title
 
+**Title:** Full literal paper title from papers.json (verbatim, no edits)
 **Authors:** Author1, Author2, Author3 et al.
 **Venue:** Journal Name | **Year:** YYYY | **Citations:** N
 **Why included:** [Copy screening_reason from papers.json. If absent: "Manually imported."]
