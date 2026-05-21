@@ -1,0 +1,51 @@
+{
+  "skill_name": "peer-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Please peer-review my manuscript. Run /peer-review --file evals/fixtures/minimal.tex",
+      "expected_output": "The skill checks for the review/addition-suggestion environments (they are absent), shows a preamble patch and asks for approval, extracts manuscript paragraphs, generates 3-8 review comments with suggestions, shows a diff preview of the injections, and (after approval) writes the environments and review blocks into the .tex file.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "The output .tex file contains \\newenvironment{review}",
+        "The output .tex file contains \\newenvironment{addition-suggestion}",
+        "The output .tex file contains at least one \\begin{review} block",
+        "The output .tex file contains at least one \\begin{addition-suggestion} block",
+        "The skill asked for approval before writing (showed a diff or patch preview)",
+        "No full review text was printed as plain terminal output (it was injected into the file)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Peer-review my paper without suggestions. Run /peer-review --file evals/fixtures/minimal.tex --no-suggest",
+      "expected_output": "The skill injects review blocks but NOT addition-suggestion blocks. The preamble still gets both environment definitions (they may be needed later). Review comments appear after relevant paragraphs.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "The output .tex file contains at least one \\begin{review} block",
+        "The output .tex file does NOT contain any \\begin{addition-suggestion} block",
+        "The skill asked for approval before writing"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Review this manuscript which already has the environments defined. Run /peer-review --file evals/fixtures/full-preamble.tex",
+      "expected_output": "The skill detects that both environments are already defined and does NOT add duplicate definitions. It proceeds directly to extraction and review without patching the preamble. The final .tex has exactly one definition of each environment.",
+      "files": ["evals/fixtures/full-preamble.tex"],
+      "expectations": [
+        "The output .tex file contains exactly one occurrence of \\newenvironment{review}",
+        "The output .tex file contains exactly one occurrence of \\newenvironment{addition-suggestion}",
+        "The output .tex file contains at least one \\begin{review} block"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Do a dry-run peer review of my manuscript. Run /peer-review --file evals/fixtures/minimal.tex --dry-run",
+      "expected_output": "The skill prints a unified diff showing what would be inserted, but does NOT modify the .tex file. The original file content is unchanged after the run.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "A unified diff is shown in the output (lines starting with + appear)",
+        "The original minimal.tex file is unchanged (its content does not contain \\begin{review})"
+      ]
+    }
+  ]
+}
