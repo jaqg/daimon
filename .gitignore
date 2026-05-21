@@ -7,7 +7,7 @@ __pycache__/
 .DS_Store
 
 # skill eval workspaces
-writing/skills/workflow-diagram-workspace/
+writing/skills/*-workspace/
 literature/skills/*-workspace/
 
 # LaTeX build artifacts
