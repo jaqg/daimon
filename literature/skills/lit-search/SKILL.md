@@ -43,6 +43,8 @@ and which were skipped (no key or not requested).
 --min-citations N
 --append PATH          merge results into existing papers.json (dedup by DOI/arXiv ID)
 --output PATH          save papers.json (default: papers-QUERY-DATE.json in cwd)
+--expand [N]           after primary search, derive N related queries from top results
+                       and re-search with each; all merged via --append (default N=3)
 ```
 
 ## Step 0: Gather inputs
@@ -96,6 +98,29 @@ python3 "$CHASE_SCRIPT" "DOI_OR_ARXIV_OR_PDF" \
 ```
 
 For local PDF: pass the absolute path. PyMuPDF must be installed (`pip install pymupdf`).
+
+## Step 2b: Query expansion (if --expand)
+
+Read the primary papers.json output. From titles + abstracts of the top 20 papers by
+impact score, derive N distinct search queries that would find related papers the primary
+search may have missed. Prioritize:
+- Synonyms or alternate terminology for central concepts
+- Specific techniques/material systems named frequently in abstracts
+- Related subtopics present in abstracts but absent from the original query
+- Narrow follow-up queries (e.g. specific compound/method names) implied by results
+
+Save derived queries to `$OUTPUT_PATH-derived-queries.txt` (one per line, no quotes).
+
+For each derived query:
+```bash
+python3 "$SEARCH_SCRIPT" "DERIVED_QUERY" \
+  [--domain] [date flags] [--sort] [--min-citations] \
+  --append "$OUTPUT_PATH"
+```
+
+Report: "Expansion: derived N queries → +M new papers after dedup"
+
+Key: `search.py --append` deduplicates by canonical ID — no duplicate entries created.
 
 ## Step 3: Report results
 
