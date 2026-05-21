@@ -50,6 +50,12 @@ ZOTERO_API_URL
 --criteria "TEXT"      PRISMA inclusion/exclusion criteria (stated before screening)
 --deliverable TYPE     podcast|flashcards|study-guide|quiz
 --output DIR           output directory (default: lit-review-TOPIC-DATE/ in cwd)
+
+-- Pipeline enhancements --
+--expand [N]           pass through to lit-search query expansion (N derived queries, default 3)
+--adaptive             adaptive NLM follow-up questions per batch (identify gaps, ask targeted follow-ups)
+--adaptive-depth N     max follow-up questions per batch (default 2; raise for deeper research)
+--web                  web search pass for grey literature (added as NLM URL sources only)
 ```
 
 ## Step 0: Setup
@@ -80,8 +86,12 @@ SEARCH_SCRIPT=$(find -L ~/.claude -path "*/lit-search/scripts/search.py" -type f
 python3 "$SEARCH_SCRIPT" "TOPIC" \
   --results $N --domain $DOMAIN \
   [date flags] \
+  ${EXPAND:+--expand $EXPAND} \
   --output "$OUTPUT_DIR/papers-raw.json"
 ```
+
+If `--expand N` was passed to lit-review, set `EXPAND=N` and pass it through. The search script
+will append expansion results into papers-raw.json before returning. See lit-search Step 2b.
 
 Display coverage statement and paper count. Proceed even if fewer than 5 papers (warn user).
 
@@ -150,6 +160,25 @@ Included for analysis: N
 
 Save screened `papers.json` with `screening_status` and `screening_score` filled in for all papers.
 
+## Phase 2.7: Web fallback (if --web)
+
+Extract top 3–5 keyphrases from included paper titles (most frequent domain terms — skip
+stopwords and short words <4 chars).
+
+For each keyphrase, run WebSearch (Claude's WebSearch tool):
+- `"{keyphrase} preprint 2024 2025"`
+- `"{keyphrase} technical report grey literature"`
+
+Collect unique URLs not already represented in papers-screened.json (match by URL substring
+against doi and oa_locations fields). Target: preprint servers, agency reports, conference
+proceedings not indexed by CrossRef.
+
+Web sources are added to the NLM notebook in Stage 3 source-add — NOT added to papers.json
+(no structured metadata; NLM processes them as additional context only).
+
+Save collected URLs to `$OUTPUT_DIR/web-sources.txt` (one per line). Report:
+"Web sources collected: N URLs → will be added to NLM notebook"
+
 ## Stage 3: NotebookLM Analysis (if not --screen, --bib, --no-notebooklm)
 
 ### Auth check
@@ -198,6 +227,13 @@ Do NOT use arXiv abstract URL (`arxiv.org/abs/...`) — NLM gets abstract only. 
 
 If source add fails at all levels: log failure, continue. Note in report.
 
+**Web sources (if --web):** After all paper sources are added, also add each URL from
+`$OUTPUT_DIR/web-sources.txt`:
+```bash
+$NLM source add "URL" --notebook NOTEBOOK_ID --json
+```
+Log failures; web source failures are non-fatal.
+
 Wait for sources to process:
 ```bash
 $NLM source wait SOURCE_ID --notebook NOTEBOOK_ID --timeout 120
@@ -243,6 +279,21 @@ If project memory file not found or yields no extractable questions/gaps: omit P
 ```bash
 $NLM ask "QUESTION" --notebook NOTEBOOK_ID --json
 ```
+
+### Adaptive follow-up (if --adaptive)
+
+After first ask response, read it and identify:
+- Gaps explicitly flagged ("further research needed", "no studies found on…", "remains unclear")
+- Topics mentioned in passing but not elaborated on
+- Contradictions between cited papers that remain unresolved
+
+Rank identified gaps by importance. For `i` in `1..adaptive_depth` (default 2):
+1. Formulate a targeted follow-up question addressing the i-th most important gap.
+2. `$NLM ask "FOLLOW_UP_i" --notebook NOTEBOOK_ID --json`
+3. Save response.
+4. If response reveals no new gaps or information: stop early (do not exhaust `--adaptive-depth`).
+
+Include all follow-up responses in report under `## Adaptive Follow-up (i/adaptive_depth questions used)`.
 
 ### Cross-batch synthesis (if multiple batches)
 
@@ -331,6 +382,13 @@ Papers identified: N → screened: N → included: N
 
 ## Synthesis [if multiple batches]
 [merged synthesis]
+
+## Adaptive Follow-up [if --adaptive; omit section if not used]
+Questions asked: i/adaptive_depth
+[verbatim follow-up responses, one subsection per question]
+
+## Web sources [if --web; omit section if not used]
+URLs added as NLM sources: N
 
 ## Hallucination check
 Papers cited in analysis that appear in papers.json: N/M (N%)
