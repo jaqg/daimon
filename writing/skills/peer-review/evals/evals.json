@@ -46,6 +46,29 @@
         "A unified diff is shown in the output (lines starting with + appear)",
         "The original minimal.tex file is unchanged (its content does not contain \\begin{review})"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Expert peer-review of my manuscript with project context. Run /peer-review --file evals/fixtures/expert-draft.tex --expert --project evals/fixtures/project-expert",
+      "expected_output": "The skill reads manuscript-context.md, loads methods/results context, and produces review comments that reference specific parameters (PBE-D3, 830 eV cutoff, RASPA2 GCMC, TraPPE-UA, counterpoise correction) rather than generic 'specify your DFT method'. Comments address known weaknesses (Al substitution, TraPPE-UA transferability, rigid framework) from manuscript-context.md. Review injected into .tex file.",
+      "files": ["evals/fixtures/expert-draft.tex", "evals/fixtures/project-expert/manuscript-context.md"],
+      "expectations": [
+        "The output .tex file contains at least one \\begin{review} block",
+        "At least one review comment references a specific parameter from manuscript-context.md (e.g. PBE-D3, 830 eV, TraPPE-UA, RASPA2, counterpoise, or BSSE)",
+        "At least one review comment addresses a known weakness from manuscript-context.md (Al substitution, TraPPE-UA transferability, or rigid framework)",
+        "No warning about missing manuscript-context.md appears"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Expert peer-review without manuscript context. Run /peer-review --file evals/fixtures/expert-draft.tex --expert --project evals/fixtures/project-no-context",
+      "expected_output": "The skill finds no manuscript-context.md in the project dir, prints the fallback warning message telling the user to run /open-manuscript, falls back to memory files, and still produces a review (generic but functional).",
+      "files": ["evals/fixtures/expert-draft.tex"],
+      "expectations": [
+        "A warning message appears mentioning 'manuscript-context.md not found' or 'Falling back'",
+        "The output .tex file contains at least one \\begin{review} block",
+        "The warning recommends running /open-manuscript"
+      ]
     }
   ]
 }

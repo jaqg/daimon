@@ -1,0 +1,63 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{Selective Adsorption of Nanoplastic Polymer Fragments in Zeolite MFI}
+\author{Author et al.}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Nanoplastic contamination poses an emerging environmental challenge. Here we investigate the
+selective adsorption of polyethylene (PE) and polypropylene (PP) fragments in zeolite MFI using
+density functional theory (DFT) and grand canonical Monte Carlo (GCMC) simulations. PE fragments
+adsorb preferentially over PP, with a selectivity of approximately 2.0 under ambient conditions.
+\end{abstract}
+
+\section{Introduction}
+Nanoplastics released from weathering of plastic debris accumulate in water systems.
+Zeolites offer potential as low-cost adsorbents due to their tunable pore architecture.
+Zeolite MFI has pore dimensions (5.3 × 5.6 Å) that are comparable to small polymer
+fragment chain widths, motivating a molecular-scale investigation of adsorption selectivity.
+
+\section{Methods}
+
+\subsection{DFT calculations}
+All periodic DFT calculations were performed using CASTEP. Geometry optimisations used the
+generalised gradient approximation with dispersion corrections. A plane-wave energy cutoff was
+applied. Basis set superposition error (BSSE) was corrected using the counterpoise method.
+
+\subsection{Monte Carlo simulations}
+Grand canonical Monte Carlo (GCMC) simulations were performed using RASPA2. PE and PP
+trimers were modelled using a united-atom force field. Simulations were run at 298 K
+over a range of pressures from 0.01 to 1 bar.
+
+\subsection{Pore characterisation}
+Geometric pore characteristics including largest included sphere diameter and pore-limiting
+diameter were calculated using Zeo++.
+
+\section{Results}
+
+\subsection{Adsorption energies}
+The most stable adsorption site for PE trimers is the straight-channel intersection.
+BSSE-corrected adsorption energies range from −42 to −61 kJ/mol across five investigated sites.
+PP adsorption energies are systematically lower by approximately 26 kJ/mol.
+
+\subsection{Isotherms}
+At 0.1 bar and 298 K, PE loading reaches approximately 4.2 molecules per unit cell,
+compared to 2.1 for PP. The resulting selectivity of $S_{\rm PE/PP} \approx 2.0$ persists
+across the full pressure range investigated.
+
+\section{Discussion}
+The preferential adsorption of PE over PP can be attributed to the better geometric
+compatibility of the linear PE chain with the MFI straight-channel geometry. Dispersion
+interactions, which scale with contact area, favour the planar PE backbone over the
+branched PP structure.
+
+\section{Conclusions}
+MFI zeolite shows a 2-fold selectivity for PE over PP nanoplastic fragments under
+ambient conditions. This result suggests potential application of zeolites as
+size-selective nanoplastic scavengers.
+
+\end{document}
