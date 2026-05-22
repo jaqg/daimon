@@ -448,7 +448,7 @@ Catalog of frequent issues encountered during peer review, organized by category
 
 ## Editorial Compliance Checks
 
-### 26. Missing Mandatory Disclosures
+### 28. Missing Mandatory Disclosures
 
 **Common Problems:**
 - No conflict of interest statement (required by virtually all journals)
@@ -469,7 +469,7 @@ Catalog of frequent issues encountered during peer review, organized by category
 - Add funding statement; "no specific funding" is acceptable
 - Add author contributions (CRediT roles: conceptualization, methodology, software, validation, etc.)
 
-### 27. Reference and Citation Integrity
+### 29. Reference and Citation Integrity
 
 **Common Problems:**
 - Citations present in abstract (most journals prohibit this)
@@ -496,7 +496,7 @@ Catalog of frequent issues encountered during peer review, organized by category
 
 ## Novelty and Contribution Assessment
 
-### 28. Novelty, Positioning, and Contribution Gaps
+### 30. Novelty, Positioning, and Contribution Gaps
 
 *Note: AI assessment of novelty is inherently limited — flag these issues at severity "minor" and recommend the authors verify against their own literature search.*
 
