@@ -1,0 +1,35 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  },
+  "expectations": [
+    {
+      "text": "results-log.md has entry with 155,286 molecules and context about starting from 163k",
+      "passed": true,
+      "evidence": "155,286: True, 163k context: True"
+    },
+    {
+      "text": "decisions-log.md has entry about MD5 hash choice with rationale",
+      "passed": true,
+      "evidence": "MD5: True, rationale: True"
+    },
+    {
+      "text": "open-questions.md has new [OPEN] entry about dedup validation reference set",
+      "passed": true,
+      "evidence": "open+dedup: True"
+    },
+    {
+      "text": "Skill lists scaffold diversity as a Galaxy candidate but does not create any note file",
+      "passed": true,
+      "evidence": "galaxy in transcript: True, no file created: True"
+    },
+    {
+      "text": "Decisions appear in decisions-log.md only, results in results-log.md only \u2014 no mixing",
+      "passed": true,
+      "evidence": "no numbers in decisions: True, no decisions in results: True"
+    }
+  ]
+}

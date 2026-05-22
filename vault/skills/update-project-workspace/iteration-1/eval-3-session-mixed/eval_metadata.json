@@ -1,0 +1,32 @@
+{
+  "eval_id": 3,
+  "eval_name": "session-mixed",
+  "prompt": "/update-project --project test-project --session-summary \"Big day: ran the dedup pipeline and got 155,286 molecules after removing conformers and near-duplicates (started with 163k). Decided to use MD5 hashes (32-char) instead of SHA256 modulo for compound IDs — more reliable. Also realised we need to validate the dedup against a known dataset before publishing. New open question: what reference set to use for dedup validation? Concept worth noting: the idea of using scaffold diversity as a quality metric for ML datasets.\"",
+  "assertions": [
+    {
+      "text": "results-log.md has entry with 155,286 molecules and context about starting from 163k",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "decisions-log.md has entry about MD5 hash choice with rationale",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "open-questions.md has new [OPEN] entry about dedup validation reference set",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Skill lists scaffold diversity as a Galaxy candidate but does not create any note file",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Decisions appear in decisions-log.md only, results in results-log.md only — no mixing",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

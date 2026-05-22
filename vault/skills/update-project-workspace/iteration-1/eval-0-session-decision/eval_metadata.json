@@ -1,0 +1,27 @@
+{
+  "eval_id": 0,
+  "eval_name": "session-decision",
+  "prompt": "/update-project --project test-project --session-summary \"Today I decided to switch from random splitting to scaffold-aware splitting. Random split is invalid because Tanimoto analysis showed 15% near-duplicates that would leak between train and test sets. I'll use the Bemis-Murcko scaffold approach.\"",
+  "assertions": [
+    {
+      "text": "decisions-log.md contains a new entry with scaffold-aware splitting and the near-duplicate rationale",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "open-questions.md shows splitting question as [CLOSED] with an answer",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Skill shows a diff preview and asks for confirmation before writing",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "results-log.md and methods.md are not modified",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 3,
+    "failed": 0,
+    "total": 3
+  },
+  "expectations": [
+    {
+      "text": "methods.md contains a new table row with CASTEP, GGA-PBE, 830 eV cutoff",
+      "passed": true,
+      "evidence": "CASTEP: True, 830 eV: True, GGA-PBE: True"
+    },
+    {
+      "text": "Methods row includes k-grid (1x1x1) and pseudopotential type (norm-conserving)",
+      "passed": true,
+      "evidence": "k-grid: True, norm-conserving: True"
+    },
+    {
+      "text": "Existing methods table rows are not duplicated",
+      "passed": true,
+      "evidence": "Python: 1x, OpenBabel: 1x"
+    }
+  ]
+}

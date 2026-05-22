@@ -1,0 +1,7 @@
+--- a/results-log.md
++++ b/results-log.md
+@@ -17,4 +17,3 @@
+ **Result:** All 5 variants: 1–3% accuracy. Best: lr=1e-4, hidden_dim=256, 3.1% accuracy.
+ **Interpretation:** sqrt-prop global architecture is broken at all tested hyperparameter settings. Dead end — architecture must be replaced.
+ **Files:** TBD
+-

@@ -1,0 +1,22 @@
+{
+  "eval_id": 2,
+  "eval_name": "session-methods",
+  "prompt": "/update-project --project test-project --session-summary \"Started using CASTEP today for geometry optimisations. Used GGA-PBE functional, 830 eV plane-wave cutoff, 1x1x1 k-grid, norm-conserving pseudopotentials, no dispersion correction. This is the main DFT setup going forward.\"",
+  "assertions": [
+    {
+      "text": "methods.md contains a new table row with CASTEP, GGA-PBE, 830 eV cutoff",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Methods row includes k-grid (1x1x1) and pseudopotential type (norm-conserving)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Existing methods table rows are not duplicated",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

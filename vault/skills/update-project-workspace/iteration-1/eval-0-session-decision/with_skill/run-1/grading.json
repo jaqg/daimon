@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  },
+  "expectations": [
+    {
+      "text": "decisions-log.md contains a new entry with scaffold-aware splitting and the near-duplicate rationale",
+      "passed": true,
+      "evidence": "scaffold: True, near-dup/tanimoto: True"
+    },
+    {
+      "text": "open-questions.md shows splitting question as [CLOSED] with an answer",
+      "passed": true,
+      "evidence": "[CLOSED]: True, answer: True"
+    },
+    {
+      "text": "Skill shows a diff preview and asks for confirmation before writing",
+      "passed": true,
+      "evidence": "dry_run_diff.txt size: 293"
+    },
+    {
+      "text": "results-log.md and methods.md are not modified",
+      "passed": true,
+      "evidence": "results-log unchanged: True, methods unchanged: True"
+    }
+  ]
+}
