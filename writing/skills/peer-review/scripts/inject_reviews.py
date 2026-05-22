@@ -27,6 +27,7 @@ Output: Summary of injections or unified diff (--dry-run).
 import argparse
 import difflib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -36,19 +37,45 @@ REVIEW_CLOSE = r"\end{review}"
 SUGGESTION_OPEN = r"\begin{addition-suggestion}"
 SUGGESTION_CLOSE = r"\end{addition-suggestion}"
 
+# Match $$...$$ before $...$ so display math is captured first
+_MATH_SPAN = re.compile(r'\$\$.*?\$\$|\$[^$\n]*?\$', re.DOTALL)
+
+
+def _sanitise_nonmath(s: str) -> str:
+    s = s.replace('−', '--')        # U+2212 minus sign → en-dash
+    s = s.replace('Å', r'\AA{}')   # Å → \AA{}
+    s = s.replace('‘', "'")        # left single quote
+    s = s.replace('’', "'")        # right single quote
+    s = s.replace('“', "``")       # left double quote
+    s = s.replace('”', "''")       # right double quote
+    s = re.sub(r'(?<!\\)_', r'\\_', s) # bare _ → \_
+    return s
+
+
+def sanitise_latex(text: str) -> str:
+    """Sanitise LaTeX-unsafe chars in non-math spans; math ($...$, $$...$$) passes through."""
+    parts = _MATH_SPAN.split(text)
+    maths = _MATH_SPAN.findall(text)
+    out = []
+    for i, part in enumerate(parts):
+        out.append(_sanitise_nonmath(part))
+        if i < len(maths):
+            out.append(maths[i])
+    return ''.join(out)
+
 
 def build_block(comment: str, suggestion: str | None, no_suggest: bool) -> list[str]:
     """Return lines to insert after a target paragraph."""
     block = [
         "",
         REVIEW_OPEN,
-        comment,
+        sanitise_latex(comment),
         REVIEW_CLOSE,
     ]
     if not no_suggest and suggestion:
         block += [
             SUGGESTION_OPEN,
-            suggestion,
+            sanitise_latex(suggestion),
             SUGGESTION_CLOSE,
         ]
     return block
