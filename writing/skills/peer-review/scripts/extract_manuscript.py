@@ -5,7 +5,10 @@ Usage:
     python3 extract_manuscript.py --file <root.tex>
 
 Output (stdout): JSON array of paragraph objects:
-    [{"section": str, "para_idx": int, "text": str, "source_file": str, "line_end": int}, ...]
+    [{"section": str, "section_level": int, "para_idx": int,
+      "text": str, "source_file": str, "line_end": int}, ...]
+
+section_level: 0 = preamble/abstract, 1 = \\section, 2 = \\subsection, 3 = \\subsubsection
 
 Follows \\input{} and \\include{} to included files. Strips LaTeX markup to plain text.
 Skips preamble, float environments (figure/table), and verbatim blocks.
@@ -56,11 +59,15 @@ def strip_latex(text: str) -> str:
     return text.strip()
 
 
-def section_name(line: str) -> str | None:
-    """Return section title from a \\section{...} line, or None."""
-    m = re.match(r'\\(?:sub)*section\*?\{([^}]+)\}', line.strip())
+def section_name(line: str) -> tuple[str, int] | None:
+    """Return (title, level) from a section command, or None.
+
+    Level: 1 = \\section, 2 = \\subsection, 3 = \\subsubsection.
+    """
+    m = re.match(r'\\((?:sub)*)section\*?\{([^}]+)\}', line.strip())
     if m:
-        return strip_latex(m.group(1))
+        level = 1 + len(m.group(1)) // 3  # each "sub" prefix adds one level
+        return strip_latex(m.group(2)), level
     return None
 
 
@@ -73,7 +80,8 @@ def is_include(line: str) -> str | None:
 
 
 def process_file(path: Path, root_dir: Path, current_section: list,
-                 para_idx: list, paragraphs: list, in_document: list) -> None:
+                 current_section_level: list, para_idx: list,
+                 paragraphs: list, in_document: list) -> None:
     """Recursively process a .tex file, appending paragraphs to the list."""
     try:
         lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
@@ -112,11 +120,25 @@ def process_file(path: Path, root_dir: Path, current_section: list,
             current_env_stack.append(env)
             if env in SKIP_ENVS:
                 skip_env_depth += 1
+            elif env == "abstract":
+                _flush_para(current_para_lines, para_start_line, current_section,
+                            current_section_level, para_idx, paragraphs, str(path))
+                current_para_lines = []
+                para_start_line = None
+                current_section[0] = "Abstract"
+                current_section_level[0] = 1
 
         if env_end:
             env = env_end.group(1)
             if env in SKIP_ENVS and skip_env_depth > 0:
                 skip_env_depth -= 1
+            elif env == "abstract":
+                _flush_para(current_para_lines, para_start_line, current_section,
+                            current_section_level, para_idx, paragraphs, str(path))
+                current_para_lines = []
+                para_start_line = None
+                current_section[0] = "(preamble)"
+                current_section_level[0] = 0
             if current_env_stack and current_env_stack[-1] == env:
                 current_env_stack.pop()
 
@@ -127,17 +149,16 @@ def process_file(path: Path, root_dir: Path, current_section: list,
         # Follow includes
         inc = is_include(stripped)
         if inc:
-            # Flush current paragraph first
             _flush_para(current_para_lines, para_start_line, current_section,
-                        para_idx, paragraphs, str(path))
+                        current_section_level, para_idx, paragraphs, str(path))
             current_para_lines = []
             para_start_line = None
 
             inc_path = root_dir / inc
             if not inc_path.suffix:
                 inc_path = inc_path.with_suffix('.tex')
-            process_file(inc_path, root_dir, current_section, para_idx,
-                         paragraphs, in_document)
+            process_file(inc_path, root_dir, current_section, current_section_level,
+                         para_idx, paragraphs, in_document)
             line_idx += 1
             continue
 
@@ -145,10 +166,11 @@ def process_file(path: Path, root_dir: Path, current_section: list,
         sec = section_name(stripped)
         if sec:
             _flush_para(current_para_lines, para_start_line, current_section,
-                        para_idx, paragraphs, str(path))
+                        current_section_level, para_idx, paragraphs, str(path))
             current_para_lines = []
             para_start_line = None
-            current_section[0] = sec
+            current_section[0] = sec[0]
+            current_section_level[0] = sec[1]
             line_idx += 1
             continue
 
@@ -160,7 +182,7 @@ def process_file(path: Path, root_dir: Path, current_section: list,
         # Paragraph splitting: blank line flushes current paragraph
         if stripped == '':
             _flush_para(current_para_lines, para_start_line, current_section,
-                        para_idx, paragraphs, str(path))
+                        current_section_level, para_idx, paragraphs, str(path))
             current_para_lines = []
             para_start_line = None
         else:
@@ -172,11 +194,12 @@ def process_file(path: Path, root_dir: Path, current_section: list,
 
     # Flush any remaining paragraph at EOF
     _flush_para(current_para_lines, para_start_line, current_section,
-                para_idx, paragraphs, str(path))
+                current_section_level, para_idx, paragraphs, str(path))
 
 
 def _flush_para(lines_buf: list, start_line: int | None, current_section: list,
-                para_idx: list, paragraphs: list, source_file: str) -> None:
+                current_section_level: list, para_idx: list,
+                paragraphs: list, source_file: str) -> None:
     """Assemble buffered lines into a paragraph and append to list."""
     if not lines_buf:
         return
@@ -188,6 +211,7 @@ def _flush_para(lines_buf: list, start_line: int | None, current_section: list,
     text = text[:MAX_PARA_CHARS]
     paragraphs.append({
         "section": current_section[0],
+        "section_level": current_section_level[0],
         "para_idx": para_idx[0],
         "text": text,
         "source_file": source_file,
@@ -209,10 +233,12 @@ def main():
     root_dir = root.parent
     paragraphs = []
     current_section = ["(preamble)"]
+    current_section_level = [0]
     para_idx = [0]
     in_document = [False]
 
-    process_file(root, root_dir, current_section, para_idx, paragraphs, in_document)
+    process_file(root, root_dir, current_section, current_section_level,
+                 para_idx, paragraphs, in_document)
 
     print(json.dumps(paragraphs, ensure_ascii=False, indent=2))
 
