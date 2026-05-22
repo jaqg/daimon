@@ -101,14 +101,31 @@ Save the full JSON output for Step 5.
 
 ## Step 4 — Load expert context (only with `--expert`)
 
-Read these files from the vault memory directory (`$VAULT_DIR/../.claude/projects/.../memory/` or
-`~/.claude/projects/$(echo $VAULT_DIR | sed 's|^/||;s|/|-|g')/memory/`):
+Derive the vault project directory:
+```bash
+PROJECT_DIR="$VAULT_DIR/10-Projects/<project-id>"
+MEMORY_DIR="$VAULT_DIR/memory"
+```
 
-- `project_<id>.md` — project goals, current methods, key results
-- `research_interests.md` — field keywords, journal targets, relevance rubric
+Load context in **priority order** — stop at the first level that provides manuscript-specific detail:
 
-Also locate and read the skill's own reference files (always use the daimon skill's copies,
-not any installed plugin versions):
+### Level 1 — Manuscript-specific (highest value)
+Check for `$PROJECT_DIR/manuscript-context.md`. If present, read it. This file contains the
+target journal, manuscript claims, key methods as used, and anticipated reviewer concerns.
+
+If absent, print: `manuscript-context.md not found for <project>. Run \`/open-manuscript --project <id>\` before the next expert review for field-specific comments. Falling back to project files.`
+
+### Level 2 — Project knowledge files
+Read if they exist:
+- `$PROJECT_DIR/methods.md` — computational software + parameters actually used
+- `$PROJECT_DIR/open-questions.md` — known unresolved issues the author is aware of
+
+### Level 3 — Memory files (fallback)
+Always read:
+- `$MEMORY_DIR/research_interests.md` — field-level reporting standards + relevance rubric
+- `$MEMORY_DIR/project_<id>.md` — project goals, Review context section
+
+### Reference files (always load)
 ```bash
 COMMON_ISSUES="$SKILL_DIR/references/common_issues.md"
 REP_STANDARDS="$SKILL_DIR/references/reporting_standards.md"
