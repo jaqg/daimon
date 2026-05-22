@@ -1,0 +1,226 @@
+{
+  "metadata": {
+    "skill_name": "project-lit-map",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-05-22T08:08:25Z",
+    "evals_run": [
+      0,
+      1
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "All 5 papers appear in literature-map.md (all 5 slugs present)",
+          "passed": true,
+          "evidence": "5/5 slugs present: ['smith2023-zeolite-adsorption', 'chen2022-pore-geometry', 'liu2021-gcmc-polymer', 'brown2020-microplastic-review', 'wu2024-dft-benchmark']"
+        },
+        {
+          "text": "literature-map.md has 2-3 ## theme sections",
+          "passed": true,
+          "evidence": "## sections: 3"
+        },
+        {
+          "text": "Each paper entry has an annotation (project-specific sentence, not just the header line)",
+          "passed": true,
+          "evidence": "5/5 paper entries have annotations"
+        },
+        {
+          "text": "Skill shows a diff and asks confirmation before writing",
+          "passed": true,
+          "evidence": "dry_run_diff.txt size: 1240"
+        },
+        {
+          "text": "Only test-project papers appear \u2014 no_cross_project papers",
+          "passed": true,
+          "evidence": "no cross-project slugs found"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "chen2022-pore-geometry and liu2021-gcmc-polymer appear in the updated map (new papers added)",
+          "passed": true,
+          "evidence": "chen2022: True, liu2021: True"
+        },
+        {
+          "text": "smith2023-zeolite-adsorption appears exactly once (not duplicated)",
+          "passed": true,
+          "evidence": "smith2023 count: 1"
+        },
+        {
+          "text": "Existing theme sections (DFT adsorption methodology, Environmental context) remain \u2014 existing themes preserved",
+          "passed": true,
+          "evidence": "## sections: 3"
+        },
+        {
+          "text": "The 2 new papers have annotations on new",
+          "passed": true,
+          "evidence": "5/5 paper entries have annotations"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "All 5 papers appear in literature-map.md (all 5 slugs present)",
+          "passed": true,
+          "evidence": "5/5 slugs present: ['smith2023-zeolite-adsorption', 'chen2022-pore-geometry', 'liu2021-gcmc-polymer', 'brown2020-microplastic-review', 'wu2024-dft-benchmark']"
+        },
+        {
+          "text": "literature-map.md has 2-3 ## theme sections",
+          "passed": true,
+          "evidence": "## sections: 3"
+        },
+        {
+          "text": "Each paper entry has an annotation (project-specific sentence, not just the header line)",
+          "passed": true,
+          "evidence": "5/5 paper entries have annotations"
+        },
+        {
+          "text": "Skill shows a diff and asks confirmation before writing",
+          "passed": false,
+          "evidence": "No skill = no diff gate"
+        },
+        {
+          "text": "Only test-project papers appear \u2014 no_cross_project papers",
+          "passed": true,
+          "evidence": "no cross-project slugs found"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "chen2022-pore-geometry and liu2021-gcmc-polymer appear in the updated map (new papers added)",
+          "passed": true,
+          "evidence": "chen2022: True, liu2021: True"
+        },
+        {
+          "text": "smith2023-zeolite-adsorption appears exactly once (not duplicated)",
+          "passed": true,
+          "evidence": "smith2023 count: 1"
+        },
+        {
+          "text": "Existing theme sections (DFT adsorption methodology, Environmental context) remain \u2014 existing themes preserved",
+          "passed": true,
+          "evidence": "## sections: 3"
+        },
+        {
+          "text": "The 2 new papers have annotations on new",
+          "passed": true,
+          "evidence": "5/5 paper entries have annotations"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.9,
+        "stddev": 0.1414,
+        "min": 0.8,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.10",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

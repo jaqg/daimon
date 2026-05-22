@@ -1,0 +1,6 @@
+{
+  "eval_id": 0,
+  "eval_name": "new-map",
+  "prompt": "/project-lit-map --project test-project",
+  "assertions": []
+}

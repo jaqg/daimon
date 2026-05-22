@@ -1,0 +1,11 @@
+{
+  "themes": [
+    {
+      "name": "Zeolite characterisation and GCMC",
+      "papers": [
+        {"slug": "chen2022-pore-geometry", "annotation": "Introduces d_min pore metric — key classifier for polymer fragment accessibility to zeolite channels."},
+        {"slug": "liu2021-gcmc-polymer", "annotation": "GCMC + COMPASS III methodology with Peng-Robinson fugacity; validates force-field choice for our adsorption isotherms."}
+      ]
+    }
+  ]
+}

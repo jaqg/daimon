@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  },
+  "expectations": [
+    {
+      "text": "chen2022-pore-geometry and liu2021-gcmc-polymer appear in the updated map (new papers added)",
+      "passed": true,
+      "evidence": "chen2022: True, liu2021: True"
+    },
+    {
+      "text": "smith2023-zeolite-adsorption appears exactly once (not duplicated)",
+      "passed": true,
+      "evidence": "smith2023 count: 1"
+    },
+    {
+      "text": "Existing theme sections (DFT adsorption methodology, Environmental context) remain \u2014 existing themes preserved",
+      "passed": true,
+      "evidence": "## sections: 3"
+    },
+    {
+      "text": "The 2 new papers have annotations on new",
+      "passed": true,
+      "evidence": "5/5 paper entries have annotations"
+    }
+  ]
+}
