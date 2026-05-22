@@ -1,0 +1,24 @@
+{
+  "expectations": [
+    {
+      "text": "manuscript-context.md contains 'rigid' or 'framework flexibility' or 'diffusion' in Known weaknesses section",
+      "passed": true,
+      "evidence": "Added '- Rigid zeolite framework model \u2014 framework flexibility may affect diffusion...' to Known weaknesses"
+    },
+    {
+      "text": "manuscript-context.md still contains original concerns about Al substitution and TraPPE-UA",
+      "passed": true,
+      "evidence": "Both '- All-silica MFI model (no Al substitution)' and '- TraPPE-UA may not transfer' present"
+    },
+    {
+      "text": "Target journal, Working title, Key claims, and Computational methods sections unchanged from fixture",
+      "passed": true,
+      "evidence": "All other sections identical to fixture \u2014 only Known weaknesses section modified"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "total": 3,
+    "pass_rate": 1.0
+  }
+}

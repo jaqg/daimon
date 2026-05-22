@@ -1,0 +1,10 @@
+{
+  "eval_id": 1,
+  "eval_name": "update-context",
+  "prompt": "Update the manuscript context for project Collab-IEM-NanoplasticZeolites. Add a new anticipated reviewer concern: the study uses a rigid zeolite framework, but framework flexibility may affect diffusion of polymer fragments at narrow pore windows.",
+  "assertions": [
+    {"id": "new_concern_added", "description": "manuscript-context.md contains 'rigid' or 'framework flexibility' or 'diffusion' in Known weaknesses section"},
+    {"id": "existing_concerns_preserved", "description": "manuscript-context.md still contains original concerns about Al substitution and TraPPE-UA"},
+    {"id": "other_sections_unchanged", "description": "Target journal, Working title, Key claims, and Computational methods sections unchanged from fixture"}
+  ]
+}

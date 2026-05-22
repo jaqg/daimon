@@ -1,0 +1,34 @@
+{
+  "expectations": [
+    {
+      "text": "manuscript-context.md contains 'Environmental Science & Technology' in Target journal section",
+      "passed": true,
+      "evidence": "File contains 'Environmental Science & Technology' in Target journal section"
+    },
+    {
+      "text": "manuscript-context.md contains a table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md",
+      "passed": false,
+      "evidence": "Methods section contains only '[TODO \u2014 add computational methods]' \u2014 no table pre-populated from methods.md"
+    },
+    {
+      "text": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)",
+      "passed": false,
+      "evidence": "Results section contains only '[TODO \u2014 add key results]' \u2014 no numbers from results-log.md"
+    },
+    {
+      "text": "manuscript-context.md has Key claims section with at least 3 bullet points",
+      "passed": true,
+      "evidence": "Key claims section has 4 bullets"
+    },
+    {
+      "text": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability",
+      "passed": true,
+      "evidence": "Lists 'Al-site effects' and 'oxidised fragments'"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

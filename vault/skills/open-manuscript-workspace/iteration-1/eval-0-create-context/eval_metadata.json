@@ -1,0 +1,12 @@
+{
+  "eval_id": 0,
+  "eval_name": "create-context",
+  "prompt": "I'm starting to write the paper for project Collab-IEM-NanoplasticZeolites. Set up the manuscript file. Target journal: Environmental Science & Technology. Title: 'Selective adsorption of nanoplastic polymer fragments in zeolite MFI: a DFT+GCMC study'. Key claims: (1) MFI adsorbs PE more strongly than PP by ~26 kJ/mol, (2) PE:PP selectivity = 2.0 at 0.1 bar, (3) dispersion dominates over electrostatics, (4) practical uptake capacity ~4.2 molecules/uc. Anticipated reviewer concerns: all-silica model misses Al-site effects; TraPPE-UA may not transfer to oxidised fragments.",
+  "assertions": [
+    {"id": "journal_named", "description": "manuscript-context.md contains 'Environmental Science & Technology' in Target journal section"},
+    {"id": "methods_table_present", "description": "manuscript-context.md contains a table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md"},
+    {"id": "results_present", "description": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)"},
+    {"id": "claims_listed", "description": "manuscript-context.md has Key claims section with at least 3 bullet points"},
+    {"id": "weaknesses_present", "description": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability"}
+  ]
+}

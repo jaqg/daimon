@@ -1,0 +1,59 @@
+{
+  "skill_name": "open-manuscript",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I'm starting to write the paper for project Collab-IEM-NanoplasticZeolites. Set up the manuscript file. Target journal: Environmental Science & Technology. Title: 'Selective adsorption of nanoplastic polymer fragments in zeolite MFI: a DFT+GCMC study'. Key claims: (1) MFI adsorbs PE more strongly than PP by ~26 kJ/mol, (2) PE:PP selectivity = 2.0 at 0.1 bar, (3) dispersion dominates over electrostatics, (4) practical uptake capacity ~4.2 molecules/uc. Anticipated reviewer concerns: all-silica model misses Al-site effects; TraPPE-UA may not transfer to oxidised fragments.",
+      "expected_output": "manuscript-context.md created with all sections populated: journal named, title set, claims listed as bullets, methods table pre-populated from methods.md (CASTEP PBE-D3 830 eV, RASPA2 GCMC, Zeo++), key results pre-populated from results-log.md (adsorption energies, loading numbers), known weaknesses listed, open questions included.",
+      "files": [
+        "evals/fixtures/project-full/methods.md",
+        "evals/fixtures/project-full/results-log.md",
+        "evals/fixtures/project-full/open-questions.md"
+      ],
+      "assertions": [
+        {
+          "id": "journal_named",
+          "description": "manuscript-context.md contains 'Environmental Science & Technology' in the Target journal section"
+        },
+        {
+          "id": "methods_table_present",
+          "description": "manuscript-context.md contains a markdown table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md"
+        },
+        {
+          "id": "results_present",
+          "description": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)"
+        },
+        {
+          "id": "claims_listed",
+          "description": "manuscript-context.md has a Key claims section with at least 3 bullet points"
+        },
+        {
+          "id": "weaknesses_present",
+          "description": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Update the manuscript context for project Collab-IEM-NanoplasticZeolites. Add a new anticipated reviewer concern: the study uses a rigid zeolite framework, but framework flexibility may affect diffusion of polymer fragments at narrow pore windows.",
+      "expected_output": "manuscript-context.md updated: the new reviewer concern about rigid framework / framework flexibility is appended to the Known weaknesses section. All other sections (journal, title, claims, methods, results, open questions) remain unchanged.",
+      "files": [
+        "evals/fixtures/project-new/manuscript-context.md"
+      ],
+      "assertions": [
+        {
+          "id": "new_concern_added",
+          "description": "manuscript-context.md now contains 'rigid' or 'framework flexibility' or 'diffusion' in the Known weaknesses section"
+        },
+        {
+          "id": "existing_concerns_preserved",
+          "description": "manuscript-context.md still contains the original concerns about Al substitution and TraPPE-UA"
+        },
+        {
+          "id": "other_sections_unchanged",
+          "description": "Target journal, Working title, Key claims, and Computational methods sections are unchanged from the fixture"
+        }
+      ]
+    }
+  ]
+}
