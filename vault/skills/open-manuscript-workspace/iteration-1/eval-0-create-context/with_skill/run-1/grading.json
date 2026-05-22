@@ -1,0 +1,34 @@
+{
+  "expectations": [
+    {
+      "text": "manuscript-context.md contains 'Environmental Science & Technology' in Target journal section",
+      "passed": true,
+      "evidence": "File contains 'Environmental Science & Technology (ACS)...' in Target journal section"
+    },
+    {
+      "text": "manuscript-context.md contains a table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md",
+      "passed": true,
+      "evidence": "Table present with CASTEP 23.1 (PBE-D3, 830 eV), RASPA2 2.0.47 (GCMC, TraPPE-UA), Zeo++ 0.3 rows"
+    },
+    {
+      "text": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)",
+      "passed": true,
+      "evidence": "Key results section lists -61.4 kJ/mol, 4.2 \u00b1 0.3 molecules/uc, PE:PP selectivity 2.0 \u00b1 0.3"
+    },
+    {
+      "text": "manuscript-context.md has Key claims section with at least 3 bullet points",
+      "passed": true,
+      "evidence": "Key claims section has 4 bullets"
+    },
+    {
+      "text": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability",
+      "passed": true,
+      "evidence": "Known weaknesses lists both Al-site and TraPPE-UA concerns"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

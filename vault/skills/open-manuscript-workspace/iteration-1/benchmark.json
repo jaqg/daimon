@@ -1,0 +1,216 @@
+{
+  "metadata": {
+    "skill_name": "open-manuscript",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-05-22T08:46:12Z",
+    "evals_run": [
+      0,
+      1
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "manuscript-context.md contains 'Environmental Science & Technology' in Target journal section",
+          "passed": true,
+          "evidence": "File contains 'Environmental Science & Technology (ACS)...' in Target journal section"
+        },
+        {
+          "text": "manuscript-context.md contains a table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md",
+          "passed": true,
+          "evidence": "Table present with CASTEP 23.1 (PBE-D3, 830 eV), RASPA2 2.0.47 (GCMC, TraPPE-UA), Zeo++ 0.3 rows"
+        },
+        {
+          "text": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)",
+          "passed": true,
+          "evidence": "Key results section lists -61.4 kJ/mol, 4.2 \u00b1 0.3 molecules/uc, PE:PP selectivity 2.0 \u00b1 0.3"
+        },
+        {
+          "text": "manuscript-context.md has Key claims section with at least 3 bullet points",
+          "passed": true,
+          "evidence": "Key claims section has 4 bullets"
+        },
+        {
+          "text": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability",
+          "passed": true,
+          "evidence": "Known weaknesses lists both Al-site and TraPPE-UA concerns"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "manuscript-context.md contains 'rigid' or 'framework flexibility' or 'diffusion' in Known weaknesses section",
+          "passed": true,
+          "evidence": "Added '- Rigid zeolite framework model \u2014 framework flexibility may affect diffusion...' to Known weaknesses"
+        },
+        {
+          "text": "manuscript-context.md still contains original concerns about Al substitution and TraPPE-UA",
+          "passed": true,
+          "evidence": "Both '- All-silica MFI model (no Al substitution)' and '- TraPPE-UA may not transfer' present"
+        },
+        {
+          "text": "Target journal, Working title, Key claims, and Computational methods sections unchanged from fixture",
+          "passed": true,
+          "evidence": "All other sections identical to fixture \u2014 only Known weaknesses section modified"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "manuscript-context.md contains 'Environmental Science & Technology' in Target journal section",
+          "passed": true,
+          "evidence": "File contains 'Environmental Science & Technology' in Target journal section"
+        },
+        {
+          "text": "manuscript-context.md contains a table with CASTEP, RASPA2, and Zeo++ rows pre-populated from methods.md",
+          "passed": false,
+          "evidence": "Methods section contains only '[TODO \u2014 add computational methods]' \u2014 no table pre-populated from methods.md"
+        },
+        {
+          "text": "manuscript-context.md contains numerical results from results-log.md (e.g. 4.2 molecules/uc or -61.4 kJ/mol or selectivity 2.0)",
+          "passed": false,
+          "evidence": "Results section contains only '[TODO \u2014 add key results]' \u2014 no numbers from results-log.md"
+        },
+        {
+          "text": "manuscript-context.md has Key claims section with at least 3 bullet points",
+          "passed": true,
+          "evidence": "Key claims section has 4 bullets"
+        },
+        {
+          "text": "manuscript-context.md lists anticipated reviewer concerns including Al substitution and/or TraPPE-UA transferability",
+          "passed": true,
+          "evidence": "Lists 'Al-site effects' and 'oxidised fragments'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "manuscript-context.md contains 'rigid' or 'framework flexibility' or 'diffusion' in Known weaknesses section",
+          "passed": true,
+          "evidence": "Added 'Framework flexibility: rigid zeolite model may not capture diffusion effects...' to Known weaknesses"
+        },
+        {
+          "text": "manuscript-context.md still contains original concerns about Al substitution and TraPPE-UA",
+          "passed": true,
+          "evidence": "Both original concerns present"
+        },
+        {
+          "text": "Target journal, Working title, Key claims, and Computational methods sections unchanged from fixture",
+          "passed": true,
+          "evidence": "Other sections unchanged"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.8,
+        "stddev": 0.2828,
+        "min": 0.6,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.20",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}
