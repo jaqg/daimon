@@ -1,0 +1,7 @@
+--- a/decisions-log.md
++++ b/decisions-log.md
+@@ -14,4 +14,3 @@
+ 
+ ## 2026-05-22 — Use CASTEP with GGA-PBE as the main DFT code going forward
+ **Rationale:** Selected for geometry optimisations; established as main computational setup for this project.
+-

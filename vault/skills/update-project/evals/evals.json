@@ -1,0 +1,101 @@
+{
+  "skill_name": "update-project",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/update-project --project test-project --session-summary \"Today I decided to switch from random splitting to scaffold-aware splitting. Random split is invalid because Tanimoto analysis showed 15% near-duplicates that would leak between train and test sets. I'll use the Bemis-Murcko scaffold approach.\"",
+      "expected_output": "decisions-log.md updated with a new entry for today's date capturing the scaffold-aware splitting decision and the rationale about 15% near-duplicates. open-questions.md should close the open question about splitting strategy. No results-log or methods.md changes expected. Diff shown before writing.",
+      "files": ["evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "decision_added_to_decisions_log",
+          "description": "decisions-log.md contains a new entry with scaffold-aware splitting and the near-duplicate rationale"
+        },
+        {
+          "name": "open_question_closed",
+          "description": "open-questions.md shows splitting question as [CLOSED] with an answer"
+        },
+        {
+          "name": "diff_shown_before_write",
+          "description": "Skill shows a diff preview and asks for confirmation before writing"
+        },
+        {
+          "name": "no_results_or_methods_changes",
+          "description": "results-log.md and methods.md are not modified (no results or methods in this session)"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/update-project --project test-project --session-summary \"Ran sensitivity analysis with 5 model variants today. All showed 1-3% accuracy — the sqrt-prop global architecture is broken at all tested hyperparameter settings. Best variant: learning rate 1e-4, hidden dim 256, gave 3.1% accuracy. This is a dead end.\"",
+      "expected_output": "results-log.md updated with a new entry capturing: run name, numerical results (1-3% accuracy, best 3.1% at lr=1e-4 hidden=256), interpretation (dead end). dashboard status line updated. No decision or methods changes expected.",
+      "files": ["evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "results_entry_with_numbers",
+          "description": "results-log.md contains new entry with numerical values (1-3% accuracy, 3.1%, lr=1e-4)"
+        },
+        {
+          "name": "interpretation_present",
+          "description": "Results entry includes interpretation that this architecture is not viable"
+        },
+        {
+          "name": "dashboard_updated",
+          "description": "project-dashboard.md status line updated to reflect sensitivity analysis outcome"
+        },
+        {
+          "name": "no_false_decision",
+          "description": "decisions-log.md not modified with a spurious entry (abandoning sqrt-prop may be inferred but wasn't explicitly stated as a decision)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/update-project --project test-project --session-summary \"Started using CASTEP today for geometry optimisations. Used GGA-PBE functional, 830 eV plane-wave cutoff, 1x1x1 k-grid, norm-conserving pseudopotentials, no dispersion correction. This is the main DFT setup going forward.\"",
+      "expected_output": "methods.md updated with a new table row for CASTEP with the specified parameters. decisions-log.md may get an entry about choosing CASTEP as the DFT code. No results or questions changes expected.",
+      "files": ["evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "methods_row_added",
+          "description": "methods.md contains a new table row with CASTEP, GGA-PBE, 830 eV cutoff"
+        },
+        {
+          "name": "parameters_complete",
+          "description": "Methods row includes k-grid (1x1x1) and pseudopotential type"
+        },
+        {
+          "name": "not_duplicate",
+          "description": "Existing methods table rows are not duplicated"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/update-project --project test-project --session-summary \"Big day: ran the dedup pipeline and got 155,286 molecules after removing conformers and near-duplicates (started with 163k). Decided to use MD5 hashes (32-char) instead of SHA256 modulo for compound IDs — more reliable. Also realised we need to validate the dedup against a known dataset before publishing. New open question: what reference set to use for dedup validation? Concept worth noting: the idea of using scaffold diversity as a quality metric for ML datasets.\"",
+      "expected_output": "All four files updated correctly: results-log.md gets dedup result (155,286 molecules), decisions-log.md gets MD5 vs SHA256 decision, open-questions.md gets new open question about validation reference set, dashboard updated. Galaxy candidate about scaffold diversity noted but not written.",
+      "files": ["evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "results_logged_with_numbers",
+          "description": "results-log.md has entry with 155,286 molecules and context about starting from 163k"
+        },
+        {
+          "name": "decision_logged",
+          "description": "decisions-log.md has entry about MD5 hash choice with rationale"
+        },
+        {
+          "name": "new_question_added",
+          "description": "open-questions.md has new [OPEN] entry about dedup validation reference set"
+        },
+        {
+          "name": "galaxy_candidate_listed_not_written",
+          "description": "Skill lists scaffold diversity as a Galaxy candidate but does not create any note file"
+        },
+        {
+          "name": "no_cross_contamination",
+          "description": "Decisions appear in decisions-log.md only, results in results-log.md only — no mixing of content between files"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+--- a/decisions-log.md
++++ b/decisions-log.md
+@@ -11,4 +11,3 @@
+ 
+ ## 2026-05-22 — Use MD5 hashes (32-char) instead of SHA256 modulo for compound IDs
+ **Rationale:** MD5 more reliable for this use case.
+-
+--- a/results-log.md
++++ b/results-log.md
+@@ -17,4 +17,3 @@
+ **Result:** 155,286 molecules retained from 163,000 starting structures.
+ **Interpretation:** Dedup stage complete. Validation against known dataset needed before publishing.
+ **Files:** TBD
+-
+--- a/open-questions.md
++++ b/open-questions.md
+@@ -10,4 +10,3 @@
+ Random split may leak conformers. Need to evaluate scaffold-aware vs diversity-based splitting.
+ 
+ ## [OPEN] What reference set to use for dedup validation? (added 2026-05-22)
+-
+
+Galaxy note candidates (not written):
+  - scaffold diversity as quality metric for ML datasets

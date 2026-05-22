@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  },
+  "expectations": [
+    {
+      "text": "results-log.md contains new entry with numerical values (1-3% accuracy, 3.1%, lr=1e-4)",
+      "passed": true,
+      "evidence": "3.1%: True, lr=1e-4: True"
+    },
+    {
+      "text": "Results entry includes interpretation that this architecture is not viable",
+      "passed": true,
+      "evidence": "dead-end framing found: True"
+    },
+    {
+      "text": "project-dashboard.md status line updated to reflect sensitivity analysis outcome",
+      "passed": true,
+      "evidence": "dashboard changed: True"
+    },
+    {
+      "text": "decisions-log.md not modified with a spurious entry",
+      "passed": true,
+      "evidence": "decisions-log unchanged from fixture: True"
+    }
+  ]
+}

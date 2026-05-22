@@ -1,0 +1,370 @@
+{
+  "metadata": {
+    "skill_name": "update-project",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-05-22T07:56:19Z",
+    "evals_run": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "decisions-log.md contains a new entry with scaffold-aware splitting and the near-duplicate rationale",
+          "passed": true,
+          "evidence": "scaffold: True, near-dup/tanimoto: True"
+        },
+        {
+          "text": "open-questions.md shows splitting question as [CLOSED] with an answer",
+          "passed": true,
+          "evidence": "[CLOSED]: True, answer: True"
+        },
+        {
+          "text": "Skill shows a diff preview and asks for confirmation before writing",
+          "passed": true,
+          "evidence": "dry_run_diff.txt size: 293"
+        },
+        {
+          "text": "results-log.md and methods.md are not modified",
+          "passed": true,
+          "evidence": "results-log unchanged: True, methods unchanged: True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "results-log.md contains new entry with numerical values (1-3% accuracy, 3.1%, lr=1e-4)",
+          "passed": true,
+          "evidence": "3.1%: True, lr=1e-4: True"
+        },
+        {
+          "text": "Results entry includes interpretation that this architecture is not viable",
+          "passed": true,
+          "evidence": "dead-end framing found: True"
+        },
+        {
+          "text": "project-dashboard.md status line updated to reflect sensitivity analysis outcome",
+          "passed": true,
+          "evidence": "dashboard changed: True"
+        },
+        {
+          "text": "decisions-log.md not modified with a spurious entry",
+          "passed": true,
+          "evidence": "decisions-log unchanged from fixture: True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "methods.md contains a new table row with CASTEP, GGA-PBE, 830 eV cutoff",
+          "passed": true,
+          "evidence": "CASTEP: True, 830 eV: True, GGA-PBE: True"
+        },
+        {
+          "text": "Methods row includes k-grid (1x1x1) and pseudopotential type (norm-conserving)",
+          "passed": true,
+          "evidence": "k-grid: True, norm-conserving: True"
+        },
+        {
+          "text": "Existing methods table rows are not duplicated",
+          "passed": true,
+          "evidence": "Python: 1x, OpenBabel: 1x"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "results-log.md has entry with 155,286 molecules and context about starting from 163k",
+          "passed": true,
+          "evidence": "155,286: True, 163k context: True"
+        },
+        {
+          "text": "decisions-log.md has entry about MD5 hash choice with rationale",
+          "passed": true,
+          "evidence": "MD5: True, rationale: True"
+        },
+        {
+          "text": "open-questions.md has new [OPEN] entry about dedup validation reference set",
+          "passed": true,
+          "evidence": "open+dedup: True"
+        },
+        {
+          "text": "Skill lists scaffold diversity as a Galaxy candidate but does not create any note file",
+          "passed": true,
+          "evidence": "galaxy in transcript: True, no file created: True"
+        },
+        {
+          "text": "Decisions appear in decisions-log.md only, results in results-log.md only \u2014 no mixing",
+          "passed": true,
+          "evidence": "no numbers in decisions: True, no decisions in results: True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 3,
+        "failed": 1,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "decisions-log.md contains a new entry with scaffold-aware splitting and the near-duplicate rationale",
+          "passed": true,
+          "evidence": "scaffold: True, near-dup/tanimoto: True"
+        },
+        {
+          "text": "open-questions.md shows splitting question as [CLOSED] with an answer",
+          "passed": true,
+          "evidence": "[CLOSED]: True, answer: True"
+        },
+        {
+          "text": "Skill shows a diff preview and asks for confirmation before writing",
+          "passed": false,
+          "evidence": "No skill = no structured diff gate"
+        },
+        {
+          "text": "results-log.md and methods.md are not modified",
+          "passed": true,
+          "evidence": "results-log unchanged: True, methods unchanged: True"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 3,
+        "failed": 1,
+        "total": 4,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "results-log.md contains new entry with numerical values (1-3% accuracy, 3.1%, lr=1e-4)",
+          "passed": true,
+          "evidence": "3.1%: True, lr=1e-4: True"
+        },
+        {
+          "text": "Results entry includes interpretation that this architecture is not viable",
+          "passed": true,
+          "evidence": "dead-end framing found: True"
+        },
+        {
+          "text": "project-dashboard.md status line updated to reflect sensitivity analysis outcome",
+          "passed": true,
+          "evidence": "dashboard changed: True"
+        },
+        {
+          "text": "decisions-log.md not modified with a spurious entry",
+          "passed": false,
+          "evidence": "decisions-log unchanged from fixture: False"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "methods.md contains a new table row with CASTEP, GGA-PBE, 830 eV cutoff",
+          "passed": true,
+          "evidence": "CASTEP: True, 830 eV: True, GGA-PBE: True"
+        },
+        {
+          "text": "Methods row includes k-grid (1x1x1) and pseudopotential type (norm-conserving)",
+          "passed": true,
+          "evidence": "k-grid: True, norm-conserving: True"
+        },
+        {
+          "text": "Existing methods table rows are not duplicated",
+          "passed": true,
+          "evidence": "Python: 1x, OpenBabel: 1x"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "results-log.md has entry with 155,286 molecules and context about starting from 163k",
+          "passed": true,
+          "evidence": "155,286: True, 163k context: True"
+        },
+        {
+          "text": "decisions-log.md has entry about MD5 hash choice with rationale",
+          "passed": true,
+          "evidence": "MD5: True, rationale: True"
+        },
+        {
+          "text": "open-questions.md has new [OPEN] entry about dedup validation reference set",
+          "passed": true,
+          "evidence": "open+dedup: True"
+        },
+        {
+          "text": "Skill lists scaffold diversity as a Galaxy candidate but does not create any note file",
+          "passed": true,
+          "evidence": "galaxy in transcript: True, no file created: True"
+        },
+        {
+          "text": "Decisions appear in decisions-log.md only, results in results-log.md only \u2014 no mixing",
+          "passed": true,
+          "evidence": "no numbers in decisions: True, no decisions in results: True"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.875,
+        "stddev": 0.1443,
+        "min": 0.75,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.12",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

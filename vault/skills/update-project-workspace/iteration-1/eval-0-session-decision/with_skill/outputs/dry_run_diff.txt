@@ -1,0 +1,7 @@
+--- a/decisions-log.md
++++ b/decisions-log.md
+@@ -11,4 +11,3 @@
+ 
+ ## 2026-05-22 — Use Bemis-Murcko scaffold-aware split instead of random split for train/val/test
+ **Rationale:** Tanimoto analysis showed 15% near-duplicates that would leak between train and test sets under random split.
+-
