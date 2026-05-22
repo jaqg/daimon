@@ -1,0 +1,57 @@
+{
+  "skill_name": "project-lit-map",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "/project-lit-map --project test-project",
+      "expected_output": "literature-map.md created with all 5 test-project papers grouped into 2-3 themes. Each paper has a project-situated annotation. Diff shown before writing.",
+      "files": ["evals/fixtures/papers/", "evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "all_papers_included",
+          "description": "All 5 papers appear in literature-map.md (all 5 slugs present)"
+        },
+        {
+          "name": "theme_structure",
+          "description": "literature-map.md has 2-3 ## theme sections"
+        },
+        {
+          "name": "annotations_present",
+          "description": "Each paper entry has an annotation (project-specific sentence, not just the header line)"
+        },
+        {
+          "name": "diff_shown_before_write",
+          "description": "Skill shows a diff and asks confirmation before writing"
+        },
+        {
+          "name": "no_cross_project_papers",
+          "description": "Only test-project papers appear — no papers from other projects"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "/project-lit-map --project test-project --update",
+      "expected_output": "Existing literature-map.md (3 papers: smith2023, wu2024, brown2020) gets 2 new papers appended (chen2022, liu2021) under a 'Recent additions' section or existing themes. The 3 already-mapped papers are NOT duplicated.",
+      "files": ["evals/fixtures/papers/", "evals/fixtures/project/"],
+      "assertions": [
+        {
+          "name": "new_papers_added",
+          "description": "chen2022-pore-geometry and liu2021-gcmc-polymer appear in the updated map"
+        },
+        {
+          "name": "existing_not_duplicated",
+          "description": "smith2023-zeolite-adsorption appears exactly once (not added again)"
+        },
+        {
+          "name": "existing_themes_preserved",
+          "description": "Existing theme sections (DFT adsorption methodology, Environmental context) remain unchanged"
+        },
+        {
+          "name": "annotations_on_new",
+          "description": "The 2 new papers have annotations"
+        }
+      ]
+    }
+  ]
+}

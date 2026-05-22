@@ -1,0 +1,24 @@
+{
+  "themes": [
+    {
+      "name": "DFT adsorption methodology",
+      "papers": [
+        {"slug": "smith2023-zeolite-adsorption", "annotation": "Core PBE-D3 workflow for E_ads in BEA/MFI; E_ads range -0.2 to -1.4 eV provides reference values for our polymer calculations."},
+        {"slug": "wu2024-dft-benchmark", "annotation": "Benchmarks PBE-D3 vs experiment; shows bare PBE underestimates by 30-50%, directly justifying our dispersion correction choice."}
+      ]
+    },
+    {
+      "name": "Zeolite characterisation and GCMC",
+      "papers": [
+        {"slug": "chen2022-pore-geometry", "annotation": "Introduces d_min metric for accessible pore diameter — the key classifier for whether a polymer fragment fits a given zeolite channel."},
+        {"slug": "liu2021-gcmc-polymer", "annotation": "GCMC with COMPASS III + Peng-Robinson fugacity; validates the force field and methodology we use for adsorption isotherms."}
+      ]
+    },
+    {
+      "name": "Environmental context and motivation",
+      "papers": [
+        {"slug": "brown2020-microplastic-review", "annotation": "PE and PP dominant in environmental samples; supports introduction framing zeolite adsorption as a remediation strategy. (low relevance)"}
+      ]
+    }
+  ]
+}

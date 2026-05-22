@@ -1,0 +1,15 @@
+--- a/literature-map.md
++++ b/literature-map.md
+@@ -19,3 +19,12 @@
+ 
+ - **[[brown2020-microplastic-review]]** (Brown, 2020)
+   Background on PE/PP dominance in environmental samples; motivation for study.
++
++## Recent additions
++
++*Zeolite characterisation and GCMC*
++
++- **[[chen2022-pore-geometry]]** (C. Chen, 2022)
++  Introduces d_min pore metric — key classifier for polymer fragment accessibility to zeolite channels.
++- **[[liu2021-gcmc-polymer]]** (E. Liu, 2021)
++  GCMC + COMPASS III methodology with Peng-Robinson fugacity; validates force-field choice for our adsorption isotherms.

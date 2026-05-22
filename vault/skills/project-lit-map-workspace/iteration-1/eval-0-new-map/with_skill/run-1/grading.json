@@ -1,0 +1,35 @@
+{
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  },
+  "expectations": [
+    {
+      "text": "All 5 papers appear in literature-map.md (all 5 slugs present)",
+      "passed": true,
+      "evidence": "5/5 slugs present: ['smith2023-zeolite-adsorption', 'chen2022-pore-geometry', 'liu2021-gcmc-polymer', 'brown2020-microplastic-review', 'wu2024-dft-benchmark']"
+    },
+    {
+      "text": "literature-map.md has 2-3 ## theme sections",
+      "passed": true,
+      "evidence": "## sections: 3"
+    },
+    {
+      "text": "Each paper entry has an annotation (project-specific sentence, not just the header line)",
+      "passed": true,
+      "evidence": "5/5 paper entries have annotations"
+    },
+    {
+      "text": "Skill shows a diff and asks confirmation before writing",
+      "passed": true,
+      "evidence": "dry_run_diff.txt size: 1240"
+    },
+    {
+      "text": "Only test-project papers appear \u2014 no_cross_project papers",
+      "passed": true,
+      "evidence": "no cross-project slugs found"
+    }
+  ]
+}
