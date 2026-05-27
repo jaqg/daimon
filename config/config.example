@@ -27,6 +27,8 @@ ZOTERO_API_URL=http://localhost:23119   # Zotero local API (Better BibTeX requir
 # Full-text fetch — publisher TDM APIs (both require institutional network/VPN at runtime)
 ELSEVIER_API_KEY=           # Elsevier ScienceDirect full text (10.1016/* DOIs); register free at dev.elsevier.com
 WILEY_TDM_TOKEN=            # Wiley TDM bearer token (10.1002/*, 10.1111/* DOIs); get via ORCID at onlinelibrary.wiley.com/library-info/resources/text-and-datamining (library must hold TDM agreement)
+CORE_API_KEY=               # CORE OA repository full text; free registration at core.ac.uk/services/api; adds +10-15% coverage over Unpaywall
+SS_API_KEY=                 # Semantic Scholar API key (optional; raises rate limits; free at api.semanticscholar.org/sign-up); S2 openAccessPdf always tried even without key
 ZOTERO_LIBRARY_ID=          # only for Zotero web API fallback
 ZOTERO_API_KEY=             # only for Zotero web API fallback
 LIT_WATCH_STATE_DIR=~/.config/daimon   # state file dir for lit-watch

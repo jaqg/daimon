@@ -85,17 +85,23 @@ python3 "$FETCH_SCRIPT" \
   --cache-dir "$CACHE_DIR" \
   ${LIT_VAULT_PDF_DIR:+--pdf-dir "$LIT_VAULT_PDF_DIR"} \
   ${ELSEVIER_API_KEY:+--elsevier-key "$ELSEVIER_API_KEY"} \
-  ${WILEY_TDM_TOKEN:+--wiley-token "$WILEY_TDM_TOKEN"}
+  ${WILEY_TDM_TOKEN:+--wiley-token "$WILEY_TDM_TOKEN"} \
+  ${CORE_API_KEY:+--core-key "$CORE_API_KEY"} \
+  ${SS_API_KEY:+--ss-key "$SS_API_KEY"}
 ```
 
 The script tries per paper, in priority order — stops at first success:
 1. **arXiv HTML** — `https://arxiv.org/html/{id}` if `arxiv` field present
 2. **arXiv PDF** — fallback when no HTML version exists
-3. **Unpaywall** — all OA PDF URLs then all OA HTML URLs from `oa_locations`
-4. **Europe PMC** — full text XML via PMC ID (if DOI is indexed)
-5. **Elsevier ScienceDirect** — XML then PDF via TDM API for `10.1016/*` DOIs (requires `ELSEVIER_API_KEY` + institutional IP/VPN)
-6. **Wiley TDM** — PDF via TDM API for `10.1002/*`, `10.1111/*` DOIs (requires `WILEY_TDM_TOKEN` + library TDM agreement)
-7. **Fallback** — abstract only; `full_text_available: false` in output
+3. **Springer direct PDF** — `link.springer.com/content/pdf/{doi}.pdf` for `10.1007/*`, `10.1038/*` DOIs (tried before Unpaywall)
+4. **chemRxiv** — Figshare CDN PDF for `10.26434/*` DOIs
+5. **Unpaywall** — all OA PDF URLs then all OA HTML URLs from `oa_locations`
+6. **Europe PMC** — full text XML via PMC ID (if DOI is indexed; bio/med coverage)
+7. **Elsevier ScienceDirect** — XML then PDF via TDM API for `10.1016/*` DOIs (requires `ELSEVIER_API_KEY` + institutional IP/VPN)
+8. **Wiley TDM** — PDF via TDM API for `10.1002/*`, `10.1111/*` DOIs (requires `WILEY_TDM_TOKEN` + library TDM agreement)
+9. **CORE** — OA full text from institutional repositories; `fullText` field or PDF (requires `CORE_API_KEY`; free at core.ac.uk/services/api; +10–15% on Unpaywall)
+10. **Semantic Scholar OA PDF** — `openAccessPdf.url` field; different URL set from Unpaywall, strong on MDPI/repo copies (key optional via `SS_API_KEY`; always attempted)
+11. **Fallback** — abstract only; `full_text_available: false` in output
 
 Output: single JSON `{paper_id: {full_text, source, full_text_available, fetch_reason, publisher}, ...}`.
 Cache written to `$CACHE_DIR/fulltext-cache.json` — subsequent runs skip already-fetched papers.

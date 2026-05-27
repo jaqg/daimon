@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """Fetch full text for papers in papers.json.
 
-Tries per paper:
+Tries per paper (stops at first success):
   (1) arXiv HTML → arXiv PDF
-  (2) Unpaywall OA PDF (all oa_locations) → Unpaywall HTML (all oa_locations)
-  (3) Europe PMC full text XML
-  (4) abstract fallback
+  (2) Springer direct PDF (10.1007/*, 10.1038/*)
+  (3) chemRxiv Figshare PDF (10.26434/*)
+  (4) Unpaywall OA PDF/HTML (all oa_locations)
+  (5) Europe PMC full text XML
+  (6) Elsevier ScienceDirect XML/PDF (requires ELSEVIER_API_KEY + institutional IP)
+  (7) Wiley TDM PDF (requires WILEY_TDM_TOKEN + library agreement)
+  (8) CORE OA repository full text / PDF (requires CORE_API_KEY)
+  (9) Semantic Scholar openAccessPdf (key optional via SS_API_KEY)
+  (10) abstract fallback
 
 Usage:
     python3 fetch_fulltext.py --papers INPUT.json --output OUTPUT.json [--email EMAIL]
                               [--cache-dir DIR] [--pdf-dir DIR]
+                              [--core-key KEY] [--ss-key KEY]
+                              [--elsevier-key KEY] [--wiley-token TOKEN]
 
 Output: JSON mapping paper_id -> {full_text, source, full_text_available, fetch_reason}
 """
@@ -82,11 +90,12 @@ _NOTE_STOPWORDS = {
     "analysis", "approach", "method",
 }
 
-_ELSEVIER_PREFIXES = {"10.1016/", "10.1006/", "10.1053/", "10.1054/", "10.1078/"}
-_WILEY_PREFIXES    = {"10.1002/", "10.1111/"}
-_ACS_PREFIXES      = {"10.1021/"}
-_RSC_PREFIXES      = {"10.1039/"}
-_SPRINGER_PREFIXES = {"10.1007/", "10.1038/"}
+_ELSEVIER_PREFIXES  = {"10.1016/", "10.1006/", "10.1053/", "10.1054/", "10.1078/"}
+_WILEY_PREFIXES     = {"10.1002/", "10.1111/"}
+_ACS_PREFIXES       = {"10.1021/"}
+_RSC_PREFIXES       = {"10.1039/"}
+_SPRINGER_PREFIXES  = {"10.1007/", "10.1038/"}
+_CHEMRXIV_PREFIXES  = {"10.26434/"}
 
 
 def _detect_publisher(doi: str) -> str | None:
@@ -107,6 +116,9 @@ def _detect_publisher(doi: str) -> str | None:
     for p in _SPRINGER_PREFIXES:
         if doi.startswith(p):
             return "springer"
+    for p in _CHEMRXIV_PREFIXES:
+        if doi.startswith(p):
+            return "chemrxiv"
     return None
 
 
@@ -451,6 +463,138 @@ def fetch_wiley(doi: str, token: str, save_path: str = None):
         os.unlink(tmp)
 
 
+def fetch_springer_direct(doi: str, save_path: str = None):
+    """Try Springer direct PDF link before Unpaywall (works for many Springer OA/hybrid).
+    Returns (text, source, failure_reason)."""
+    # Strip scheme/host prefix if present
+    clean_doi = re.sub(r"^https?://[^/]+/", "", doi)
+    pdf_url = f"https://link.springer.com/content/pdf/{clean_doi}.pdf"
+    text, reason = _extract_pdf(pdf_url, save_path=save_path)
+    if text:
+        return text, "springer-direct", None
+    return None, None, reason or "springer-direct-failed"
+
+
+def fetch_chemrxiv(doi: str, save_path: str = None):
+    """Fetch full text from chemRxiv preprints (10.26434/* DOIs) via Figshare CDN.
+    Returns (text, source, failure_reason)."""
+    # chemRxiv uses Figshare backend; DOI resolves to a landing page with a PDF link
+    try:
+        encoded = urllib.parse.quote(doi, safe="")
+        doi_url = f"https://doi.org/{doi}"
+        # Follow redirect to get canonical URL
+        req = urllib.request.Request(doi_url, headers={"User-Agent": UA_BROWSER})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            final_url = resp.url
+            page_html = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        return None, None, f"chemrxiv-http-{e.code}"
+    except Exception as e:
+        return None, None, f"chemrxiv-{type(e).__name__}"
+
+    # Extract PDF URL from Figshare/chemRxiv landing page
+    # Patterns: data-download-url, og:url with .pdf, or direct /ndownloader/ links
+    pdf_url = None
+    for pat in (
+        r'href="(https://[^"]*ndownloader[^"]*\.pdf[^"]*)"',
+        r'content="(https://[^"]*\.pdf)"',
+        r'"downloadUrl"\s*:\s*"([^"]+\.pdf)"',
+        r'(https://chemrxiv\.org/engage/[^"\']+\.pdf)',
+    ):
+        m = re.search(pat, page_html)
+        if m:
+            pdf_url = m.group(1)
+            break
+
+    if not pdf_url:
+        return None, None, "chemrxiv-no-pdf-url"
+
+    text, reason = _extract_pdf(pdf_url, save_path=save_path)
+    if text:
+        return text, "chemrxiv-pdf", None
+    return None, None, reason or "chemrxiv-pdf-failed"
+
+
+def fetch_core(doi: str, api_key: str, save_path: str = None):
+    """Fetch full text from CORE API (core.ac.uk). Free API key required.
+    Returns (text, source, failure_reason)."""
+    encoded = urllib.parse.quote(f"doi:{doi}", safe="")
+    url = f"https://api.core.ac.uk/v3/search/works?q={encoded}&limit=1&apiKey={api_key}"
+    try:
+        data, _ = _get(url, timeout=15)
+        resp = json.loads(data)
+    except urllib.error.HTTPError as e:
+        return None, None, f"core-http-{e.code}"
+    except Exception as e:
+        return None, None, f"core-{type(e).__name__}"
+
+    hits = resp.get("results") or []
+    if not hits:
+        return None, None, "core-not-found"
+
+    hit = hits[0]
+
+    # fullText field: CORE sometimes includes extracted plain text directly
+    full_text_field = hit.get("fullText")
+    if full_text_field and len(full_text_field.strip()) >= 500:
+        return full_text_field.strip(), "core-fulltext", None
+
+    # downloadUrl: OA PDF from CORE repository
+    download_url = hit.get("downloadUrl")
+    if download_url:
+        text, reason = _extract_pdf(download_url, save_path=save_path)
+        if text:
+            return text, "core-pdf", None
+
+    # sourceFulltextUrls: list of repo URLs
+    for src_url in (hit.get("sourceFulltextUrls") or []):
+        if src_url.endswith(".pdf"):
+            text, reason = _extract_pdf(src_url, save_path=save_path)
+            if text:
+                return text, "core-pdf", None
+        else:
+            text, reason = _fetch_html(src_url)
+            if text:
+                return text, "core-html", None
+
+    return None, None, "core-no-fulltext"
+
+
+def fetch_semanticscholar(doi: str, api_key: str = None, save_path: str = None):
+    """Fetch OA PDF URL from Semantic Scholar, then extract text.
+    Returns (text, source, failure_reason)."""
+    encoded = urllib.parse.quote(doi, safe="")
+    url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{encoded}?fields=openAccessPdf"
+    headers = {"User-Agent": UA}
+    if api_key:
+        headers["x-api-key"] = api_key
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        return None, None, f"s2-http-{e.code}"
+    except Exception as e:
+        return None, None, f"s2-{type(e).__name__}"
+
+    oa = data.get("openAccessPdf")
+    if not oa or not oa.get("url"):
+        return None, None, "s2-no-oa-pdf"
+
+    pdf_url = oa["url"]
+    text, reason = _extract_pdf(pdf_url, save_path=save_path)
+    if text:
+        return text, "s2-pdf", None
+
+    # If PDF URL looks like HTML (repo landing page), try as HTML
+    if reason and "fitz" in reason:
+        text, reason = _fetch_html(pdf_url)
+        if text:
+            return text, "s2-html", None
+
+    return None, None, reason or "s2-pdf-failed"
+
+
 # ---------------------------------------------------------------------------
 # Paper processor
 # ---------------------------------------------------------------------------
@@ -463,6 +607,8 @@ def process_paper(
     cache_path: str = None,
     elsevier_key: str = None,
     wiley_token: str = None,
+    core_key: str = None,
+    ss_key: str = None,
 ) -> dict:
     paper_id = paper.get("id", "")
 
@@ -486,6 +632,16 @@ def process_paper(
         full_text, source, reason = fetch_arxiv(arxiv_id, save_path=save_path)
         time.sleep(DELAY)
 
+    # Springer direct PDF before Unpaywall (better URL for many Springer OA/hybrid)
+    if not full_text and doi and publisher == "springer":
+        full_text, source, reason = fetch_springer_direct(doi, save_path=save_path)
+        time.sleep(DELAY)
+
+    # chemRxiv preprints (10.26434/*)
+    if not full_text and doi and publisher == "chemrxiv":
+        full_text, source, reason = fetch_chemrxiv(doi, save_path=save_path)
+        time.sleep(DELAY)
+
     if not full_text and doi:
         full_text, source, reason = fetch_unpaywall(doi, email, save_path=save_path)
         time.sleep(DELAY)
@@ -500,6 +656,14 @@ def process_paper(
 
     if not full_text and doi and wiley_token and publisher == "wiley":
         full_text, source, reason = fetch_wiley(doi, wiley_token, save_path=save_path)
+        time.sleep(DELAY)
+
+    if not full_text and doi and core_key:
+        full_text, source, reason = fetch_core(doi, core_key, save_path=save_path)
+        time.sleep(DELAY)
+
+    if not full_text and doi:
+        full_text, source, reason = fetch_semanticscholar(doi, api_key=ss_key or None, save_path=save_path)
         time.sleep(DELAY)
 
     if not full_text:
@@ -608,16 +772,24 @@ def main():
     parser.add_argument("--pdf-dir", default=None, help="Dir to save downloaded PDFs")
     parser.add_argument("--elsevier-key", default=None, help="Elsevier API key (dev.elsevier.com; requires institutional IP/VPN)")
     parser.add_argument("--wiley-token", default=None, help="Wiley TDM bearer token (ORCID-linked; requires library TDM agreement)")
+    parser.add_argument("--core-key", default=None, help="CORE API key (core.ac.uk/services/api; free registration)")
+    parser.add_argument("--ss-key", default=None, help="Semantic Scholar API key (optional; raises rate limits; api.semanticscholar.org)")
     parser.add_argument("--manual-download-out", default=None, help="Path for manual-download TSV manifest (default: <output>-to-download.tsv)")
     args = parser.parse_args()
 
     elsevier_key = args.elsevier_key or os.environ.get("ELSEVIER_API_KEY") or None
     wiley_token  = args.wiley_token  or os.environ.get("WILEY_TDM_TOKEN")  or None
+    core_key     = args.core_key     or os.environ.get("CORE_API_KEY")     or None
+    ss_key       = args.ss_key       or os.environ.get("SS_API_KEY")       or None
 
     if elsevier_key:
         print("Elsevier API: enabled")
     if wiley_token:
         print("Wiley TDM API: enabled")
+    if core_key:
+        print("CORE API: enabled")
+    if ss_key:
+        print("Semantic Scholar API: key provided")
 
     # Load cache
     cache: dict = {}
@@ -653,6 +825,8 @@ def main():
             cache_path=cache_path,
             elsevier_key=elsevier_key,
             wiley_token=wiley_token,
+            core_key=core_key,
+            ss_key=ss_key,
         )
         from_cache = result.pop("_from_cache", False)
         results[pid] = result
