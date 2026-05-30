@@ -1,0 +1,167 @@
+[
+  {
+    "id": "search_basic",
+    "description": "Simple keyword search — no intake questions needed beyond optional project",
+    "input": "find papers on quantum tunneling in enzymes",
+    "expected": {
+      "intent": "search",
+      "topic": "quantum tunneling in enzymes",
+      "domain": "bio",
+      "intake_questions": ["project (optional)"]
+    }
+  },
+  {
+    "id": "vault_import_full_intake",
+    "description": "vault_import with no extra info — should trigger full intake bundle",
+    "input": "extract literature on IQA energy decomposition",
+    "expected": {
+      "intent": "vault_import",
+      "topic": "IQA energy decomposition",
+      "domain": "comp-chem",
+      "intake_questions": ["project", "full-text or abstract-only", "PDF dir", "existing papers.json?"]
+    }
+  },
+  {
+    "id": "vault_import_project_given",
+    "description": "vault_import with project stated — intake should skip project question",
+    "input": "import papers on QTAIM to vault for AIM4ML project",
+    "expected": {
+      "intent": "vault_import",
+      "topic": "QTAIM",
+      "project": "AIM4ML",
+      "domain": "comp-chem",
+      "intake_questions": ["full-text or abstract-only", "PDF dir", "existing papers.json?"],
+      "not_asked": ["project"]
+    }
+  },
+  {
+    "id": "review_asks_vault_and_criteria",
+    "description": "review intent — should ask about criteria AND whether vault notes wanted",
+    "input": "run a literature review on machine learning force fields",
+    "expected": {
+      "intent": "review",
+      "topic": "machine learning force fields",
+      "domain": "ml",
+      "intake_questions": ["screening criteria", "also want vault notes (→ full)?", "project", "NotebookLM?"]
+    }
+  },
+  {
+    "id": "review_escalates_to_full",
+    "description": "User says yes to vault notes during review intake — should escalate to full",
+    "input": "lit review on graph neural networks for drug discovery, and yes also import to vault for PhD project",
+    "expected": {
+      "intent": "full",
+      "topic": "graph neural networks for drug discovery",
+      "project": "PhD",
+      "domain": "ml"
+    }
+  },
+  {
+    "id": "full_pipeline_complete",
+    "description": "full pipeline with all info provided — minimal intake",
+    "input": "full pipeline for vibronic ECD, project chiroptical, criteria: only computational papers, full-text fetch",
+    "expected": {
+      "intent": "full",
+      "topic": "vibronic ECD",
+      "project": "chiroptical",
+      "criteria": "only computational papers",
+      "full_text": true,
+      "intake_questions": ["PDF dir"]
+    }
+  },
+  {
+    "id": "chase_default_direction",
+    "description": "chase without direction stated — should ask forward/backward/both",
+    "input": "chase citations of 10.1021/acs.jctc.1c00294",
+    "expected": {
+      "intent": "chase",
+      "paper": "10.1021/acs.jctc.1c00294",
+      "intake_questions": ["direction: forward/backward/both"]
+    }
+  },
+  {
+    "id": "chase_direction_given",
+    "description": "chase with direction stated — no direction question",
+    "input": "what cites 2010.09452 — forward citations only",
+    "expected": {
+      "intent": "chase",
+      "paper": "2010.09452",
+      "mode": "forward",
+      "intake_questions": []
+    }
+  },
+  {
+    "id": "watch_no_project_or_topics",
+    "description": "watch without project or topics — must ask (required)",
+    "input": "set up weekly lit monitoring",
+    "expected": {
+      "intent": "watch",
+      "intake_questions": ["project or explicit topics (required)"]
+    }
+  },
+  {
+    "id": "watch_project_given",
+    "description": "watch with project given — no intake questions",
+    "input": "weekly monitoring for new papers on vibronic coupling for chiroptical project",
+    "expected": {
+      "intent": "watch",
+      "topic": "vibronic coupling",
+      "project": "chiroptical",
+      "intake_questions": []
+    }
+  },
+  {
+    "id": "annotate_no_note",
+    "description": "annotate without note identifier — must ask which note",
+    "input": "annotate this paper",
+    "expected": {
+      "intent": "annotate",
+      "intake_questions": ["which note?", "source material (text/pdf/url/abstract-only)"]
+    }
+  },
+  {
+    "id": "annotate_note_given",
+    "description": "annotate with note and source — intake only needs remaining missing params",
+    "input": "annotate rogers2010-ecfp.md using this PDF: ~/PhD/rogers2010.pdf",
+    "expected": {
+      "intent": "annotate",
+      "note": "rogers2010-ecfp.md",
+      "pdf": "~/PhD/rogers2010.pdf",
+      "intake_questions": []
+    }
+  },
+  {
+    "id": "bib_no_path",
+    "description": "bib request — should ask update vs new and output path",
+    "input": "generate a bib file for DFT benchmarking",
+    "expected": {
+      "intent": "bib",
+      "topic": "DFT benchmarking",
+      "domain": "comp-chem",
+      "intake_questions": ["update existing .bib or create new?", "output path"]
+    }
+  },
+  {
+    "id": "papers_path_shortcut",
+    "description": "User supplies papers.json — should skip lit-search",
+    "input": "import these to vault: /home/jose/PhD/papers-iqatransfer-2026-05-20.json for AIM4ML",
+    "expected": {
+      "intent": "vault_import",
+      "papers_path": "/home/jose/PhD/papers-iqatransfer-2026-05-20.json",
+      "project": "AIM4ML",
+      "skip_search": true,
+      "intake_questions": ["full-text or abstract-only", "PDF dir"]
+    }
+  },
+  {
+    "id": "scope_natural_language",
+    "description": "Scope extracted from natural language",
+    "input": "find the 50 most-cited papers on topological insulators from the last 3 years",
+    "expected": {
+      "intent": "search",
+      "topic": "topological insulators",
+      "scope": {"results": 50, "months": 36},
+      "domain": "physics"
+    }
+  }
+]
