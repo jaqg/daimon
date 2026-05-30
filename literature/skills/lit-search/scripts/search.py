@@ -27,6 +27,22 @@ import xml.etree.ElementTree as ET
 # Transport
 # ---------------------------------------------------------------------------
 
+def _fetch_post(url, data, headers=None, timeout=30):
+    h = {"User-Agent": "daimon-lit-search/1.0 (research tool; mailto:daimon@example.com)"}
+    if headers:
+        h.update(headers)
+    encoded = data.encode("utf-8") if isinstance(data, str) else data
+    req = Request(url, data=encoded, headers=h)
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            return resp.read().decode("utf-8"), 200
+    except URLError as e:
+        code = getattr(e, "code", None)
+        return None, code
+    except Exception:
+        return None, None
+
+
 def fetch(url, headers=None, timeout=30, retries=2, api_key_header=None, api_key=None):
     h = {"User-Agent": "daimon-lit-search/1.0 (research tool; mailto:daimon@example.com)"}
     if headers:
@@ -488,6 +504,151 @@ def search_pubmed(query, max_results, from_date=None, to_date=None, api_key=None
     return papers
 
 # ---------------------------------------------------------------------------
+# Source: Web of Science (session-based fallback — no API key needed)
+# ---------------------------------------------------------------------------
+
+def search_wos_session(query, max_results, from_date=None, to_date=None, sid=None):
+    """Search WoS via internal runQuerySearch API using a browser session SID.
+
+    Requires WOS_SESSION_ID from config.local — extract from browser DevTools
+    (Network tab → any webofscience.com request → Request Headers → Cookie → SID=<value>).
+    Max 50 results per request (internal API limit). SID expires with browser session.
+    """
+    if not sid:
+        return []
+
+    url = f"https://www.webofscience.com/api/wosnx/core/runQuerySearch?SID={sid}"
+    body = json.dumps({
+        "product": "WOSCC",
+        "search": {
+            "query": [{"rowField": "TS", "rowText": query}],
+        },
+        "retrieve": {
+            "count": min(max_results, 50),  # internal API max = 50
+            "sortMethod": "relevance",
+        },
+        "searchMode": "general",
+        "viewType": "search",
+        "serviceMode": "summary",
+    })
+
+    raw, code = _fetch_post(
+        url, body,
+        headers={
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Accept": "application/x-ndjson",
+        },
+    )
+
+    if raw is None:
+        if code in (401, 403):
+            print(
+                "WARNING: WoS session ID expired or invalid. "
+                "Re-extract WOS_SESSION_ID in config.local: "
+                "Chrome DevTools → Network → any webofscience.com request → Cookie: SID=<value>",
+                file=sys.stderr,
+            )
+        elif code is not None:
+            print(f"WARNING: WoS session search returned HTTP {code}.", file=sys.stderr)
+        return []
+
+    papers = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        records_data = obj.get("records")
+        if not isinstance(records_data, dict):
+            continue
+
+        for _idx, rec in records_data.items():
+            if not isinstance(rec, dict):
+                continue
+
+            # Title
+            try:
+                title = rec["titles"]["item"]["en"][0]["title"]
+            except (KeyError, IndexError, TypeError):
+                title = ""
+            if not title:
+                continue
+
+            # Venue/journal
+            try:
+                venue = rec["titles"]["source"]["en"][0]["title"]
+            except (KeyError, IndexError, TypeError):
+                venue = None
+
+            # Authors (wos_standard = "Last, F." format)
+            authors = []
+            try:
+                for a in (rec["names"]["author"]["en"] or [])[:5]:
+                    name = a.get("wos_standard") or a.get("full_name") or ""
+                    if name:
+                        authors.append(name)
+            except (KeyError, TypeError):
+                pass
+
+            # Year
+            try:
+                year = str(rec["pub_info"]["pubyear"])
+            except (KeyError, TypeError):
+                year = ""
+
+            # Date filter (year-level)
+            if from_date and year and year < from_date[:4]:
+                continue
+            if to_date and year and year > to_date[:4]:
+                continue
+
+            # DOI
+            doi = (rec.get("doi") or "").strip() or None
+
+            # Citations (WoS Core Collection count)
+            try:
+                citations = rec["citation_related"]["counts"]["WOSCC"]
+            except (KeyError, TypeError):
+                citations = None
+
+            # Abstract
+            try:
+                abstract = rec["abstract"]["basic"]["en"]["abstract"]
+            except (KeyError, TypeError):
+                abstract = ""
+
+            # URL — prefer DOI, fall back to WoS record page
+            wos_id = rec.get("colluid", "")
+            if doi:
+                paper_url = f"https://doi.org/{doi}"
+            elif wos_id:
+                paper_url = f"https://www.webofscience.com/wos/woscc/full-record/{wos_id}"
+            else:
+                paper_url = None
+
+            papers.append({
+                "source": "wos_session",
+                "title": title,
+                "arxiv_id": None,
+                "doi": doi,
+                "authors": authors,
+                "year": year,
+                "pub_date": year + "-01-01" if year else "",
+                "abstract": (abstract or "")[:800],
+                "url": paper_url,
+                "pdf_url": None,
+                "citations": citations,
+                "venue": venue,
+            })
+
+    return papers
+
+
+# ---------------------------------------------------------------------------
 # Deduplication and scoring
 # ---------------------------------------------------------------------------
 
@@ -518,7 +679,7 @@ def deduplicate(all_papers, max_results, sort_by="impact", min_citations=0):
             if p.get("citations") is None or p.get("citations", 0) >= min_citations
         ]
 
-    priority = {"arxiv": 0, "semantic_scholar": 1, "openalex": 2, "chemrxiv": 3, "pubmed": 4}
+    priority = {"arxiv": 0, "semantic_scholar": 1, "openalex": 2, "chemrxiv": 3, "pubmed": 4, "wos_session": 5}
     all_papers.sort(key=lambda p: priority.get(p["source"], 9))
 
     seen = {}
@@ -696,16 +857,26 @@ def main():
     s2_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or None
     ncbi_key = os.environ.get("NCBI_API_KEY") or None
     wos_key = os.environ.get("WOS_API_KEY") or None
+    wos_session_id = os.environ.get("WOS_SESSION_ID") or None
     scopus_key = os.environ.get("SCOPUS_API_KEY") or None
 
     # Determine which sources are available
     available = {"arxiv", "semantic_scholar", "openalex", "chemrxiv"}
     if ncbi_key or "pubmed" in requested_sources:
         available.add("pubmed")
-    # WoS and Scopus: chase-only for now (no bulk keyword search API without full subscription)
+    # WoS session fallback: auto-activate when SID present; no browser dep needed at search time
+    if wos_session_id:
+        available.add("wos_session")
+        requested_sources.add("wos_session")
+    elif "wos_session" in requested_sources:
+        # requested but no SID — treat as key-gated so it shows up in skipped list
+        pass  # handled below
+    # WoS official API and Scopus: chase-only for now (no bulk keyword search without full subscription)
     key_gated = set()
     if "wos" in requested_sources and not wos_key:
         key_gated.add("wos")
+    if "wos_session" in requested_sources and not wos_session_id:
+        key_gated.add("wos_session")
     if "scopus" in requested_sources and not scopus_key:
         key_gated.add("scopus")
 
@@ -723,6 +894,8 @@ def main():
         all_papers.extend(search_chemrxiv(args.query, per_source, from_date, to_date))
     if "pubmed" in active_sources:
         all_papers.extend(search_pubmed(args.query, per_source, from_date, to_date, ncbi_key))
+    if "wos_session" in active_sources:
+        all_papers.extend(search_wos_session(args.query, per_source, from_date, to_date, wos_session_id))
 
     papers = deduplicate(all_papers, max_results, sort_by=args.sort, min_citations=args.min_citations)
 

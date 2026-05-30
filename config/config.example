@@ -3,16 +3,16 @@
 # config.local is gitignored — never commit it.
 
 # Path to jaqg/sci-scripts repo on this machine
-SCI_SCRIPTS_DIR=~/Documents/GitHub/sci-scripts
+SCI_SCRIPTS_DIR=~/path/to/sci-scripts
 
 # Path to Obsidian vault on this machine
-VAULT_DIR=~/Documents/Universidad/vault
+VAULT_DIR=~/path/to/vault
 
 # HPC cluster SSH alias (as defined in ~/.ssh/config)
-HPC_HOST=cobalto
+HPC_HOST=your-cluster
 
 # HPC working directory for jobs
-HPC_WORKDIR=/datos_pool/mldata1
+HPC_WORKDIR=/path/to/workdir
 
 # NotebookLM CLI command (if different from default)
 NOTEBOOKLM_CMD=notebooklm
@@ -20,6 +20,9 @@ NOTEBOOKLM_CMD=notebooklm
 # Literature skills — all optional; skills degrade gracefully without these
 SEMANTIC_SCHOLAR_API_KEY=   # higher rate limits (free from semanticscholar.org)
 WOS_API_KEY=                # Web of Science — requires institutional subscription (request API access via your university library)
+WOS_SESSION_ID=             # WoS session token fallback (no API key needed); extract while logged in:
+                            #   Chrome DevTools → Network tab → any webofscience.com request → Request Headers → Cookie → copy SID=<value>
+                            # Auto-activates wos_session source in lit-search when set. Re-extract when searches return 0 results (expires with browser session).
 SCOPUS_API_KEY=             # Scopus — requires institutional subscription (request API access via your university library)
 NCBI_API_KEY=               # PubMed higher rate limits (free from NCBI)
 ZOTERO_API_URL=http://localhost:23119   # Zotero local API (Better BibTeX required)
