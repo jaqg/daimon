@@ -20,7 +20,11 @@ file for downstream use by `lit-review`, `lit-bib`, and `lit-watch`.
 ```bash
 SEMANTIC_SCHOLAR_API_KEY   # higher rate limits (free, get from semanticscholar.org)
 NCBI_API_KEY               # PubMed higher rate limits (free from NCBI)
-WOS_API_KEY                # Web of Science (institutional)
+WOS_API_KEY                # Web of Science official API (institutional)
+WOS_SESSION_ID             # WoS session fallback — no API key needed; extract from browser DevTools
+                           # while logged in to webofscience.com: Network tab → any request →
+                           # Request Headers → Cookie → copy SID=<value>. Auto-activates wos_session
+                           # source when set. Expires with browser session.
 SCOPUS_API_KEY             # Scopus (institutional)
 ```
 
