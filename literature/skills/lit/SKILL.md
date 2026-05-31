@@ -32,7 +32,7 @@ execution plan, gets approval, then invokes sub-skills in order.
 | `watch` | "watch papers on X", "monitor literature", "weekly update", "track new papers" | `lit-watch` |
 | `annotate` | "annotate this paper", "read and annotate", "fill in notes for", "I finished reading" | `lit-annotate` |
 | `bib_import` | "import from bib", "process my .bib file", "add papers from bibliography", "I have a .bib file", "bib to vault" | bib2papers → `lit-vault` |
-| `coverage` | "what do I have on X", "existing coverage of X", "do I already have papers on X", "what's in my vault on X" | graphify query only — no sub-skills |
+| `coverage` | "what do I have on X", "existing coverage of X", "do I already have papers on X", "what's in my vault on X", "what do I know about X", "summarize my notes on X", "tell me about X in my vault", "what's the state of X in my literature" | graphify query → synthesize answer → escalate if thin |
 
 Ambiguous intent: lean toward the more comprehensive option (e.g., `vault_import` over `search`).
 If `review` is detected, ask whether the user also wants vault notes (→ `full`).
@@ -43,6 +43,12 @@ If `review` is detected, ask whether the user also wants vault notes (→ `full`
 COVERAGE_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/coverage_check.py" -type f | head -1)
 FRESHNESS_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/graph_freshness.py" -type f | head -1)
 UPDATE_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/update_graph.sh" -type f | head -1)
+
+# Resolve VAULT_DIR (needed for direct graphify calls)
+_CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+[[ -n "$_CONFIG" ]] && source "$_CONFIG"
+VAULT_DIR="${VAULT_DIR:-$HOME/vault}"
+VAULT_DIR="${VAULT_DIR/#\~/$HOME}"
 ```
 
 ## Step 0: Parse what's clear
@@ -160,7 +166,7 @@ Use coverage to inform plan defaults:
 - If `len(papers) == 0` and intent is `vault_import`: no shortcut available; proceed with full search.
 - For `annotate`: pass `galaxy_concepts` as suggested `[[links]]` to lit-annotate (see Step 2).
 
-For `coverage` intent: skip Step 1 plan and jump directly to Step 3 report with the coverage JSON.
+For `coverage` intent: skip Step 1 plan. Proceed directly to Step 2 coverage block — do NOT jump to Step 3 yet; the full graphify query in Step 2 is required before synthesis.
 
 ## Step 1: Show plan and get approval
 
@@ -270,8 +276,19 @@ Only suggest concepts where `source_file` starts with `30-Galaxy/` — those are
 ```bash
 FRESHNESS=$(python3 "$FRESHNESS_SCRIPT")
 COVERAGE=$(python3 "$COVERAGE_SCRIPT" "TOPIC")
+# Full graphify context for synthesis (larger budget = more note chunks retrieved):
+GRAPHIFY_CTX=$(cd "$VAULT_DIR" && graphify query "TOPIC" --budget 1500 2>/dev/null)
 ```
-No sub-skills. Skip Step 1. Report directly (see Step 3).
+No sub-skills. Skip Step 1. After running the three commands above, go to Step 3.
+
+**CRITICAL**: Do NOT use the Read tool to inspect paper notes individually. Graphify is
+the only retrieval mechanism for vault knowledge. `GRAPHIFY_CTX` contains actual excerpts
+from paper notes and Galaxy concept notes — use it as the RAG context for synthesis.
+If graphify is not installed or graph.json doesn't exist, report this to the user and stop;
+do not attempt to read notes manually as a fallback.
+
+Synthesis: use `GRAPHIFY_CTX` to compose a prose answer to the user's actual question.
+Cite paper notes by short key (e.g. `rogers2010-ecfp`) and Galaxy concepts by name.
 
 **bib_import:**
 
@@ -344,6 +361,8 @@ directly to the downstream skill (lit-vault, lit-bib, etc.).
 
 ## Step 3: Report
 
+### For non-coverage intents
+
 After all sub-skills complete:
 
 ```
@@ -353,6 +372,41 @@ Done.
 
 [context-appropriate next-step suggestions]
 ```
+
+### For coverage intent
+
+Synthesize from `GRAPHIFY_CTX` + `COVERAGE` metadata. Structure:
+
+1. **Direct answer** — compose 2–5 sentences answering the user's actual question using
+   the retrieved note chunks. Cite paper notes by short key (e.g. `rogers2010-ecfp`) and
+   Galaxy concepts by name (e.g. `[[molecular-fingerprints]]`). Do not dump raw JSON.
+
+2. **Inventory** — one-liner:
+   ```
+   Vault: N papers, M Galaxy concepts on '[topic]' (graph [fresh/stale]).
+   ```
+   If stale: remind to rebuild with `/graphify VAULT_DIR`.
+
+3. **Key sources** — list up to 5 most relevant paper notes and up to 3 Galaxy concepts
+   returned by graphify (highest-scoring / community 0 first).
+
+4. **Escalation** — based on `node_count` from COVERAGE:
+   - `node_count == 0`:
+     > No vault coverage found for '[topic]'. Run a search and import papers?
+     > (y → search + vault import; or describe what you need)
+   - `1 <= node_count < 5`:
+     > Coverage is thin (only N nodes). Want me to search for more papers on '[topic]'
+     > and import them to the vault?
+     > (y → `vault_import`; n → stop here)
+   - `5 <= node_count < 15`:
+     > Moderate coverage. Want a deeper review with NLM analysis to find gaps?
+     > (y → `full` pipeline; n → stop here)
+   - `node_count >= 15`:
+     > Good coverage. No search needed unless you want to find recent work.
+
+   Wait for user response before proceeding. If user says yes to escalation: pivot
+   to the suggested intent, run Step 0b intake for that intent (reuse topic already known),
+   show plan, get approval, execute.
 
 ## Error handling
 
