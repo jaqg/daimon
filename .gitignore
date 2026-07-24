@@ -26,3 +26,6 @@ git/skills/*-workspace/
 
 # root-level build artifacts
 diagram-example.pdf
+
+# venv accidentally committed (tools/pdf-to-md)
+tools/pdf-to-md/venv/
