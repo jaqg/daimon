@@ -1,0 +1,17 @@
+=== /galaxy (eval1) ===
+
+Scanned: 20-Sources/papers/ (2 notes)
+
+Confirmed [[links]]: density-functional-theory, electron-delocalization, interacting-quantum-atoms, molecular-fingerprints
+
+Cross-check with 30-Galaxy/:
+  molecular-fingerprints     → already exists (skip)
+  electron-delocalization    → already exists (skip)
+  density-functional-theory  → MISSING — will draft
+  interacting-quantum-atoms  → MISSING — will draft
+
+Drafted skeletons (2):
+  1. density-functional-theory.md  (linked from: jones2023-dft)
+  2. interacting-quantum-atoms.md  (linked from: bader2022-topological)
+
+Write to 30-Galaxy/? (all / none / 1,2,...): [awaiting user input]

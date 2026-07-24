@@ -1,0 +1,14 @@
+{
+  "eval_id": 0,
+  "eval_name": "basic-scan-dry-run",
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "detects-missing-concepts", "passed": true, "evidence": "Response identifies electron-delocalization and interacting-quantum-atoms from paper links"},
+    {"text": "ignores-commented-suggestions", "passed": true, "evidence": "BSSE correctly noted as commented; no skeleton drafted"},
+    {"text": "skeleton-frontmatter-correct", "passed": false, "evidence": "No structured frontmatter — prose response only, no YAML, no id/status/type/subject fields"},
+    {"text": "skeleton-sections-present", "passed": false, "evidence": "No ## Core idea / ## Sources sections — only bare 1-line descriptions"},
+    {"text": "sources-populated", "passed": false, "evidence": "No [[paper-key]] links in source list — generic descriptions only"},
+    {"text": "dry-run-no-write", "passed": true, "evidence": "No .md files written (prose response in .txt only)"}
+  ],
+  "summary": {"passed": 3, "failed": 3, "total": 6, "pass_rate": 0.5}
+}

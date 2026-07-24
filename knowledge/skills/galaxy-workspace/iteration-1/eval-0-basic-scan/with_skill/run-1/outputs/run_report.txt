@@ -1,0 +1,16 @@
+=== /galaxy --dry-run ===
+
+Scanned: 20-Sources/papers/ (2 notes)
+
+Confirmed [[links]] found: electron-delocalization, interacting-quantum-atoms
+Commented suggestions (skipped): basis-set-superposition-error
+
+Cross-check with 30-Galaxy/: 0 existing notes
+
+Missing concepts: 2
+
+Drafted skeletons:
+  1. electron-delocalization.md  (linked from: bader2022-topological, smith2021-mlpotentials)
+  2. interacting-quantum-atoms.md  (linked from: bader2022-topological)
+
+--dry-run: nothing written to 30-Galaxy/

@@ -1,0 +1,12 @@
+=== /galaxy --concept 'real-space partitioning' ===
+
+Normalized: 'real-space partitioning' → 'real-space-partitioning'
+Checked 30-Galaxy/: real-space-partitioning.md does not exist
+
+Searching 20-Sources/papers/ for [[real-space-partitioning]] links...
+  pendas2023-iqa.md  → confirmed link found
+  savin2022-elf.md   → confirmed link found
+
+Drafted skeleton: real-space-partitioning.md
+
+Write to 30-Galaxy/real-space-partitioning.md? (yes/no): [awaiting user input]

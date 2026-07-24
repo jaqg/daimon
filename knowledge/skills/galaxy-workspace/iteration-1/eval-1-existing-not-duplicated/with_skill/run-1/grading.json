@@ -1,0 +1,11 @@
+{
+  "eval_id": 1,
+  "eval_name": "existing-not-duplicated",
+  "configuration": "with_skill",
+  "expectations": [
+    {"text": "only-missing-drafted", "passed": true, "evidence": "molecular-fingerprints.md and electron-delocalization.md not created; only density-functional-theory and interacting-quantum-atoms drafted"},
+    {"text": "existing-reported", "passed": true, "evidence": "run_report explicitly marks molecular-fingerprints and electron-delocalization as 'already exists (skip)'"},
+    {"text": "approval-required", "passed": true, "evidence": "run_report ends with 'awaiting user input' before any write"}
+  ],
+  "summary": {"passed": 3, "failed": 0, "total": 3, "pass_rate": 1.0}
+}

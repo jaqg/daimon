@@ -1,0 +1,11 @@
+{
+  "eval_id": 2,
+  "eval_name": "concept-mode",
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "slug-normalization", "passed": false, "evidence": "No .md file created — only prose response.txt; filename convention not applied"},
+    {"text": "paper-sources-found", "passed": false, "evidence": "No [[paper-key]] links — no vault scan performed"},
+    {"text": "core-idea-specific", "passed": true, "evidence": "Mentions 'computational method' — too generic but loosely qualifies"}
+  ],
+  "summary": {"passed": 1, "failed": 2, "total": 3, "pass_rate": 0.33}
+}

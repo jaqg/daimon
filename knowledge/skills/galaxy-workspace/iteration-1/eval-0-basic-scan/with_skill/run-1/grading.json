@@ -1,0 +1,14 @@
+{
+  "eval_id": 0,
+  "eval_name": "basic-scan-dry-run",
+  "configuration": "with_skill",
+  "expectations": [
+    {"text": "detects-missing-concepts", "passed": true, "evidence": "run_report lists electron-delocalization and interacting-quantum-atoms as missing"},
+    {"text": "ignores-commented-suggestions", "passed": true, "evidence": "No basis-set-superposition-error .md file; report labels it 'Commented suggestions (skipped)'"},
+    {"text": "skeleton-frontmatter-correct", "passed": true, "evidence": "electron-delocalization.md has id, status: Seed, type: Concept, subject fields"},
+    {"text": "skeleton-sections-present", "passed": true, "evidence": "All 5 sections present in both skeletons: Core idea, Key properties, Connections, Open questions, Sources"},
+    {"text": "sources-populated", "passed": true, "evidence": "## Sources lists [[bader2022-topological]] and [[smith2021-mlpotentials]] with one-line relevance"},
+    {"text": "dry-run-no-write", "passed": true, "evidence": "30-Galaxy/ remains empty; report states 'dry-run: nothing written'"}
+  ],
+  "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}
+}

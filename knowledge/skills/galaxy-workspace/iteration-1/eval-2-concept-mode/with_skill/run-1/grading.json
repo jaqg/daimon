@@ -1,0 +1,11 @@
+{
+  "eval_id": 2,
+  "eval_name": "concept-mode",
+  "configuration": "with_skill",
+  "expectations": [
+    {"text": "slug-normalization", "passed": true, "evidence": "File created as real-space-partitioning.md (spaces→hyphens, lowercase)"},
+    {"text": "paper-sources-found", "passed": true, "evidence": "## Sources lists [[pendas2023-iqa]] and [[savin2022-elf]] from vault scan"},
+    {"text": "core-idea-specific", "passed": true, "evidence": "Core idea references zero-flux surfaces, QTAIM basins, ELF — domain-specific, not tautological"}
+  ],
+  "summary": {"passed": 3, "failed": 0, "total": 3, "pass_rate": 1.0}
+}

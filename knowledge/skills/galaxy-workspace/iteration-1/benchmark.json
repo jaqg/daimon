@@ -1,0 +1,293 @@
+{
+  "metadata": {
+    "skill_name": "galaxy",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-05-17T16:14:37Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detects-missing-concepts",
+          "passed": true,
+          "evidence": "run_report lists electron-delocalization and interacting-quantum-atoms as missing"
+        },
+        {
+          "text": "ignores-commented-suggestions",
+          "passed": true,
+          "evidence": "No basis-set-superposition-error .md file; report labels it 'Commented suggestions (skipped)'"
+        },
+        {
+          "text": "skeleton-frontmatter-correct",
+          "passed": true,
+          "evidence": "electron-delocalization.md has id, status: Seed, type: Concept, subject fields"
+        },
+        {
+          "text": "skeleton-sections-present",
+          "passed": true,
+          "evidence": "All 5 sections present in both skeletons: Core idea, Key properties, Connections, Open questions, Sources"
+        },
+        {
+          "text": "sources-populated",
+          "passed": true,
+          "evidence": "## Sources lists [[bader2022-topological]] and [[smith2021-mlpotentials]] with one-line relevance"
+        },
+        {
+          "text": "dry-run-no-write",
+          "passed": true,
+          "evidence": "30-Galaxy/ remains empty; report states 'dry-run: nothing written'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "only-missing-drafted",
+          "passed": true,
+          "evidence": "molecular-fingerprints.md and electron-delocalization.md not created; only density-functional-theory and interacting-quantum-atoms drafted"
+        },
+        {
+          "text": "existing-reported",
+          "passed": true,
+          "evidence": "run_report explicitly marks molecular-fingerprints and electron-delocalization as 'already exists (skip)'"
+        },
+        {
+          "text": "approval-required",
+          "passed": true,
+          "evidence": "run_report ends with 'awaiting user input' before any write"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "slug-normalization",
+          "passed": true,
+          "evidence": "File created as real-space-partitioning.md (spaces\u2192hyphens, lowercase)"
+        },
+        {
+          "text": "paper-sources-found",
+          "passed": true,
+          "evidence": "## Sources lists [[pendas2023-iqa]] and [[savin2022-elf]] from vault scan"
+        },
+        {
+          "text": "core-idea-specific",
+          "passed": true,
+          "evidence": "Core idea references zero-flux surfaces, QTAIM basins, ELF \u2014 domain-specific, not tautological"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.5,
+        "passed": 3,
+        "failed": 3,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detects-missing-concepts",
+          "passed": true,
+          "evidence": "Response identifies electron-delocalization and interacting-quantum-atoms from paper links"
+        },
+        {
+          "text": "ignores-commented-suggestions",
+          "passed": true,
+          "evidence": "BSSE correctly noted as commented; no skeleton drafted"
+        },
+        {
+          "text": "skeleton-frontmatter-correct",
+          "passed": false,
+          "evidence": "No structured frontmatter \u2014 prose response only, no YAML, no id/status/type/subject fields"
+        },
+        {
+          "text": "skeleton-sections-present",
+          "passed": false,
+          "evidence": "No ## Core idea / ## Sources sections \u2014 only bare 1-line descriptions"
+        },
+        {
+          "text": "sources-populated",
+          "passed": false,
+          "evidence": "No [[paper-key]] links in source list \u2014 generic descriptions only"
+        },
+        {
+          "text": "dry-run-no-write",
+          "passed": true,
+          "evidence": "No .md files written (prose response in .txt only)"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.67,
+        "passed": 2,
+        "failed": 1,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "only-missing-drafted",
+          "passed": true,
+          "evidence": "Response correctly skips existing notes and identifies only missing concepts"
+        },
+        {
+          "text": "existing-reported",
+          "passed": true,
+          "evidence": "Response mentions 'skip' for molecular-fingerprints and electron-delocalization"
+        },
+        {
+          "text": "approval-required",
+          "passed": false,
+          "evidence": "No approval gate \u2014 drafts content without prompting for user confirmation"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.33,
+        "passed": 1,
+        "failed": 2,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "slug-normalization",
+          "passed": false,
+          "evidence": "No .md file created \u2014 only prose response.txt; filename convention not applied"
+        },
+        {
+          "text": "paper-sources-found",
+          "passed": false,
+          "evidence": "No [[paper-key]] links \u2014 no vault scan performed"
+        },
+        {
+          "text": "core-idea-specific",
+          "passed": true,
+          "evidence": "Mentions 'computational method' \u2014 too generic but loosely qualifies"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.5,
+        "stddev": 0.17,
+        "min": 0.33,
+        "max": 0.67
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.50",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

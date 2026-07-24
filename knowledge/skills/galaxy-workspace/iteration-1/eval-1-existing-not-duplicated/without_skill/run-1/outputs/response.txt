@@ -1,0 +1,14 @@
+Scanning vault for missing Galaxy notes...
+
+Found links: molecular-fingerprints, electron-delocalization, density-functional-theory, interacting-quantum-atoms
+
+molecular-fingerprints.md exists in 30-Galaxy/ — skip
+electron-delocalization.md exists in 30-Galaxy/ — skip
+
+Missing: density-functional-theory, interacting-quantum-atoms
+
+Draft for density-functional-theory:
+DFT is a computational method for studying electronic structure.
+
+Draft for interacting-quantum-atoms:
+IQA is an energy decomposition method based on QTAIM basins.

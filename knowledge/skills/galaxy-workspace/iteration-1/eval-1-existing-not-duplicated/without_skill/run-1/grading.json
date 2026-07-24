@@ -1,0 +1,11 @@
+{
+  "eval_id": 1,
+  "eval_name": "existing-not-duplicated",
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "only-missing-drafted", "passed": true, "evidence": "Response correctly skips existing notes and identifies only missing concepts"},
+    {"text": "existing-reported", "passed": true, "evidence": "Response mentions 'skip' for molecular-fingerprints and electron-delocalization"},
+    {"text": "approval-required", "passed": false, "evidence": "No approval gate — drafts content without prompting for user confirmation"}
+  ],
+  "summary": {"passed": 2, "failed": 1, "total": 3, "pass_rate": 0.67}
+}

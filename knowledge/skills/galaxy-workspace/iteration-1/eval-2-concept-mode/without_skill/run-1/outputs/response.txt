@@ -1,0 +1,11 @@
+Creating Galaxy note for 'real-space partitioning'.
+
+real-space-partitioning.md:
+---
+status: Seed
+type: Concept
+---
+
+# Real-Space Partitioning
+
+Real-space partitioning is a method used in quantum chemistry.
