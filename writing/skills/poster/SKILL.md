@@ -33,6 +33,7 @@ Optionally produce a submission abstract and an audience Q&A prep sheet.
 | `--size` | `a0` | Print size; controls scale and figure recommendations |
 | `--orientation` | `portrait` | `portrait` (2-col) or `landscape` (3-col for a0/a1, 2-col for a2/a3) |
 | `--colortheme` | `um` | Gemini color theme |
+| `--title-size` | `Huge` | Title font: `Huge` (default), `huge` (for long titles), `LARGE` |
 | `--empty` | off | Copy template only — inject config identity but leave all content blocks as `%% TODO:` placeholders for manual editing. Skips context loading, content generation, abstract, and Q&A. |
 | `--abstract` | off | Also generate a submission abstract |
 | `--questions` | off | Also generate audience Q&A prep |
@@ -184,6 +185,13 @@ For a typical scientific poster, plan these blocks in column order:
 
 Adjust based on the project type (e.g., ML projects may have a Dataset and Model sections; theory-heavy projects may have a Formalism block).
 
+### Scale recommendations
+- **1.3**: dense poster (many sections, small font) — default for A0
+- **1.4**: balanced readability — recommended when you have 5–7 blocks
+- **1.5**: sparse / poster with large figures — use when content is light
+
+Long titles benefit from `--title-size huge` to avoid letters touching the poster edges.
+
 ### 4b. Write content
 
 Generate each block. Guidelines:
@@ -215,6 +223,7 @@ python3 "$FILL_SCRIPT" \
   --config "$CONFIG_LOCAL" \
   --size SIZE --orientation ORIENTATION \
   --colortheme COLORTHEME \
+  --title-size TITLE_SIZE \
   --conference "CONFERENCE" \
   --date "DATE" \
   --title "TITLE" \
@@ -338,7 +347,59 @@ Invite the user to:
 4. Add a QR code linking to code/paper if desired: `\usepackage{qrcode}` + `\qrcode[height=3cm]{https://github.com/...}`
 5. Review and refine content with `/review-tags-tex` (tag any sections they want changed with `%CT:`)
 
+## Appendix: recurring poster fixes
+
+### Standalone diagram font matching
+
+When including a tikz figure via `\includegraphics[width=\colwidth]{...}`, the font
+size on the poster equals:
+
+    poster_font = standalone_normalsize × (\colwidth / figure_natural_width)
+
+Example: A0 portrait column = 1073 pt. Figure at 439 pt natural width → 2.44× scale.
+Standalone at 12 pt base with `\footnotesize` (~10 pt) → 24 pt on poster.
+
+**To match poster body (~16–17 pt at scale 1.4):** compile standalone at 12 pt,
+use `\tiny` (7 pt) for descriptions and `\scriptsize` (8 pt) for titles.
+Always compile standalone separately (faster, no tikz memory issues in beamerposter).
+
+### Logo positioning
+
+Use tikz overlay for reliable positioning (avoids `textblock` overfull warnings):
+
+```latex
+\begin{tikzpicture}[remember picture, overlay]
+  \node at ([xshift=1.7cm,yshift=-10cm]current page.north west)
+    {\includegraphics[width=5.5cm]{logos/logo-left.pdf}};
+  \node at ([xshift=-1.7cm,yshift=-10cm]current page.north east)
+    {\includegraphics[width=5.5cm]{logos/logo-right.pdf}};
+\end{tikzpicture}
+```
+
+- `xshift`: + = right, - = left (from page corner)
+- `yshift`: - = down (from top)
+- Convert EPS/SVG to PDF with `epstopdf` or `inkscape --export-filename=file.pdf file.svg`
+- pdflatex cannot include SVG directly
+
+### Compact bibliography style
+
+For posters with limited space, use `style=nature` instead of `style=authoryear`:
+
+```latex
+\usepackage[backend=biber, style=nature, maxbibnames=3, giveninits=true]{biblatex}
+\renewcommand{\bibfont}{\scriptsize}
+\setbeamertemplate{bibliography item}{\faFileTextO}  % requires \usepackage{fontawesome}
+```
+
+### `\newlength` patch
+
+`fill_template.py` includes `\newlength{\sepwidth}` and `\newlength{\colwidth}`
+before `\setlength`. If you get "undefined control sequence" for these lengths
+in an older poster, add them manually to `main.tex`.
+
 ## Edge cases
+
+## Appendix: recurring poster fixes
 
 - **No project context found**: generate a structural skeleton only, with `%% TODO:` comments marking each section. Tell the user to run again with `--project` or provide context inline.
 - **Vault not accessible**: proceed with memory files only; note the limitation.

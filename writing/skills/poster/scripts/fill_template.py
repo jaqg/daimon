@@ -40,6 +40,7 @@ import re
 import sys
 from pathlib import Path
 
+TITLE_SIZE_TABLE = {"huge": "\\huge", "Huge": "\\Huge", "LARGE": "\\LARGE"}
 SCALE_TABLE = {"a0": "1.3", "a1": "1.1", "a2": "0.9", "a3": "0.7"}
 
 
@@ -61,16 +62,22 @@ def read_config(config_path):
 def column_layout(size, orientation):
     if orientation == "portrait":
         return (
-            r"\setlength{\sepwidth}{0.03\paperwidth}" + "\n"
+            r"\newlength{\sepwidth}" + "\n"
+            + r"\newlength{\colwidth}" + "\n"
+            + r"\setlength{\sepwidth}{0.03\paperwidth}" + "\n"
             + r"\setlength{\colwidth}{0.45\paperwidth}"
         )
     if size in ("a0", "a1"):
         return (
-            r"\setlength{\sepwidth}{0.025\paperwidth}" + "\n"
+            r"\newlength{\sepwidth}" + "\n"
+            + r"\newlength{\colwidth}" + "\n"
+            + r"\setlength{\sepwidth}{0.025\paperwidth}" + "\n"
             + r"\setlength{\colwidth}{0.29\paperwidth}"
         )
     return (
-        r"\setlength{\sepwidth}{0.03\paperwidth}" + "\n"
+        r"\newlength{\sepwidth}" + "\n"
+        + r"\newlength{\colwidth}" + "\n"
+        + r"\setlength{\sepwidth}{0.03\paperwidth}" + "\n"
         + r"\setlength{\colwidth}{0.45\paperwidth}"
     )
 
@@ -94,6 +101,9 @@ def main():
     parser.add_argument("--orientation", default="portrait",
                         choices=["portrait", "landscape"])
     parser.add_argument("--colortheme", default="um")
+    parser.add_argument("--title-size", default="Huge",
+                        choices=["Huge", "huge", "LARGE"],
+                        help="Title font size (default: Huge)")
     parser.add_argument("--conference", default="%%CONFERENCE%%")
     parser.add_argument("--date", default="%%DATE%%")
     parser.add_argument("--title", default="%%TITLE%%")
@@ -118,6 +128,7 @@ def main():
         "CONFERENCE": args.conference,
         "DATE": args.date,
         "TITLE": args.title,
+        "TITLE_FONT_SIZE": TITLE_SIZE_TABLE.get(args.title_size, "\\Huge"),
         "EMAIL": config.get("POSTER_EMAIL", "%%EMAIL%%"),
         "AUTHOR": config.get("POSTER_AUTHOR", "%%AUTHOR%%"),
         "AFFILIATION": config.get("POSTER_AFFILIATION", "%%AFFILIATION%%"),
