@@ -32,6 +32,7 @@ execution plan, gets approval, then invokes sub-skills in order.
 | `watch` | "watch papers on X", "monitor literature", "weekly update", "track new papers" | `lit-watch` |
 | `annotate` | "annotate this paper", "read and annotate", "fill in notes for", "I finished reading" | `lit-annotate` |
 | `bib_import` | "import from bib", "process my .bib file", "add papers from bibliography", "I have a .bib file", "bib to vault" | bib2papers → `lit-vault` |
+| `pdf_import` | "I have PDFs", "import PDFs", "PDFs to vault", "local PDF folder", "bibliography folder", "import from PDF directory", "add PDFs to vault" | pdf2papers → `lit-vault` |
 | `coverage` | "what do I have on X", "existing coverage of X", "do I already have papers on X", "what's in my vault on X", "what do I know about X", "summarize my notes on X", "tell me about X in my vault", "what's the state of X in my literature" | graphify query → synthesize answer → escalate if thin |
 
 Ambiguous intent: lean toward the more comprehensive option (e.g., `vault_import` over `search`).
@@ -98,6 +99,13 @@ the intent into ONE message — do not ask one question at a time.
 - If full-text chosen: "Do you have local PDFs (e.g. Zotero storage)? If yes, provide the base directory — they will be pre-cached by DOI/key match before running lit-vault."
 - If full-text and no local PDFs: "Save downloaded PDFs anywhere? (provide path, or skip)"
 - "Want NotebookLM analysis after import? (yes = lit-review NLM stage on imported papers; no = vault notes only)"
+- In the Step 1 plan, show the resolved papers.json path next to the bib2papers step ("Output: PATH" — resolve using the PAPERS_OUT logic in the execution block below; if no project, show "./papers.json").
+
+**pdf_import:**
+- If pdf_dir not stated: "Path to the PDF directory?" (required)
+- If project not stated: "Which project should these notes be linked to? (or skip for no project)"
+- Full-text is already local — PDFs will be pre-cached automatically; skip asking about full-text fetch.
+- In the Step 1 plan, show the resolved papers.json path next to the pdf2papers step ("Output: PATH" — resolve using the PAPERS_OUT logic in the execution block below; if no project, show "./papers.json").
 
 **review:**
 - "What should be included / excluded? (e.g. 'include only papers using DFT, exclude review articles') — or skip for default PRISMA scoring"
@@ -300,7 +308,15 @@ If not found, warn the user: "bib2papers.py not yet in daimon — conversion ste
 
 Step 1 — convert .bib → papers.json (DOI enrichment via Semantic Scholar + abstract extraction):
 ```bash
-python3 "$BIB2PAPERS" --bib BIB_PATH --output papers.json
+# Resolve papers.json output path
+if [[ -n "PROJECT" && -d "$VAULT_DIR/10-Projects/Collabs/PROJECT" ]]; then
+    PAPERS_OUT="$VAULT_DIR/10-Projects/Collabs/PROJECT/papers.json"
+elif [[ -n "PROJECT" ]]; then
+    PAPERS_OUT="$VAULT_DIR/10-Projects/PROJECT/papers.json"
+else
+    PAPERS_OUT="papers.json"
+fi
+python3 "$BIB2PAPERS" --bib BIB_PATH --output "$PAPERS_OUT"
 ```
 
 Step 2 (optional) — pre-cache local PDFs if `local_pdf_dir` was provided. This populates
@@ -314,7 +330,7 @@ from pathlib import Path
 cache_path = Path("~/.cache/daimon/lit-vault/fulltext-cache.json").expanduser()
 cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
 
-papers = json.loads(Path("papers.json").read_text())
+papers = json.loads(Path("PAPERS_OUT").read_text())  # PAPERS_OUT resolved in bash block above
 pdf_base = Path("LOCAL_PDF_DIR")
 
 for p in papers:
@@ -340,7 +356,7 @@ Note: requires `pymupdf` (`pip install pymupdf`). If not installed, skip and let
 
 Step 3 — import to vault:
 ```
-lit-vault:  --papers papers.json [--project PROJECT] [--no-full-text if chosen]
+lit-vault:  --papers "$PAPERS_OUT" [--project PROJECT] [--no-full-text if chosen]
             [--output-dir if non-default] [--overwrite if re-importing]
 ```
 After lit-vault completes:
@@ -350,9 +366,48 @@ bash "$UPDATE_SCRIPT"
 
 Step 4 (optional, if NLM analysis wanted) — **use lit-review's NLM stage, not the notebooklm skill**:
 ```
-lit-review: --papers papers.json --no-search --notebooklm [--project PROJECT]
+lit-review: --papers "$PAPERS_OUT" --no-search --notebooklm [--project PROJECT]
 ```
 (Pass `--no-search` if lit-review supports pre-loaded papers; otherwise tell the user to run `/lit review` separately pointing to the imported papers.)
+
+**pdf_import:**
+
+Requires `pdf2papers.py` — locate with:
+```bash
+PDF2PAPERS=$(find -L ~/.claude -path "*/lit/scripts/pdf2papers.py" -type f | head -1)
+```
+If not found, warn the user: "pdf2papers.py not found in daimon — run `find ~/.claude -name pdf2papers.py` to locate it."
+
+Step 1 — extract metadata from PDFs → papers.json:
+```bash
+# Resolve papers.json output path
+if [[ -n "PROJECT" && -d "$VAULT_DIR/10-Projects/Collabs/PROJECT" ]]; then
+    PAPERS_OUT="$VAULT_DIR/10-Projects/Collabs/PROJECT/papers.json"
+elif [[ -n "PROJECT" ]]; then
+    PAPERS_OUT="$VAULT_DIR/10-Projects/PROJECT/papers.json"
+else
+    PAPERS_OUT="papers.json"
+fi
+python3 "$PDF2PAPERS" \
+  --pdf-dir PDF_DIR \
+  --output "$PAPERS_OUT" \
+  --email USER_EMAIL \
+  [--workers N]
+```
+pdf2papers runs CrossRef + S2 lookups and pre-caches local PDFs to
+`~/.cache/daimon/lit-vault/fulltext-cache.json` by default (`--precache` on).
+
+Step 2 — import to vault (pass `--no-full-text` since PDFs are pre-cached):
+```
+lit-vault:  --papers "$PAPERS_OUT" [--project PROJECT] --no-full-text
+            [--output-dir if non-default] [--overwrite if re-importing]
+```
+If precache failed or `--no-precache` was used, omit `--no-full-text` to let lit-vault fetch normally.
+
+After lit-vault completes:
+```bash
+bash "$UPDATE_SCRIPT"
+```
 
 ### papers_path shortcut
 
@@ -423,6 +478,10 @@ Synthesize from `GRAPHIFY_CTX` + `COVERAGE` metadata. Structure:
 | graphify query returns 0 nodes | Report "No vault coverage found" — do not block search |
 | Graph very stale (>20 notes) | Warn prominently; offer to pause and rebuild before proceeding |
 | bib_import: bib2papers.py not found | Warn; offer manual workaround: convert .bib to papers.json manually then re-run with `--papers` flag |
+| pdf_import: pdf2papers.py not found | Warn: "pdf2papers.py not found — run `find ~/.claude -name pdf2papers.py` to locate or reinstall daimon lit scripts." |
+| pdf_import: no PDFs in directory | Confirm path; ask user to check that the directory contains .pdf files |
+| pdf_import: PyMuPDF not installed | Report error; suggest `pip install pymupdf` |
+| pdf_import: precache fails | Skip precache silently; lit-vault fetches full text normally |
 | bib_import: DOI lookup fails for some entries | Report N entries with missing DOIs; continue with those that resolved; list unresolved for manual check |
 | bib_import: local PDF pre-cache, pymupdf not installed | Skip pre-cache silently; lit-vault fetches normally |
 | bib_import: PDF dir given but 0 matches found | Warn; suggest checking path and that filenames contain DOI or Zotero key |

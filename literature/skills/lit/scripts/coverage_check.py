@@ -7,28 +7,32 @@ Output: JSON {"query", "node_count", "papers": [...], "galaxy_concepts": [...]}
 import json, os, re, subprocess, sys
 from pathlib import Path
 
+
+def _resolve_vault() -> Path:
+    # 1. Walk up from this script to find daimon root (has config/config.local)
+    for parent in Path(__file__).resolve().parents:
+        cfg = parent / "config" / "config.local"
+        if cfg.exists():
+            for line in cfg.read_text().splitlines():
+                if line.startswith("VAULT_DIR="):
+                    return Path(os.path.expanduser(line.split("=", 1)[1].strip()))
+            break
+    # 2. Env var (set in settings.json or shell)
+    if os.environ.get("VAULT_DIR"):
+        return Path(os.path.expanduser(os.environ["VAULT_DIR"]))
+    # 3. CWD detection (vault has 20-Sources + 30-Galaxy)
+    for candidate in [Path.cwd(), Path.cwd().parent]:
+        if (candidate / "20-Sources").exists() and (candidate / "30-Galaxy").exists():
+            return candidate
+    return Path(os.path.expanduser("~/vault"))
+
+
 query = sys.argv[1] if len(sys.argv) > 1 else ""
 budget = int(sys.argv[2]) if len(sys.argv) > 2 else 600
 
-config_paths = subprocess.run(
-    ["find", "-L", os.path.expanduser("~/.claude"), "-name", "config.local",
-     "-path", "*/daimon/config/*"],
-    capture_output=True, text=True
-).stdout.strip().split("\n")
+vault = _resolve_vault()
 
-vault = None
-for cp in config_paths:
-    if cp and Path(cp).exists():
-        for line in Path(cp).read_text().splitlines():
-            if line.startswith("VAULT_DIR="):
-                vault = os.path.expanduser(line.split("=", 1)[1].strip())
-                break
-
-if not vault:
-    vault = os.environ.get("VAULT_DIR") or os.path.expanduser("~/vault")
-vault = os.path.expanduser(vault)
-
-graph_json = Path(vault) / "graphify-out" / "graph.json"
+graph_json = vault / "graphify-out" / "graph.json"
 if not graph_json.exists():
     print(json.dumps({"error": "graph.json not found", "node_count": 0,
                       "papers": [], "galaxy_concepts": []}))
@@ -36,7 +40,7 @@ if not graph_json.exists():
 
 result = subprocess.run(
     ["graphify", "query", query, "--budget", str(budget)],
-    capture_output=True, text=True, cwd=vault
+    capture_output=True, text=True, cwd=str(vault)
 )
 raw = result.stdout
 
