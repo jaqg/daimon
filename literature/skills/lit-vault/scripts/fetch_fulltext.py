@@ -36,7 +36,7 @@ import urllib.error
 
 
 DELAY = 0.5  # seconds between API calls
-UA = "lit-vault/1.0 (daimon research tool; github.com/jaqg/daimon)"
+UA = "lit-vault/1.0 (daimon research tool)"
 UA_BROWSER = "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0"
 
 
