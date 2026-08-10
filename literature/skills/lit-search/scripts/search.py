@@ -98,21 +98,25 @@ DOMAIN_PROFILES = {
 
 def search_arxiv(query, max_results, from_date=None, to_date=None, domain="general"):
     papers = []
-    date_filter = ""
+    # Build search_query parts with literal spaces, then URL-encode the full value.
+    # Brackets [ ] must be %-encoded for the arXiv API.
+    search_parts = [f"all:{query}"]
+
     if from_date or to_date:
         fd = from_date.replace("-", "") + "000000" if from_date else "19910101000000"
-        td = to_date.replace("-", "") + "235959" if to_date else "*"
-        date_filter = f"+AND+submittedDate:[{fd}+TO+{td}]"
+        # arXiv API returns HTTP 500 with "*" wildcard; use far-future date instead
+        td = to_date.replace("-", "") + "235959" if to_date else "99991231235959"
+        search_parts.append(f"AND submittedDate:[{fd} TO {td}]")
 
     cats = DOMAIN_PROFILES.get(domain, {}).get("arxiv_cats", [])
-    cat_filter = ""
     if cats:
-        cat_terms = "+OR+".join(f"cat:{c}" for c in cats)
-        cat_filter = f"+AND+({cat_terms})"
+        cat_terms = " OR ".join(f"cat:{c}" for c in cats)
+        search_parts.append(f"AND ({cat_terms})")
 
+    full_query = " ".join(search_parts)
     url = (
         f"https://export.arxiv.org/api/query?"
-        f"search_query=all:{quote_plus(query)}{date_filter}{cat_filter}"
+        f"search_query={quote_plus(full_query)}"
         f"&max_results={max_results}&sortBy=relevance&sortOrder=descending"
     )
     data = fetch(url, timeout=45)
