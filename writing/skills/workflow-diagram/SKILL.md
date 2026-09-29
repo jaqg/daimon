@@ -1,5 +1,6 @@
 ---
 name: workflow-diagram
+disable-model-invocation: true
 description: >
   Generates TikZ flowchart/workflow/scheme diagrams for LaTeX scientific and
   technical documents. Use this skill whenever the user asks to "draw a workflow",

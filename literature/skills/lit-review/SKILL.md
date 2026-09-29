@@ -1,5 +1,6 @@
 ---
 name: lit-review
+disable-model-invocation: true
 description: >
   Full literature review pipeline: search → PRISMA screening → NotebookLM analysis → report + .bib.
   Use when user wants a structured literature review: "/lit-review", "run a literature review on X",

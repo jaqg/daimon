@@ -1,5 +1,6 @@
 ---
 name: galaxy
+disable-model-invocation: true
 description: >
   Drafts Obsidian Galaxy (30-Galaxy/) concept note skeletons from confirmed [[links]] in vault paper
   notes (20-Sources/papers/). Scans for uncommented [[concept]] links, cross-checks against existing

@@ -1,5 +1,6 @@
 ---
 name: cross-check
+disable-model-invocation: true
 description: "Multi-model mathematical verification. Runs the same math query through 2+ models independently, diffs outputs at the equation level, and flags discrepancies. Use after sympy-verify for extra confidence, or when you have a candidate answer and want independent confirmation. Trigger: \"cross-check this\", \"verify with another model\", \"second opinion\", \"independent verification\", \"does another model agree?\"."
 compatibility: "Requires pi CLI with multiple model access. Uses pi --print for non-interactive invocation. Models must be configured in ~/.pi/agent/models.json or via built-in providers (opencode-go)."
 ---

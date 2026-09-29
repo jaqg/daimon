@@ -1,5 +1,6 @@
 ---
 name: lit
+disable-model-invocation: true
 description: >
   Literature pipeline orchestrator. Parses natural language intent and routes to the
   right lit-* skills in the correct order. Use for any literature request:

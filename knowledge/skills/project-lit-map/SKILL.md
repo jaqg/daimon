@@ -1,5 +1,6 @@
 ---
 name: project-lit-map
+disable-model-invocation: true
 description: >
   Generate or update a literature map for a project. Use when the user says /project-lit-map,
   "make a literature map", "create literature-map.md", "map the papers for this project",

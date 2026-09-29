@@ -1,5 +1,6 @@
 ---
 name: lit-search
+disable-model-invocation: true
 description: >
   Multi-database paper discovery and citation chasing. Use when the user wants to find papers:
   "/lit-search", "search papers on X", "find papers about X", "search the literature for X",

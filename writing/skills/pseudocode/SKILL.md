@@ -1,5 +1,6 @@
 ---
 name: pseudocode
+disable-model-invocation: true
 description: >
   Generates LaTeX pseudocode from source code or natural-language algorithm
   descriptions. Use this skill when the user asks to "write pseudocode for",

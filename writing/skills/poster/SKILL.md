@@ -1,5 +1,6 @@
 ---
 name: poster
+disable-model-invocation: true
 description: >
   Generate a scientific conference poster as a complete LaTeX project, optionally with a submission abstract and audience Q&A prep.
   Invoke this skill when the user says /poster, asks to "create a poster", "make a conference poster", "generate a poster for [project/conference]",

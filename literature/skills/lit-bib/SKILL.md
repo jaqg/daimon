@@ -1,5 +1,6 @@
 ---
 name: lit-bib
+disable-model-invocation: true
 description: >
   Bibliography management: generate and update .bib files from papers.json, DOI lists, or arXiv IDs,
   with optional Zotero desktop sync. Trigger for: "/lit-bib", "generate bib", "make a bib file",

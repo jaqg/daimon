@@ -1,5 +1,6 @@
 ---
 name: derivation-lab
+disable-model-invocation: true
 description: "Interactive mathematical derivation notebook. Creates a LaTeX document that grows step-by-step as you and the agent explore a problem, with every manipulation verified by SymPy. Appends each step to a single sympy script (re-runnable) and to a .tex file, compiling to PDF at milestones so you can read the progress in human-readable form. Use when exploring a new mathematical approach, developing a derivation collaboratively, or sketching a solution that needs verification and a durable PDF record. Trigger: \"derive with me\", \"new derivation\", \"explore this problem\", \"sketch a solution\", \"derivation lab\", \"work through this math\"."
 compatibility: "Requires pdflatex (texlive), Python 3.8+ with sympy>=1.12. Install: pip install sympy. For pdflatex: sudo pacman -S texlive-core (Arch) or apt install texlive-latex-base (Debian/Ubuntu)."
 ---

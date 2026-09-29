@@ -1,5 +1,6 @@
 ---
 name: update-memory
+disable-model-invocation: true
 description: End-of-session memory capture for any project. Reviews the current conversation for insights worth persisting across sessions — project facts, user corrections, validated approaches, reference pointers — and writes or updates memory files in the project memory directory. Use this skill whenever the user says "update memory", "save session", "end session", "/update-memory", "capture what we learned", or "save the session". Also trigger proactively at natural session end points when significant new facts, decisions, or corrections emerged that aren't yet in memory files.
 tools: Read, Write, Edit, Glob, Grep
 ---

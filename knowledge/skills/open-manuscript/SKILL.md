@@ -1,5 +1,6 @@
 ---
 name: open-manuscript
+disable-model-invocation: true
 description: >
   Create or update manuscript-context.md for a project before writing a paper.
   Use when the user says /open-manuscript, "prepare for writing", "create manuscript context",

@@ -1,5 +1,6 @@
 ---
 name: update-project
+disable-model-invocation: true
 description: >
   Capture end-of-session knowledge into structured project files. Use this skill when the user says
   /update-project, "update my project notes", "capture today's work", "log my results",

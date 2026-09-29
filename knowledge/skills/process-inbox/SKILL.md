@@ -1,5 +1,6 @@
 ---
 name: process-inbox
+disable-model-invocation: true
 description: >
   Processes the vault's 00-Inbox/ folder. Invoke whenever the user says "process inbox",
   "process my inbox", "process emails", "clear the inbox", or any similar phrasing. Also invoke

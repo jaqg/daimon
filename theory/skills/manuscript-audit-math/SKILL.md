@@ -1,5 +1,6 @@
 ---
 name: manuscript-audit-math
+disable-model-invocation: true
 description: "Interactive sequential audit of mathematical derivations in a manuscript. Extracts all equations from a markdown or LaTeX file, classifies them as claims vs declarations, verifies each claim with SymPy, and stops on the first error for user decision. Supports error propagation (fix cascading to subsequent equations) and generates a full audit report. Use when you have a manuscript with hand-derived equations to check step-by-step, or when you want to verify that a chain of manipulations has no algebraic mistakes. Trigger: \"audit my derivation\", \"check manuscript equations\", \"verify my calculations\", \"audit math\", \"check my steps\"."
 compatibility: "Requires Python 3.8+ and sympy>=1.12 (pip install sympy). Reads markdown (.md) and LaTeX (.tex) manuscripts."
 ---

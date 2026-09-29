@@ -1,5 +1,6 @@
 ---
 name: qr-code
+disable-model-invocation: true
 description: >
   Generate a QR code from a URL or text string. Outputs a PNG file and a ready-to-use LaTeX snippet.
   Invoke when the user says /qr-code, "generate a QR code", "make a QR code for [URL/text]",

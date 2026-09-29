@@ -1,5 +1,6 @@
 ---
 name: lit-annotate
+disable-model-invocation: true
 description: >
   Fills the Key points skeleton in an existing vault paper note after the user has read the paper.
   Accepts user reading notes / highlights (pasted text), a local PDF, or re-fetches the full text.

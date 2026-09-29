@@ -1,3 +1,7 @@
+---
+disable-model-invocation: true
+---
+
 # PDF to Markdown (Pi vision)
 
 Convert scientific/math PDFs to markdown with LaTeX equations using pi's built-in PDF reader and vision model.

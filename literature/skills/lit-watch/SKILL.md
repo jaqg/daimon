@@ -1,5 +1,6 @@
 ---
 name: lit-watch
+disable-model-invocation: true
 description: >
   Weekly new-literature monitor. Searches databases for papers published since last run,
   scores relevance against a project or topic list, and writes a digest to the vault inbox.

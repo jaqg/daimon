@@ -1,5 +1,6 @@
 ---
 name: lit-vault
+disable-model-invocation: true
 description: >
   Creates per-paper Obsidian vault notes from a papers.json file (output of lit-search or lit-review).
   Each note includes verbatim abstract, Claude-generated project-situated summary, structured key-points
@@ -114,7 +115,7 @@ After the script completes, load the JSON and map each paper ID to its full text
 ### Step 3: Locate Galaxy suggestion script
 
 ```bash
-SUGGEST_SCRIPT=$(find -L ~/.claude -path "*/lit-vault/scripts/suggest_galaxy.py" -type f | head -1)
+SUGGEST_SCRIPT=$(find -L ~/.claude -path "*/lit-annotate/scripts/suggest_galaxy.py" -type f | head -1)
 ```
 
 Used per-paper in Step 4c to score concept overlap. If not found, skip Galaxy suggestions and omit `## Connections` block.

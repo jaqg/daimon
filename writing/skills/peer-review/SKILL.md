@@ -1,5 +1,6 @@
 ---
 name: peer-review
+disable-model-invocation: true
 description: >
   Inject peer-review comments directly into a LaTeX manuscript as colored environments.
   Use this skill when the user says /peer-review, asks to "review my manuscript", "peer-review my paper",
