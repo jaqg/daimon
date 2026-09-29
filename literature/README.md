@@ -19,7 +19,7 @@ lit-watch   ──→  weekly digest to vault inbox  (reads project memory for c
 
 | Skill | Invoke | Purpose |
 |-------|--------|---------|
-| `lit-search` | `/lit-search` | Discover papers across arXiv, S2, OpenAlex, CrossRef, ChemRxiv, PubMed, WoS, Scopus. Citation chasing (forward/backward). Outputs `papers.json`. |
+| `lit-search` | `/lit-search` | Discover papers across arXiv, S2, OpenAlex, ChemRxiv, PubMed, WoS (session). Citation chasing (forward/backward). Outputs `papers.json`. |
 | `lit-review` | `/lit-review` | Full pipeline: search → PRISMA screening → NotebookLM batched analysis → report + .bib. All stages accessible via flags. |
 | `lit-bib` | `/lit-bib` | Generate and update `.bib` files. Fetch-only (CrossRef + arXiv), Levenshtein validation, Zotero sync. |
 | `lit-watch` | `/lit-watch` | Weekly monitor: new papers since last run, scored against project context, digest to `00-Inbox/`. |

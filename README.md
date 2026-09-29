@@ -49,7 +49,7 @@ daimon/
 
 | Domain | Skill | Description |
 |--------|-------|-------------|
-| literature | [`lit-search`](literature/skills/lit-search/) | Multi-DB paper discovery (arXiv, S2, OpenAlex, ChemRxiv, PubMed, WoS, Scopus) + citation chase (DOI/arXiv/PDF) |
+| literature | [`lit-search`](literature/skills/lit-search/) | Multi-DB paper discovery (arXiv, S2, OpenAlex, ChemRxiv, PubMed, WoS session) + citation chase (DOI/arXiv/PDF) |
 | literature | [`lit-bib`](literature/skills/lit-bib/) | BibTeX generation from papers.json/DOIs/arXiv IDs; Levenshtein validation; Zotero sync |
 | literature | [`lit-watch`](literature/skills/lit-watch/) | Weekly new-paper monitor → vault inbox digest; project-aware relevance scoring |
 | literature | [`lit-review`](literature/skills/lit-review/) | Full pipeline: search → PRISMA screening → NotebookLM (batched) → report + .bib |
