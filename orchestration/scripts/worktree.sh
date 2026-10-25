@@ -88,6 +88,11 @@ case "$CMD" in
     # plans/ is where /brain writes the plan and where /merge-status reads specs from; it was the one
     # element of the contract that nothing created, so 7/7 vault projects lacked it (2026-10-25).
     mkdir -p "$STATUS_DIR" "$AI_OUT" "$PLANS_DIR" "$REPO/.agent/status" "$REPO/.agent/scratch" "$REPO/.agent/digests"
+    # `.gitkeep` so an empty plans/status/ai-out survives a vault commit — vault-init.sh does the same,
+    # and the verifier (2026-10-25) caught that the two tools matched at directory level only.
+    for d in "$PLANS_DIR" "$STATUS_DIR" "$AI_OUT"; do
+      [[ -e "$d/.gitkeep" ]] || : > "$d/.gitkeep"
+    done
     [[ -n "$PART" ]] && INTEG="${INTEG:-integration/$PART}"
     [[ -z "$INTEG" ]] && INTEG="$(old_val integration_branch)"
     paths_file

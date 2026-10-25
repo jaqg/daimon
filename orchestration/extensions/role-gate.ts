@@ -341,6 +341,23 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
+		// The advisor lane is decision support, so it belongs to the tiers that decide. Two reasons a leaf
+		// must not reach for it: (1) escalating instead of executing a spec means the spec is wrong, and the
+		// fix belongs in the plan, not in a second model's opinion; (2) rpiv-advisor sends its request
+		// without x-opencode-session, so on OpenCode Go it can only ever return a 400 (UPSTREAM.md #1) —
+		// every leaf call is a wasted round trip, and this worker proved it by retrying into the doom-loop
+		// guard. /oracle is the lane that actually works; it gates itself the same way (see oracle.ts).
+		if (event.toolName === "advisor" && g.role && !["brain", "integrator"].includes(g.role)) {
+			return {
+				block: true,
+				reason:
+					`[${g.role} tier] tool "advisor" is denied: the premium lane is for tiers that decide (brain, integrator), ` +
+					`not tiers that execute. On OpenCode Go it is also broken by a missing session header (UPSTREAM.md #1), so it ` +
+					`cannot answer you at all. If the spec is unclear, write \`blocked: <the exact ambiguity>\` in your status ` +
+					`delta and continue with what you can — that is how the ambiguity reaches the brain, which is where the fix belongs.`,
+			};
+		}
+
 		if (g.profile.deny.includes(event.toolName)) {
 			// Path-scoped re-allow: a denied tool may still be legal for a declared destination
 			// (scout writing papers-*.json into queries/). Only content tools get this exemption —

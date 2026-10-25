@@ -20,6 +20,8 @@
  */
 
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 const DEFAULT_MODEL = process.env.OPENCODE_GO_ORACLE_MODEL || "opencode-go/glm-5.3";
 const DEFAULT_THINKING = process.env.OPENCODE_GO_ORACLE_THINKING || "high";
@@ -42,10 +44,45 @@ function parseArgs(args: string): Parsed | null {
 	return { model, thinking, question };
 }
 
+// The advisor lane is decision support, so it belongs to the tiers that decide. A leaf that escalates
+// instead of executing its spec is doing something else entirely, and a verifier that imports another
+// model's judgement is no longer an independent check — it is a second producer. `toolDeny` in
+// role-gate.ts cannot help here: /oracle is a registered *command*, not a tool, so the gate never sees
+// it. This is where that hole gets closed, by reading the same `.pi-role` file the gate reads.
+const ORACLE_ROLES = ["brain", "integrator"];
+
+function roleFrom(start: string): string | null {
+ 	let dir = start;
+ 	for (let up = 0; dir !== "/" && up < 12; up++) {
+ 		const f = path.join(dir, ".pi-role");
+ 		if (fs.existsSync(f)) {
+ 			try {
+ 				const r = fs.readFileSync(f, "utf8").trim();
+ 				return r || null;
+ 			} catch {
+ 				return null;
+ 			}
+ 		}
+ 		dir = path.dirname(dir);
+ 	}
+ 	return null;
+}
+
 export default function (pi: any) {
 	pi.registerCommand("oracle", {
 		description: `One-shot ask to the premium lane (default ${DEFAULT_MODEL}:${DEFAULT_THINKING}). Escalate on repetition, not on effort.`,
 		async handler(args: string, ctx: any) {
+			const role = roleFrom(ctx?.cwd || process.cwd());
+			if (role && !ORACLE_ROLES.includes(role)) {
+				const where = role === "verifier"
+					? "a verifier must not import another model's verdict — that cancels the independence the tier exists for"
+					: "leaf tiers execute a spec; consulting a premium lane instead of implementing is a sign the spec is wrong";
+				ctx.ui.notify(
+					`oracle refused [${role} tier]: ${where}. If you are blocked, write \`blocked: <what>\` in your status delta and continue elsewhere — do not retry this command.`,
+					"warning",
+				);
+				return;
+			}
 			const parsed = parseArgs(args || "");
 			if (!parsed) {
 				ctx.ui.notify("usage: /oracle [--model provider/id] [--thinking level] <question>", "warning");
