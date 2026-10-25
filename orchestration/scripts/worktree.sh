@@ -103,6 +103,11 @@ case "$CMD" in
     [[ -n "$PART" && -n "$AGENT" ]] || die "add needs --part and --agent"
     case "$ROLE" in worker|calcs|scout) ;; *) die "--role must be worker|calcs|scout";; esac
     WT="$WT_ROOT/$PART-$AGENT"; BR="agent/$PART-$AGENT"
+    # Check the contract BEFORE creating anything: the old order built the worktree, wrote .pi-role,
+    # linked resources and only then refused for a missing integration_branch, leaving a half-made
+    # leaf that the next invocation had to reason about.
+    grep -q '^integration_branch: .*$' "$REPO/.agent-paths" 2>/dev/null \
+      || die "no integration_branch in $REPO/.agent-paths — run init first (pi-agents does this automatically)"
     mkdir -p "$WT_ROOT"
     if [[ -d "$WT" ]]; then
       echo "add: worktree already there: $WT ($BR)"
@@ -130,7 +135,6 @@ case "$CMD" in
         echo "add: linked $L -> $REPO/$L"
       fi
     done
-    grep -q '^integration_branch: .*$' "$REPO/.agent-paths" || die "run init first (.agent-paths has no integration_branch)"
     echo "WORKTREE=$WT"
     echo "BRANCH=$BR"
     echo "ROLE=$ROLE"

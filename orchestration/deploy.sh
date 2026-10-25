@@ -77,6 +77,16 @@ link_bin() {  # $1 = repo-relative script, $2 = command name
 }
 link_bin scripts/pi-agents.sh pi-agents
 
+# `pi-agents` auto-inits repos, which needs to know where 10-Projects/ lives. One line per machine.
+mkdir -p "$HOME/.config/pi"
+if [[ ! -s "$HOME/.config/pi/vault-root" ]]; then
+    for cand in "$HOME/Documents/Universidad/vault" "$HOME/Documents/vault" "$HOME/vault"; do
+        [[ -d "$cand/10-Projects" ]] && { echo "$cand" > "$HOME/.config/pi/vault-root"
+            echo "  wrote $HOME/.config/pi/vault-root -> $cand"; break; }
+    done
+    [[ -s "$HOME/.config/pi/vault-root" ]] || echo "  NOTE: no vault located — write your 10-Projects parent into ~/.config/pi/vault-root"
+fi
+
 # Advisor lane (the escalation model behind `advisor()`), source of truth = this repo.
 # Installed only when absent, so a model you picked by hand with /advisor on either machine
 # is never clobbered.

@@ -21,17 +21,40 @@ RETIRED="implementer planner"          # kept as pinned shims; a package re-crea
 
 die() { echo "pi-agents: $*" >&2; exit 2; }
 
+vault_root() {  # where 10-Projects/ lives: env, then a one-line config file
+  [ -n "${PI_VAULT_ROOT:-}" ] && { echo "$PI_VAULT_ROOT"; return; }
+  [ -n "${VAULT_ROOT:-}" ] && { echo "$VAULT_ROOT"; return; }
+  [ -f "$HOME/.config/pi/vault-root" ] && { head -1 "$HOME/.config/pi/vault-root" | tr -d "[:space:]"; return; }
+  echo ""
+}
+
+guess_vault() {  # $1 = repo path; mirror worktree.sh's reverse lookup, then a name match
+  local repo="$1" vr vproj
+  vr="$(vault_root)"; [ -n "$vr" ] || return 0
+  for vproj in "$vr"/10-Projects/* "$vr"/10-Projects/Collabs/*; do
+    [ -f "$vproj/status/repos.txt" ] || continue
+    if grep -qF "$repo" "$vproj/status/repos.txt" 2>/dev/null; then echo "$vproj"; return; fi
+  done
+  for vproj in "$vr"/10-Projects/* "$vr"/10-Projects/Collabs/*; do
+    [ -d "$vproj" ] || continue
+    if [ "$(basename "$vproj")" = "$(basename "$repo")" ]; then echo "$vproj"; return; fi
+  done
+  echo ""
+}
+
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 0
 fi
 ROLE="${1:-}"; case "$ROLE" in -*) ROLE="";; esac
 [ -n "$ROLE" ] && shift || true
-REPO="" WT="" CLAIM=0 DRY=0 STRICT=0
+REPO="" WT="" CLAIM=0 DRY=0 STRICT=0 VAULT="" TEST_CMD=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo) REPO="${2:?}"; shift 2;;
     --wt)   WT="${2:?}"; shift 2;;
+    --vault) VAULT="${2:?}"; shift 2;;
+    --test-cmd) TEST_CMD="${2:?}"; shift 2;;
     --claim) CLAIM=1; shift;;
     --dry)  DRY=1; shift;;
     --strict) STRICT=1; shift;;
@@ -78,6 +101,21 @@ if [ -n "$WT" ]; then
   PART="${WT%%/*}"; SLICE="${WT#*/}"
   [ "$PART" != "$WT" ] && [ -n "$SLICE" ] || die "--wt wants part/agent, e.g. partB/desc"
   [ -x "$WT_SCRIPT" ] || [ -f "$WT_SCRIPT" ] || die "missing $WT_SCRIPT"
+  REPO="$(cd "$REPO" && pwd)"
+  # `add` refuses without .agent-paths (no integration_branch to branch the lock from), and telling a
+  # human to run init first is a step that gets missed — so do the bootstrap here instead.
+  if [ ! -f "$REPO/.agent-paths" ]; then
+    echo "pi-agents: no .agent-paths in $REPO — running worktree.sh init" >&2
+    [ -n "$VAULT" ] || VAULT="$(guess_vault "$REPO")"
+    [ -n "$VAULT" ] || die "cannot find the vault project folder for $(basename "$REPO").
+        Pass it explicitly:  --vault ~/path/to/vault/10-Projects/<X>
+        or once, for every repo:  echo ~/path/to/vault > ~/.config/pi/vault-root"
+    if [ -z "$TEST_CMD" ]; then
+      echo "pi-agents: WARNING no --test-cmd — the integrator will have no command that means GREEN." >&2
+      echo "           add one later with: worktree.sh init --repo $REPO --vault $VAULT --test-cmd '<cmd>'" >&2
+    fi
+    bash "$WT_SCRIPT" init --repo "$REPO" --vault "$VAULT" --part "$PART" ${TEST_CMD:+--test-cmd "$TEST_CMD"}
+  fi
   bash "$WT_SCRIPT" add --repo "$REPO" --part "$PART" --agent "$SLICE" --role "$ROLE"
   CWD="$REPO/.worktrees/$PART-$SLICE"
 fi
