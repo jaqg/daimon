@@ -4,7 +4,7 @@
 Deterministic on purpose: an LLM transcribing deltas costs cold input and invents summaries.
 This script only moves text that already exists.
 
-    <repo>/.agent/status/<date>-<part>-<agent>.md   (append-only, one writer per file)
+    <repo>/.agent/status/<date>-<part>.<agent>.md   (append-only, one writer per file)
         ->  <vault_project>/status/<part>.md        (rewrite, <=15 lines, permanent)
         ->  same delta renamed *.md.processed       (consumed; dies with its worktree)
 
@@ -23,7 +23,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-DELTA_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<part>.+)-(?P<agent>[^-]+)\.md$")
+# `<date>-<part>.<agent>.md`, and the dot is load-bearing: with a hyphen join the parser cannot tell
+# where a hyphenated part ends and a hyphenated agent begins. Measured 2026-10-25 — a delta named
+# `2026-10-25-structure-vault-gitignore.md` (part `structure`, agent `vault-gitignore`) rolled up as
+# part `structure-vault`, agent `gitignore`, so it wrote a status file for a part that does not exist.
+# `.processed` is accepted here as well, because --force rebuilds from files this script itself renamed.
+DELTA_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<part>[^.]+)\.(?P<agent>[^.]+)\.md(?:\.processed)?$")
 # Keywords a delta line can start with (worker.md format is lowercase, agents shout sometimes).
 KWS = ("done", "blocked", "next", "debt", "evidence", "risks", "tests", "status")
 
@@ -64,7 +69,7 @@ def parse_delta(p: Path) -> tuple[str, str, list[str]]:
     """(part, agent, content lines). Filename is the contract; a bad name is an error, not a shrug."""
     m = DELTA_RE.match(p.name)
     if not m:
-        die(4, f"delta {p.name} does not match <YYYY-MM-DD>-<part>-<agent>.md — rename it, do not let it slide")
+        die(4, f"delta {p.name} does not match <YYYY-MM-DD>-<part>.<agent>.md — rename it, do not let it slide")
     lines = [l.rstrip() for l in p.read_text(errors="replace").splitlines() if l.strip()]
     return m.group("part"), m.group("agent"), lines
 
@@ -87,8 +92,28 @@ def digest(lines: list[str], cap: int = 96) -> dict:
     return {"found": found, "counts": counts}
 
 
+def _git_out(repo: Path, *a: str) -> str:
+    return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True).stdout.strip()
+
+
+def integ_note(repo: Path, integ: str, branches: list[str], part: str) -> str:
+    """Answer item 4 of the /merge-status contract *inside* the allowed script: the brain cannot run
+    `git branch --list` (its tier denies bash by design), so existence and merged-ness have to come out
+    of the rollup. Deterministic, positional, no prose interpretation."""
+    if not integ:
+        return "unset — contract has no integration_branch (run `worktree.sh init --part <part>`)"
+    if not _git_out(repo, "branch", "--list", integ):
+        return f"{integ} (MISSING — `worktree.sh integrate --repo <repo> --part {part}` has not run)"
+    merged = [b for b in branches
+              if subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", b, integ],
+                                 capture_output=True).returncode == 0]
+    back = [b for b in branches if b not in merged]
+    tail = f" — not yet in it: {', '.join(back)}" if back else ""
+    return f"{integ} (EXISTS, {len(merged)}/{len(branches)} agent branches merged{tail})"
+
+
 def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: list[str],
-                 integ: str, max_lines: int) -> list[str]:
+                 integ: str, max_lines: int, note: str = "") -> list[str]:
     tot: dict[str, int] = {}
     for _, _, d in per_agent:
         for k, v in d["counts"].items():
@@ -113,7 +138,7 @@ def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: li
     nxt = [d["found"].get("next") for _, _, d in per_agent if "next" in d["found"]]
     if nxt:
         tail.append(f"- next: {nxt[0][:120]}" + (f" (+{len(nxt) - 1} more)" if len(nxt) > 1 else ""))
-    tail.append(f"- branches: {', '.join(branches) or 'none'} · integration: {integ or 'unset'}")
+    tail.append(f"- branches: {', '.join(branches) or 'none'} · integration: {note or integ or 'unset'}")
 
     out = head + rows + tail
     if len(out) > max_lines:
@@ -165,7 +190,9 @@ def main() -> None:
 
     integ = paths.get("integration_branch", "")
     for part, ds in by_part.items():
-        rollup = build_rollup(part, ds, branch_of(repo, part), integ, a.max_lines)
+        brs = branch_of(repo, part)
+        rollup = build_rollup(part, ds, brs, integ, a.max_lines,
+                              integ_note(repo, integ, brs, part))
         dst = status_dir / f"{part}.md"
         print(f"=== {dst} ({len(rollup)} lines, {len(ds)} deltas consumed)")
         for l in rollup:

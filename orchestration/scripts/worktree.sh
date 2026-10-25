@@ -126,6 +126,18 @@ case "$CMD" in
     fi
     # The gate is only as good as the role declaration, and a spawned agent never declares one.
     echo "$ROLE" > "$WT/.pi-role"
+    # One status queue per repo, not one per worktree. `.agent/` is untracked, so a fresh worktree would
+    # otherwise get its own `.agent/status`, and a leaf's delta would strand where no rollup ever reads it
+    # (measured 2026-10-25: slice A's delta sat in .worktrees/structure-init-script/.agent/status while
+    # merge-status only reads $REPO/.agent/status). Symlinking makes the documented relative path correct
+    # from inside the worktree, so the leaf cannot get it wrong. Runs for existing worktrees too, so
+    # re-adding repairs a stranded queue.
+    mkdir -p "$REPO/.agent/status" "$WT/.agent"
+    if [[ -d "$WT/.agent/status" && ! -L "$WT/.agent/status" ]]; then
+      mv "$WT/.agent/status"/*.md "$WT/.agent/status"/*.md.processed "$REPO/.agent/status/" 2>/dev/null || true
+      rmdir "$WT/.agent/status" 2>/dev/null || refuse "$WT/.agent/status holds non-delta files; move them by hand"
+    fi
+    [[ -L "$WT/.agent/status" ]] || ln -s "$REPO/.agent/status" "$WT/.agent/status"
     # Exclude the scaffolding locally: an untracked .pi-role or a linked .venv would otherwise make
     # every worktree look dirty forever, and `remove`/`prune` would refuse on it.
     EXC="$(exclude_file)"
@@ -145,6 +157,8 @@ case "$CMD" in
     echo "ROLE=$ROLE"
     echo "PATHS=$REPO/.agent-paths"
     echo "PI_ROLE=$WT/.pi-role"
+    # Exact delta name, so the dot convention is not something each leaf re-derives by hand.
+    echo "DELTA=$REPO/.agent/status/$(date +%F)-$PART.$AGENT.md"
     ;;
 
   integrate)

@@ -18,7 +18,9 @@ Then, and only then, report in **≤6 lines**:
 1. The rollup path and its line count (must be ≤15 — if the script says more, something is wrong, say so).
 2. `tally:` line, verbatim.
 3. Every `BLOCKED(...)` line, verbatim — these are the decisions owed. Do not paraphrase them.
-4. Whether an integration branch exists yet (`integration_branch:` from `.agent-paths` vs `git branch --list`).
+4. Whether an integration branch exists yet — read the `integration:` line of the rollup, which already
+   says `(MISSING — worktree.sh integrate … has not run)` or `(EXISTS, n/m agent branches merged)`. Do NOT
+   run `git branch --list`: your tier denies bash, and the script answers this because it can.
 5. Your recommendation as one sentence: **triage** (read the rollup, steer), **clarification cycle**
    (a BLOCKED line needs a spec amendment), or **delegate to integrator** (nothing blocked, branches
    ahead of `integration/<part>`).
