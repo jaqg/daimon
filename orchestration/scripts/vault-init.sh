@@ -90,18 +90,16 @@ if ((HAVE_REPOS)); then
 fi
 MISSING=0
 for d in "${DIRS[@]}"; do
-  path="$TARGET/$d"; complete=1
-  [[ -d "$path" && -f "$path/.gitkeep" ]] || complete=0
+  path="$TARGET/$d"; exists=0; [[ -d "$path" ]] && exists=1
+  complete=1; [[ -d "$path" && -f "$path/.gitkeep" ]] || complete=0
   if [[ "$MODE" == check ]]; then
     if ((complete)); then echo "OK $d/"; else echo "MISSING $d/"; MISSING=1; fi
+  elif [[ "$MODE" == dry ]]; then
+    ((exists)) && echo "EXISTED $d/" || echo "CREATED $d/"
   else
-    if ((complete)); then echo "EXISTED $d/"
-    elif [[ "$MODE" == dry ]]; then echo "CREATED $d/"
-    else
-      mkdir -p -- "$path" || die "cannot create $d/"
-      [[ -e "$path/.gitkeep" ]] || { (set -o noclobber; : > "$path/.gitkeep") 2>/dev/null || die "cannot create $d/.gitkeep"; }
-      echo "CREATED $d/"
-    fi
+    ((exists)) || mkdir -p -- "$path" || die "cannot create $d/"
+    [[ -e "$path/.gitkeep" ]] || { (set -o noclobber; : > "$path/.gitkeep") 2>/dev/null || die "cannot create $d/.gitkeep"; }
+    ((exists)) && echo "EXISTED $d/" || echo "CREATED $d/"
   fi
 done
 repo_complete=1
@@ -136,7 +134,8 @@ if ! grep -Eq 'memory/project_[^/[:space:]]+\.md' "$TARGET/AGENTS.md"; then
   if [[ -d "$VAULT/memory" ]]; then
     while IFS= read -r -d '' note; do
       name="${note##*/project_}"; name="${name%.md}"; name="${name,,}"
-      [[ "$name" == "$slug" ]] && found+=("${note#"$VAULT"/}")
+      name="${name//-/_}"; name="${name// /_}"
+      [[ "$name" == "$slug" || "$name" == "$slug"_* ]] && found+=("${note#"$VAULT"/}")
     done < <(find "$VAULT/memory" -maxdepth 1 -type f -name 'project_*.md' -print0)
   fi
   ((${#found[@]} == 1)) && echo "SUGGEST ${found[0]}"

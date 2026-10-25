@@ -134,4 +134,82 @@ right="$(cd "$PROJECTS/P" && find . -type d -printf '%P\n' | LC_ALL=C sort)"
 for d in plans status ai-out; do [[ -d "$PROJECTS/P/$d" ]] || fail "A9 missing $d/"; done
 pass A9 'vault-init and worktree init leave matching vault-side directory layout'
 
-echo 'PASS all A1-A9'
+# A10: an exact directory name wins over another project's substring match.
+project ExactTarget
+project Longer-ExactTarget
+out="$(expect_code 0 "$VAULT_INIT" --project ExactTarget --vault "$VAULT")"
+[[ -f "$PROJECTS/ExactTarget/plans/.gitkeep" ]] || fail 'A10 exact match was not initialized'
+[[ ! -e "$PROJECTS/Longer-ExactTarget/plans" ]] || fail 'A10 substring candidate was initialized'
+pass A10 'exact-name match beats substring candidate'
+
+# A11: adding a missing sentinel must preserve unrelated content and directory mode.
+project Preserve
+mkdir -p "$PROJECTS/Preserve/plans"
+printf 'keep this data\n' > "$PROJECTS/Preserve/plans/existing.txt"
+chmod 0751 "$PROJECTS/Preserve/plans"
+mode_before="$(stat -c '%a' "$PROJECTS/Preserve/plans")"
+content_before="$(sha256sum "$PROJECTS/Preserve/plans/existing.txt" | awk '{print $1}')"
+"$VAULT_INIT" --project Preserve --vault "$VAULT" >/dev/null
+[[ "$(stat -c '%a' "$PROJECTS/Preserve/plans")" == "$mode_before" ]] || fail 'A11 plans/ mode changed'
+[[ "$(sha256sum "$PROJECTS/Preserve/plans/existing.txt" | awk '{print $1}')" == "$content_before" ]] || fail 'A11 existing file content changed'
+pass A11 'existing content and directory mode are preserved'
+
+# A12: a directory without its sentinel remains incomplete until the sentinel is created.
+project Partial
+mkdir -p "$PROJECTS/Partial/plans"
+out="$(expect_code 1 "$VAULT_INIT" --project Partial --vault "$VAULT" --check)"
+contains "$out" 'MISSING plans/'
+[[ ! -e "$PROJECTS/Partial/plans/.gitkeep" ]] || fail 'A12 --check created missing sentinel'
+out="$(expect_code 0 "$VAULT_INIT" --project Partial --vault "$VAULT" --dry)"
+contains "$out" 'EXISTED plans/'
+not_contains "$out" 'CREATED plans/'
+[[ ! -f "$PROJECTS/Partial/plans/.gitkeep" ]] || fail 'A12 --dry created missing sentinel'
+out="$(expect_code 0 "$VAULT_INIT" --project Partial --vault "$VAULT")"
+contains "$out" 'EXISTED plans/'
+[[ -f "$PROJECTS/Partial/plans/.gitkeep" ]] || fail 'A12 init did not create sentinel'
+pass A12 'partial directory is missing in check; existing directory reported during repair'
+
+# A13: unresolved and ambiguous check requests use resolver exit code 2, not missing-layout 1.
+out="$(expect_code 2 "$VAULT_INIT" --project NeverThere --vault "$VAULT" --check)"
+contains "$out" 'Candidates:'
+out="$(expect_code 2 "$VAULT_INIT" --project Foo --vault "$VAULT" --check)"
+contains "$out" 'Alpha-Foo'
+contains "$out" 'Beta-Foo'
+pass A13 '--check returns 2 for unresolved and ambiguous projects'
+
+# A14: --repos participates in check status and dry run never writes links.
+out="$(expect_code 0 "$VAULT_INIT" --project Repos --vault "$VAULT" --repos repo-a --check)"
+contains "$out" 'OK status/repos.txt'
+out="$(expect_code 1 "$VAULT_INIT" --project Repos --vault "$VAULT" --repos repo-new --check)"
+contains "$out" 'MISSING status/repos.txt'
+before="$(fingerprint "$PROJECTS/Repos")"
+out="$(expect_code 0 "$VAULT_INIT" --project Repos --vault "$VAULT" --repos repo-dry --dry)"
+contains "$out" 'UPDATED status/repos.txt'
+[[ "$(fingerprint "$PROJECTS/Repos")" == "$before" ]] || fail 'A14 --dry changed repos project'
+not_contains "$(cat "$PROJECTS/Repos/status/repos.txt")" 'repo-dry'
+pass A14 '--check validates requested repo links; --dry leaves them untouched'
+
+# A15: pointer presence suppresses debt; zero or multiple note matches suppress suggestion.
+project PointerPresent
+printf 'Read memory/project_pointerpresent.md for state.\n' > "$PROJECTS/PointerPresent/AGENTS.md"
+out="$(expect_code 0 "$VAULT_INIT" --project PointerPresent --vault "$VAULT")"
+not_contains "$out" 'DEBT '
+project NoMemory
+out="$(expect_code 0 "$VAULT_INIT" --project NoMemory --vault "$VAULT")"
+contains "$out" 'DEBT no state-file pointer in AGENTS.md'
+not_contains "$out" 'SUGGEST '
+project MultiMemory
+printf 'one\n' > "$VAULT/memory/project_multimemory.md"
+printf 'two\n' > "$VAULT/memory/project_multimemory_notes.md"
+out="$(expect_code 0 "$VAULT_INIT" --project MultiMemory --vault "$VAULT")"
+contains "$out" 'DEBT no state-file pointer in AGENTS.md'
+not_contains "$out" 'SUGGEST '
+pass A15 'pointer suppresses debt; zero or multiple matches suppress suggestion'
+
+# A16: preserve the documented compact-script guard.
+lines="$(wc -l < "$VAULT_INIT")"
+[[ "$lines" -le 150 ]] || fail "A16 script has $lines lines (limit 150)"
+grep -Fqx 'set -euo pipefail' "$VAULT_INIT" || fail 'A16 strict shell mode missing'
+pass A16 'script stays within 150 lines and enables strict shell mode'
+
+echo 'PASS all A1-A16'
