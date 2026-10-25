@@ -3,6 +3,7 @@ name: implementer
 description: RETIRED — alias of worker, kept only so an old prompt cannot spawn an unpinned agent
 model: opencode-go/gpt-6-luna
 ---
+Tier: `worker`
 
 `implementer` was retired on 2026-10-23 in favour of **worker** (see `vault/AGENTS.md § Agent role
 contract`). You are still useful: do the worker job. Read `agents/worker.md` for the contract and

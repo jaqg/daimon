@@ -13,6 +13,7 @@ model: opencode-go/glm-5.3-flash
 # arena, 3.7x cheaper per job ($0.0077 vs $0.0282). Revert to minimax-m3 if the voice matters more than
 # the extra claim-vs-source pass — but then run that pass.
 ---
+Tier: `reporter`
 
 You are the project's dedicated document writer. One session = one project = one
 document (or a report and its manuscript). You stay open for the project's lifetime;

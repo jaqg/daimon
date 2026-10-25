@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""gate-test — prove the role gate enforces what the Markdown claims, and that the merge lock is
-positional rather than advisory.
+"""gate-test — prove the role gate enforces what the Markdown claims, that the merge lock is
+positional rather than advisory, and that a spawned subagent gets ITS OWN tier.
 
 Every case is a real pi session (cheap model, narrow toolset) that is told to run ONE command, and is
 scored on the gate's refusal signatures. Each signature string appears only inside a block reason, so
@@ -9,8 +9,9 @@ note contains the words "bash is denied", and a substring match on "is denied" t
 allowlist into a fake failure and a real denial into a fake pass.
 
     gate-test.py --brain                 brain's narrow script allowlist (self-provisioned repo)
+    gate-test.py --subagent              tier of a spawned child: marker, filename, fail-closed, leaf
     gate-test.py <repo-with-worktrees>   merge lock + leaf-tier landing bans
-    gate-test.py --all <repo>            both
+    gate-test.py --all <repo>            all three
 
 A session that fails to start (extension crash, empty transcript) is NEVER a pass.
 """
@@ -35,6 +36,7 @@ SIGS = {
     "smuggle-block": "allowlisted script may be run",
     "path-deny": "off-limits for this tier",
     "loop-guard": "doom-loop guard",
+    "leaf-hint": "You are a leaf tier and cannot delegate",
 }
 
 
@@ -42,11 +44,15 @@ def git(repo: Path, *a: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True).stdout.strip()
 
 
-def run_case(cwd: Path, role: str, command: str, tag: str, tools: str = "bash,read,grep,ls") -> dict:
-    """One session, one command, verbatim. Returns what the gate did, not what the model said."""
+def run_case(cwd: Path, role: str, command: str, tag: str, tools: str = "bash,read,grep,ls",
+             append_prompt: Path | None = None, instruction: str | None = None) -> dict:
+    """One session, one action, verbatim. Returns what the gate did, not what the model said.
+
+    `append_prompt` is handed to pi exactly the way the subagent tool hands over an agent definition
+    (--append-system-prompt), so a case exercises the spawn path instead of merely describing it."""
     cwd.mkdir(parents=True, exist_ok=True)
     (cwd / ".pi-role").write_text(role + "\n")
-    prompt = (
+    prompt = instruction or (
         "Run EXACTLY this one bash command, then quote the tool's verbatim response including any "
         "refusal text. Do not retry, do not modify it, do not use another tool:\n\n`" + command + "`\n"
     )
@@ -56,11 +62,12 @@ def run_case(cwd: Path, role: str, command: str, tag: str, tools: str = "bash,re
     errf = cwd / f"rpc-{tag}.err"
     if out.exists():
         out.unlink()
+    extra = f"--append-system-prompt {json.dumps(str(append_prompt))} " if append_prompt else ""
     launcher = (
         f"cd {json.dumps(str(cwd))} || exit 1\n"
         f'{{ cat {pf.name}; sleep {TIMEOUT}; }} | '
         f"exec timeout {TIMEOUT} pi --mode rpc --model {MODEL} --thinking low --no-session "
-        f"--tools {tools} > {out.name} 2> {errf.name}\n"
+        f"{extra}--tools {tools} > {out.name} 2> {errf.name}\n"
     )
     t0 = time.time()
     proc = subprocess.Popen(["bash", "-c", launcher], stdout=subprocess.DEVNULL,
@@ -173,6 +180,54 @@ def is_ancestor(repo: Path, a: str, b: str) -> bool:
                           capture_output=True).returncode == 0
 
 
+def _prompt_file(root: Path, agent_name: str, tier: str | None) -> Path:
+    """A prompt file laid out like the upstream subagent tool's: <root>/pi-subagent-x/prompt-<name>.md.
+    The path shape is part of the fixture because the filename is one of the two resolution routes, so
+    this test should fail loudly if upstream ever renames it."""
+    d = root / "pi-subagent-fixture"
+    d.mkdir(parents=True, exist_ok=True)
+    f = d / f"prompt-{agent_name}.md"
+    f.write_text((f"Tier: `{tier}`\n" if tier else "") + "You investigate, then report a digest.\n")
+    return f
+
+
+def subagent_cases() -> bool:
+    """The hole this group pins shut: a subagent child is spawned WITHOUT --agent, so its only natural
+    gate is the PARENT directory's .pi-role. Measured 2026-10-25 — a scout the brain delegated inherited
+    the brain's bash ban, and building that refusal threw `profile is not defined`, so the scout saw
+    'shell tool failed' and reported the branches as unverifiable. Four proofs: the Tier marker works,
+    the filename works without a marker, an unresolvable name still falls back to the directory (fail
+    closed, never fail open), and a leaf-tier denial returns prose instead of crashing."""
+    root = Path("/tmp/gate-sub")
+    subprocess.run(["bash", "-c", f"rm -rf {root} && mkdir -p {root}/repo"], check=True)
+    R = root / "repo"
+    (R / "a.py").write_text("x\n")
+    ok = True
+    cases = [
+        ("S1 scout marker inside a brain-gated dir (child gets scout: bash allowed)",
+         _prompt_file(root, "scout", "scout"),
+         lambda r: not r["blocked"] and bool(r["cmds"])),
+        ("S2 no marker, upstream filename only (still scout)",
+         _prompt_file(root, "scout", None),
+         lambda r: not r["blocked"] and bool(r["cmds"])),
+        ("S3 unresolvable name (falls back to brain gate, bash denied)",
+         _prompt_file(root, "nosuchagent", "nosuchtier"),
+         lambda r: r["blocked"] and "tool-deny" in r["why"]),
+    ]
+    for i, (name, pf, check) in enumerate(cases):
+        ok &= report(name, run_case(R, "brain", "pwd", tag=f"s{i}", tools="bash,read,write,ls",
+                                    append_prompt=pf), check)
+    # S4: the crash regression. worker denies `subagent`; the block reason for a subagent-deny tier is
+    # exactly the string that used to throw. A crash shows up as `crashed` or as a missing signature.
+    ok &= report(
+        "S4 leaf tier told to delegate (clean refusal, no handler crash)",
+        run_case(R, "worker", "true", tag="s4", tools="bash,read,subagent", instruction=(
+            "Call the `subagent` tool exactly once with agent 'scout' and task 'noop', then quote its "
+            "verbatim response including any refusal text. Do not use any other tool.\n")),
+        lambda r: r["blocked"] and "tool-deny" in r["why"] and "leaf-hint" in r["why"])
+    return ok
+
+
 def provision_locks() -> Path:
     """Build the whole conflicted scenario from nothing, so --locks is repeatable: two worker branches
     that both edit calc.py, and an integration branch reset to main."""
@@ -234,6 +289,8 @@ def main():
     ok = True
     if what == "--brain":
         ok &= brain_cases(Path(pos[0]).resolve() if pos else provision_brain())
+    if what in ("--subagent", "--all"):
+        ok &= subagent_cases()
     if what in ("--locks", "--all"):
         ok &= lock_cases(Path(pos[0]).resolve() if pos else provision_locks())
     print("ALL PASS" if ok else "FAILURES PRESENT")

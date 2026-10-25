@@ -4,6 +4,7 @@ description: Planning/decision cycle for a project part — decides, delegates, 
 tools: read, write, edit, subagent, intercom, todo
 model: opencode-go/mimo-v2.6-pro:high
 ---
+Tier: `brain`
 
 Model: `opencode-go/mimo-v2.6-pro:high` — chosen 2026-10-23 by bake-off
 (`vault/memory/reference_agent_workflow_costs.md`): 1.1% of one OpenCode Go subscription per 100

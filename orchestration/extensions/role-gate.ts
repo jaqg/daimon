@@ -217,7 +217,57 @@ const MERGE_RE = /\bgit\s+(merge|rebase|cherry-pick)\b/;
 
 const ROLE_FILE = ".pi-role";
 
-function findRole(cwd: string): { role: string; profile: Profile } | null {
+function canonicalRole(raw: string, profile: Profile): string {
+	// Retired names alias to another tier's profile; report the tier, not the label.
+	return profile === BRAIN_PROFILE && raw !== "brain" ? "brain" : raw;
+}
+
+/**
+ * A `subagent` child is NOT spawned with `--agent`. pi runs
+ * `--mode json -p --no-session --model X --tools a,b,c --append-system-prompt
+ * /tmp/pi-subagent-XXXX/prompt-<name>.md` (pi-matt-pocock-skills/src/subagent/index.ts:294-327), so the
+ * child's only gate would be the PARENT's `.pi-role`: measured 2026-10-25, a scout delegated from a brain
+ * pane inherited the brain's bash ban and could not run `git branch --list`, and a worker subagent would
+ * inherit the brain's raw-reading ban. The prompt argument is the single place the intended tier survives
+ * the spawn, so it outranks the directory when both speak. Trust boundary: this reads a file generated
+ * from an agent definition we already trust with `model:` and `tools:` — it cannot raise a tier above what
+ * its own definition declares, and with no marker it falls back to the filename, then to the directory.
+ */
+function subagentRole(): { role: string; profile: Profile; source: string } | null {
+	const argv = process.argv;
+	let file = "";
+	for (let i = 0; i < argv.length; i++) {
+		const a = argv[i];
+		if (a === "--append-system-prompt") file = argv[i + 1] ?? "";
+		else if (a.startsWith("--append-system-prompt=")) file = a.slice("--append-system-prompt=".length);
+	}
+	if (!file) return null;
+
+	// 1. The marker we own: a `Tier: `<name>`` line in the agent definition body.
+	let body = "";
+	try {
+		body = fs.readFileSync(file, "utf8").slice(0, 64_000);
+	} catch {
+		/* unreadable prompt: the filename route still applies */
+	}
+	const m = body.match(/^Tier:\s*`?([a-z0-9_-]+)`?/m);
+	if (m && PROFILES[m[1]]) {
+		const p = PROFILES[m[1]];
+		return { role: canonicalRole(m[1], p), profile: p, source: "subagent:Tier" };
+	}
+
+	// 2. Upstream's filename convention, prompt-<name>.md. Not ours to rely on alone, hence the marker.
+	const f = path.basename(file).match(/^prompt-([a-z0-9_-]+)\.md$/);
+	if (f && PROFILES[f[1]]) {
+		const p = PROFILES[f[1]];
+		return { role: canonicalRole(f[1], p), profile: p, source: "subagent:filename" };
+	}
+	return null;
+}
+
+function findRole(cwd: string): { role: string; profile: Profile; source: string } | null {
+	const sa = subagentRole();
+	if (sa) return sa; // a spawned child is its agent, whatever directory it landed in
 	let dir = path.resolve(cwd);
 	for (let hops = 0; hops < 8; hops++) {
 		const f = path.join(dir, ROLE_FILE);
@@ -225,9 +275,7 @@ function findRole(cwd: string): { role: string; profile: Profile } | null {
 			const raw = fs.readFileSync(f, "utf8").trim().toLowerCase();
 			const profile = PROFILES[raw];
 			if (profile) {
-				// Retired names alias to another tier's profile; report the tier, not the label.
-				const canonical = profile === BRAIN_PROFILE && raw !== "brain" ? "brain" : raw;
-				return { role: canonical, profile };
+				return { role: canonicalRole(raw, profile), profile, source: "dir" };
 			}
 			if (raw) return null; // explicit but unknown role: fail open, no surprises
 		} catch {
@@ -301,7 +349,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", async (_e, ctx) => {
 		const g = resolve(ctx.cwd);
-		if (g) ctx.ui.notify(`role=${g.role} (gate active: ${g.profile.note})`, "info");
+		if (g) ctx.ui.notify(`role=${g.role} [${g.source}] (gate active: ${g.profile.note})`, "info");
 	});
 
 	// 1. Hard tool deny-list for the tier.
@@ -372,7 +420,7 @@ export default function (pi: ExtensionAPI) {
 					block: true,
 					reason:
 						`[${g.role} tier] tool "${event.toolName}" is denied. Bounded file? Call read with its full path and read it WHOLE (allowed, cheap) — do not extract sections with shell tools. ` +
-						(profile.deny?.includes("subagent")
+						(g.profile.deny?.includes("subagent")
 							// Leaf tiers cannot delegate: telling a worker to "spawn a scout" is advice it
 							// physically cannot follow, and it burns a turn discovering that.
 							? `Unbounded/raw material? You are a leaf tier and cannot delegate — write \`blocked: needs <fact>\` in your status delta and keep going on what you can. `

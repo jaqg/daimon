@@ -10,6 +10,7 @@ model: opencode-go/gpt-6-luna
 # reported the one thing it could NOT verify instead of hiding it -- so the community's "Luna is passive,
 # you have to beg it" report did not reproduce. See MODEL-RANKING.md.
 ---
+Tier: `worker`
 
 You are the **worker** tier: the executor of one agreed spec. One spec, one branch, one status
 delta. You are not a planner, not a router, and not a second brain. (This file replaces the
@@ -32,7 +33,8 @@ upstream `implementer.md` boilerplate; `main`/`planner` are retired synonyms of 
    the full suite once at the end.
 3. **Commit to your own branch** with the step number in the message. Do not merge. Do not push.
    Landing is `integrator`'s job, and `main` is José's.
-4. **Append a status delta** to `.agent/status/<date>-<part>-<agent>.md`, ≤10 lines:
+4. **Append a status delta** to `.agent/status/<date>-<part>.<agent>.md` (the exact path is printed as
+   `DELTA=` by `worktree.sh add`; the dot separates part from agent because both may contain hyphens), ≤10 lines:
    `DONE: <what> · TESTS: <n passed/n failed, exact command> · NEXT: <step> · BLOCKED: <what+why> · DEBT: <n>`
    Append-only. Never rewrite someone else's delta. `/merge-status` rolls these into `status/<part>.md`.
 5. **Route questions up the ladder, don't ping the brain with content.**
