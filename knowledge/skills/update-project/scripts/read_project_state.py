@@ -84,9 +84,17 @@ def dashboard_status(text: str) -> str:
     return ''
 
 
+def memory_current(text: str) -> str:
+    body = strip_frontmatter(text)
+    m = re.search(r'## CURRENT\n(.*?)(?=\n## |\Z)', body, re.DOTALL)
+    return m.group(1).strip() if m else ''
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--project-dir', required=True)
+    parser.add_argument('--memory-file',
+                        help='Path to memory/project_*.md — outputs its CURRENT section')
     args = parser.parse_args()
 
     d = Path(args.project_dir)
@@ -101,7 +109,15 @@ def main():
         'decisions_recent': recent_sections(read('decisions-log.md'), MAX_DECISIONS_ENTRIES),
         'open_questions': open_questions(read('open-questions.md')),
         'dashboard_status': dashboard_status(read('project-dashboard.md')),
+        'history_recent': recent_sections(read('history.md'), 2),
     }
+
+    if args.memory_file:
+        mp = Path(args.memory_file).expanduser()
+        state['memory_current'] = (memory_current(mp.read_text(encoding='utf-8', errors='replace'))
+                                   if mp.exists() else '')
+    else:
+        state['memory_current'] = ''
 
     print(json.dumps(state, ensure_ascii=False, indent=2))
 

@@ -32,10 +32,12 @@ tools: Bash, Read, Write, Edit
 ### 1. Scan (script)
 
 ```bash
-CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [ -f "$CONFIG" ] && source "$CONFIG"
 
-SCAN=$(find -L ~/.claude -path "*/process-inbox/scripts/scan_inbox.py" -type f | head -1)
+SCAN="$SKILL_DIR/scripts/scan_inbox.py"
 python3 "$SCAN" --vault-dir "$VAULT_DIR"
 ```
 
@@ -54,7 +56,7 @@ For each item in `scan_output["emails"]`, apply the matching rule for `email_typ
 **conference**
 Extract from the email: conference name, abstract submission deadline, registration deadline, event dates, location, cost, all URLs (homepage, registration, abstract submission, etc.), and any notes (satellite events, funding, seat limits, etc.). Then:
 
-1. **Append a table row** to the table in `40-Meta/events.md` with columns: Conference, Relevance, Abstract deadline, Registration deadline, Dates, Location, Cost. Write `—` for missing fields. For Relevance, assign `High` / `Medium` / `Low` using the rubric in `memory/research_interests.md` — read that file if not already in context; it covers all active projects and defines the scoring criteria. If the file does not exist, check `[skill-dir]/research_interests.template.md` for the expected format, warn the user it is missing, and infer relevance from available memory and CLAUDE.md context as a fallback.
+1. **Append a table row** to the table in `40-Meta/events.md` with columns: Conference, Relevance, Abstract deadline, Registration deadline, Dates, Location, Cost. Write `—` for missing fields. For Relevance, assign `High` / `Medium` / `Low` using the rubric in `memory/research_interests.md` — read that file if not already in context; it covers all active projects and defines the scoring criteria. If the file does not exist, check `[skill-dir]/research_interests.template.md` for the expected format, warn the user it is missing, and infer relevance from available memory and AGENTS.md context as a fallback.
 
 2. **Append a summary block** to the `## Event Summaries` section at the bottom of `40-Meta/events.md` using this exact format:
    ```

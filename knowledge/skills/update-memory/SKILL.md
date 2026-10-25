@@ -1,114 +1,119 @@
 ---
 name: update-memory
 disable-model-invocation: true
-description: End-of-session memory capture for any project. Reviews the current conversation for insights worth persisting across sessions — project facts, user corrections, validated approaches, reference pointers — and writes or updates memory files in the project memory directory. Use this skill whenever the user says "update memory", "save session", "end session", "/update-memory", "capture what we learned", or "save the session". Also trigger proactively at natural session end points when significant new facts, decisions, or corrections emerged that aren't yet in memory files.
+description: End-of-session memory capture. Reviews the current conversation for durable insights — user corrections, feedback rules, user-type facts — and writes them to the memory system following the vault memory contract. Use whenever the user says "update memory", "save session", "end session", "/update-memory", "capture what we learned", or "save the session". Also trigger proactively at natural session end points when significant corrections or feedback emerged.
 tools: Read, Write, Edit, Glob, Grep
 ---
 
 # Update Memory
 
-Capture durable knowledge from the current session and write it to the memory system so future sessions start with full context.
+Capture durable knowledge from the current session and persist it — strictly to the files this skill owns.
 
-## Memory system layout
+## Ownership (single-writer rule)
 
-Derive the memory directory from the current working directory:
+Vault contract: `AGENTS.md § Memory contract`. This skill writes ONLY:
+
+| File | Owner |
+|---|---|
+| `memory/feedback_*.md` | **this skill** |
+| `memory/user_*.md` | **this skill** |
+| `memory/MEMORY.md` (index lines only) | **this skill** |
+| `memory/project_*.md` | `/update-project` — do NOT touch |
+| `10-Projects/<X>/history.md`, `decisions-log.md`, `results-log.md`, `methods.md`, `open-questions.md`, dashboards | `/update-project` — do NOT touch |
+
+Project-state insights discovered here → report them at the end as "belongs in project_X.md — run /update-project". Never write them yourself.
+
+## Memory directory resolution
 
 ```bash
-MEMORY_DIR="$HOME/.claude/projects/$(pwd | sed 's|^/||; s|/|-|g')/memory"
+DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)   # $SKILL_DIR = dir of this SKILL.md
+VAULT_DIR=$(grep '^VAULT_DIR=' "$DAIMON_ROOT/config/config.local" | cut -d= -f2- | sed "s|~|$HOME|")
 ```
 
-- **Index**: `$MEMORY_DIR/MEMORY.md`
-  - One line per memory: `- [Title](filename.md) — one-line hook`
-  - Truncated after ~200 lines — keep entries concise
-- **Memory files**: same directory, one `.md` file per topic
-- **Required frontmatter** in every memory file:
-  ```yaml
-  ---
-  name: short-kebab-case-slug
-  description: one-line summary — used to decide relevance in future conversations
-  metadata:
-    type: user | feedback | project | reference
-  ---
-  ```
+- CWD under `$VAULT_DIR` → `MEMORY_DIR="$VAULT_DIR/memory"` (vault mode).
+- Otherwise (non-vault project) → `MEMORY_DIR="$HOME/.claude/projects/$(pwd | sed 's|^/||; s|/|-|g')/memory"`.
 
-## Memory types
+If `$VAULT_DIR` unset in config.local → stop and tell the user to fill `config/config.local` (machine-local, gitignored).
 
-| Type | What goes here |
-|------|---------------|
-| `user` | José's role, background, preferences, knowledge level |
-| `feedback` | Corrections to Claude's approach; validated non-obvious approaches |
-| `project` | Project facts, decisions, constraints, deadlines, open questions |
-| `reference` | Pointers to external systems (clusters, dashboards, Slack, Linear) |
+## File formats (vault contract)
+
+**`feedback_*.md` / `user_*.md` frontmatter** — top level, no `metadata:` nesting:
+```yaml
+---
+name: feedback-kebab-slug
+description: one-line summary — used to decide relevance
+type: feedback   # or: user
+---
+```
+
+**Body structure** (feedback type):
+```
+[The rule, stated directly]
+
+**Why:** [constraint, incident, preference]
+**How to apply:** [when this kicks in]
+```
+
+**`MEMORY.md`** — index only:
+```
+- [Descriptive title](filename.md) — one-line hook
+```
+Cap ~60 lines. If index approaches the cap: consolidate related entries, don't just truncate.
+
+**project_*.md contract** (enforced by /update-project; shown here so you route correctly):
+CURRENT (≤5 date-stamped bullets) + CONSTRAINTS + POINTERS, ≤80 lines total.
 
 ## What NOT to save
 
-- Code patterns derivable by reading the current files
-- Git history — `git log` covers this
-- Debugging solutions already in the codebase or commit messages
-- Anything already documented in CLAUDE.md files
-- Ephemeral task state that only matters this session
-- Vague impressions — only concrete, specific facts
+- Dated session narrative → `history.md` (/update-project)
+- Decisions with rationale → `decisions-log.md`
+- Numerical results / run records → `results-log.md`
+- Methods/parameter changes → `methods.md`
+- Work-log entries → dashboard (30-day window)
+- Code patterns derivable from reading current files; git history; debugging solutions in commit messages
+- Anything already in AGENTS.md files — that IS the persistence layer for it
+- Ephemeral task state; vague impressions — concrete facts only
 
 ## Step 1: Review the conversation
 
-Scan back through the session. For each candidate ask: *Would a fresh Claude instance starting a new session tomorrow benefit from knowing this?* 
+For each candidate: *Would a fresh agent starting tomorrow benefit from knowing this?*
 
-Look for:
-- User corrected an approach ("no, don't do X") or confirmed one ("yes, exactly") → `feedback`
-- A project deadline, decision, or constraint was stated → `project`
-- A new tool, cluster, or external system was mentioned → `reference`
-- User revealed background, preferences, or working style → `user`
+- User corrected an approach ("no, don't do X") or confirmed one emphatically → `feedback`
+- User revealed background, preferences, working style → `user`
+- New external system (cluster, tool, service) → candidate `reference`/`user` entry — but check AGENTS.md first, pointers there usually suffice
 
-## Step 2: Check existing memories before writing
+## Step 2: Check existing files before writing
 
-Read `MEMORY.md` index first. For each candidate:
-- Matching file exists → update in place (never duplicate)
-- No match → create new file
+Read `$MEMORY_DIR/MEMORY.md` index first. Matching file exists → update in place (never duplicate). No match → create new file named lowercase-hyphen, topic-first: `feedback_compact_discipline.md`.
 
-File naming: lowercase, hyphens, topic-first.
-- `feedback_compact_discipline.md`
-- `project_phd_chapter1_status.md`  
-- `reference_cluster_sops.md`
+## Step 3: Write or update
 
-## Step 3: Write or update memory files
-
-For **feedback** and **project** types, structure the body as:
-
-```
-[The rule or fact, stated directly]
-
-**Why:** [The reason — constraint, incident, preference, deadline]
-**How to apply:** [When this kicks in; how it shapes future behavior]
-```
-
-For **user** and **reference** types, plain prose or a short list works fine.
-
-Keep entries tight — a memory read in 20 seconds beats one that takes 2 minutes.
-
-Dates: always convert relative dates ("next Thursday", "last week") to absolute dates (2026-05-15) — memories must be interpretable after time passes.
+Keep entries tight — read in 20 seconds beats 2 minutes. Convert relative dates to absolute (2026-05-15).
 
 ## Step 4: Update MEMORY.md index
 
-For each new file:
-```
-- [Descriptive title](filename.md) — one-line hook explaining relevance
+One line per new file; refresh hook text if an updated file's description drifted.
+
+## Step 5: Hygiene check (report step, always)
+
+After writing, run the deterministic checker on your domain:
+
+```bash
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+VAULT_DIR=$(grep '^VAULT_DIR=' "$SKILL_DIR/../../../config/config.local" | cut -d= -f2- | sed "s|~|$HOME|")
+python3 "$SKILL_DIR/../vault-hygiene/scripts/vault_hygiene.py" --vault-dir "$VAULT_DIR" --check
 ```
 
-For updated files: check if the existing index line still describes the content accurately. Update if not.
+Report memory-domain violations in your output: index lines missing hooks (you write them — index is yours), over-cap memory files (route compression to `/update-project` — it owns project files). Stale index lines: rerun with `--fix`. Non-memory violations: mention in one line, full pass = `/vault-hygiene`.
 
-## Step 5: Report what changed
+## Step 6: Report
 
 ```
 ## Memory update — YYYY-MM-DD
 
-**Added:**
-- `filename.md` — what it captures
-
-**Updated:**
-- `filename.md` — what changed
-
-**Skipped:**
-- [anything considered but not saved, with one-word reason: duplicate / ephemeral / already-in-CLAUDE.md]
+**Added:** / **Updated:** — files + what changed
+**Skipped:** — anything considered, one word (duplicate / ephemeral / in-AGENTS.md / belongs-to-update-project)
+**Route to /update-project:** — project-state insights found this session (if any)
 ```
 
-If nothing worth saving was found, say so plainly — don't write trivial memories to justify the run.
+If nothing worth saving: say so plainly — never write trivial memories to justify a run.

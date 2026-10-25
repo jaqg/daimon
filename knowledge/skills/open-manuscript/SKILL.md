@@ -35,12 +35,12 @@ It is written once before paper-writing begins and updated as the manuscript evo
 ## Step 1 — Locate project and read snapshot
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f "$(find -L ~/.claude/skills/open-manuscript -name SKILL.md 2>/dev/null | head -1)")")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
 DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
 CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 VAULT_DIR=$(grep '^VAULT_DIR=' "$CONFIG_LOCAL" | cut -d= -f2-)
 
-SNAPSHOT_SCRIPT=$(find -L ~/.claude -path "*/open-manuscript/scripts/read_project_snapshot.py" -type f | head -1)
+SNAPSHOT_SCRIPT="$SKILL_DIR/scripts/read_project_snapshot.py"
 
 PROJECT_DIR="$VAULT_DIR/10-Projects/<project-id>"
 python3 "$SNAPSHOT_SCRIPT" --project-dir "$PROJECT_DIR"

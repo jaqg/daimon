@@ -24,7 +24,9 @@ all drafted skeletons first.
 ## Config
 
 ```bash
-CONFIG=$(find -L ~/.claude -path "*/daimon/config/config.local" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 VAULT_DIR=$(grep '^VAULT_DIR=' "$CONFIG" 2>/dev/null | cut -d= -f2- | sed 's|~|'"$HOME"'|')
 ```
 
@@ -45,7 +47,7 @@ Without `--dry-run`, the skill still shows skeletons and asks for approval befor
 ### Step 1 — Scan for missing concepts
 
 ```bash
-SCRIPT=$(find -L ~/.claude -path "*/galaxy/scripts/scan_links.py" -type f | head -1)
+SCRIPT="$SKILL_DIR/scripts/scan_links.py"
 python3 "$SCRIPT" --vault-dir "$VAULT_DIR"
 ```
 

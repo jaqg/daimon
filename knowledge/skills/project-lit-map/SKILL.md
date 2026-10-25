@@ -34,13 +34,13 @@ each paper, and writes a structured map to the project folder.
 ## Step 1 — Locate scripts and paths
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f "$(find -L ~/.claude/skills/project-lit-map -name SKILL.md 2>/dev/null | head -1)")")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
 DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
 CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 VAULT_DIR=$(grep '^VAULT_DIR=' "$CONFIG_LOCAL" | cut -d= -f2-)
 
-COLLECT_SCRIPT=$(find -L ~/.claude -path "*/project-lit-map/scripts/collect_papers.py" -type f | head -1)
-PATCH_SCRIPT=$(find -L ~/.claude -path "*/project-lit-map/scripts/patch_litmap.py" -type f | head -1)
+COLLECT_SCRIPT="$SKILL_DIR/scripts/collect_papers.py"
+PATCH_SCRIPT="$SKILL_DIR/scripts/patch_litmap.py"
 
 PROJECT_DIR="$VAULT_DIR/10-Projects/<project-id>"
 PAPERS_DIR="$VAULT_DIR/20-Sources/papers"

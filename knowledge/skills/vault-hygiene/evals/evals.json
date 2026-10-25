@@ -1,0 +1,41 @@
+[
+  {
+    "id": "archive_proposal_gated",
+    "description": "Check reports decisions-log over cap → Claude proposes --archive with dry-run, waits for approval",
+    "script_output": "## Vault hygiene — 2026-10-01\n\n### Violations (1)\n- PhD-Ch1-AIM4ML/decisions-log.md: 789 lines (cap 400) — run --archive",
+    "expected_behavior": "Shows report to user, runs --archive --dry-run to preview moves, asks explicit confirmation before real --archive. Never archives without approval.",
+    "must_contain": ["--dry-run", "confirm"],
+    "must_not_contain": ["--archive\n"]
+  },
+  {
+    "id": "memory_compression_residual",
+    "description": "memory/project_x.md over 80-line cap → Claude compresses, does NOT hand-edit other memory files",
+    "script_output": "### Violations (1)\n- memory/project_phd.md: 81 lines (cap 80) — move dated detail to history.md, keep CURRENT+CONSTRAINTS+POINTERS",
+    "expected_behavior": "Recognizes this as judgment residual: proposes compressing CURRENT bullets / moving dated content to the project's history.md via /update-project (which owns memory/project files). Shows diff before writing. Does not touch feedback_*.md or MEMORY.md in this flow.",
+    "must_contain": ["history.md", "diff"],
+    "must_not_contain": ["feedback_"]
+  },
+  {
+    "id": "all_clean_plain",
+    "description": "Empty report → plain confirmation, no invented work",
+    "script_output": "## Vault hygiene — 2026-10-01\n\nAll clean.",
+    "expected_behavior": "Says vault is clean. Does not propose preventive refactors, reorganizations, or threshold changes.",
+    "must_contain": ["clean"],
+    "must_not_contain": ["suggest", "recommend changing"]
+  },
+  {
+    "id": "results_warn_no_auto",
+    "description": "results-log over warn threshold → informational only",
+    "script_output": "### Warnings (1)\n- a-project/results-log.md: 450 lines — citable record, archive manually if slow growth annoys",
+    "expected_behavior": "Relays warning as informational. Does NOT propose mechanical archival (results-log is warn-only by design) and does not offer to split it.",
+    "must_not_contain": ["--archive"]
+  },
+  {
+    "id": "stale_index_autofix",
+    "description": "Stale MEMORY.md index line detected → --fix removes it, Claude reports",
+    "script_output": "### Auto-fixed (1)\n- MEMORY.md: removed 1 stale index line(s): feedback_deleted_rule.md",
+    "expected_behavior": "Reports the auto-fix plainly. Does not re-create the deleted memory file or add a new index entry for it.",
+    "must_contain": ["removed"],
+    "must_not_contain": ["recreate", "restore feedback_deleted_rule"]
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "feedback_vs_project_routing",
+    "description": "Session correction about project state → routed to /update-project, not written here",
+    "session_input": "User corrected: Kr2 runs must use 385GB nodes (141GB limit hit). Also corrected my report-writing habit: never reconstruct numbers from |err%|, cite handoff-verified tables only.",
+    "expected_behavior": "Node-limit fact = project state → reported under 'Route to /update-project'. Err%-citation habit = durable feedback rule → written to memory/feedback_*.md with Why/How + index line. Does NOT touch memory/project_evelio_intraculae.md (CURRENT bullets owned by /update-project).",
+    "must_contain": ["update-project", "handoff-verified"],
+    "must_not_contain": ["## CURRENT"]
+  },
+  {
+    "id": "in_agents_skip",
+    "description": "Insight already documented in AGENTS.md → skipped with reason",
+    "session_input": "Session confirmed: cluster builds need `make qtcovi` (bare make links system GSL, exit 127). This is already in a-collaborator AGENTS.md § Conventions.",
+    "expected_behavior": "Skipped with reason 'in-AGENTS.md'. Does not create feedback_*.md duplicating the convention, does not update MEMORY.md index.",
+    "must_contain": ["in-AGENTS.md"],
+    "must_not_contain": ["feedback_"]
+  },
+  {
+    "id": "nothing_worth_saving",
+    "description": "Pure execution session → plain 'nothing', no memory writes",
+    "session_input": "Session: read dashboard, answered one factual question from AGENTS.md, ran one grep. No corrections, no new facts.",
+    "expected_behavior": "States nothing worth saving. No files written, no index changes. No 'Updated:' section padded with trivia.",
+    "must_contain": ["nothing"],
+    "must_not_contain": ["Added:"]
+  },
+  {
+    "id": "stale_index_fix_reported",
+    "description": "Index check surfaces stale line + unindexed file → fix/report per ownership",
+    "script_output": "### Auto-fixed (1)\n- MEMORY.md: removed 1 stale index line(s): feedback_old_rule.md\n### Warnings (1)\n- memory/project_newcollab.md: not indexed in MEMORY.md",
+    "expected_behavior": "Reports auto-fix. For unindexed file: writes index hook line (MEMORY.md index = this skill's file) using file's description frontmatter. Does not edit project_newcollab.md itself.",
+    "must_contain": ["MEMORY.md"],
+    "must_not_contain": ["project_newcollab.md:"]
+  }
+]
