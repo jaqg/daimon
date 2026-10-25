@@ -30,7 +30,9 @@ Generate a QR code image from a URL or text, with a LaTeX include snippet.
 ## Step 1 — Run the generation script
 
 ```bash
-SCRIPT=$(find -L ~/.claude -path "*/qr-code/scripts/generate_qr.py" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+SCRIPT="$SKILL_DIR/scripts/generate_qr.py"
 python3 "$SCRIPT" --data "<url-or-text>" --output <name> --size <N> --format <fmt> --error <level>
 ```
 

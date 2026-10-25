@@ -41,14 +41,15 @@ source as colored environments — no terminal output. Each flagged paragraph ge
 ## Step 1 — Locate scripts and config
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f "$(find -L ~/.claude/skills/peer-review -name SKILL.md 2>/dev/null | head -1)")")
+# $SKILL_MD = path of this SKILL.md (verify with readlink -f if symlinked)
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
 DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
 CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 
-EXTRACT_SCRIPT=$(find -L ~/.claude -path "*/peer-review/scripts/extract_manuscript.py" -type f | head -1)
-CHECK_SCRIPT=$(find -L ~/.claude -path "*/peer-review/scripts/check_review_envs.py" -type f | head -1)
-STRUCT_SCRIPT=$(find -L ~/.claude -path "*/peer-review/scripts/check_structure.py" -type f | head -1)
-INJECT_SCRIPT=$(find -L ~/.claude -path "*/peer-review/scripts/inject_reviews.py" -type f | head -1)
+EXTRACT_SCRIPT="$SKILL_DIR/scripts/extract_manuscript.py"
+CHECK_SCRIPT="$SKILL_DIR/scripts/check_review_envs.py"
+STRUCT_SCRIPT="$SKILL_DIR/scripts/check_structure.py"
+INJECT_SCRIPT="$SKILL_DIR/scripts/inject_reviews.py"
 ```
 
 Read `VAULT_DIR` from `$CONFIG_LOCAL` only if `--expert` was passed.

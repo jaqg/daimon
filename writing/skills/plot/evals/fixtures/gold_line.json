@@ -1,0 +1,51 @@
+{
+  "preset": "line",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "letters": "auto",
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "line.csv",
+              "format": "csv",
+              "x": {
+                "column": "t"
+              },
+              "y": {
+                "column": "y"
+              }
+            },
+            "label": "$e^{-t}\\cos(2\\pi t)$",
+            "color": "blue"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Time (s)"
+          },
+          "y": {
+            "label": "Amplitude"
+          }
+        },
+        "legend": {
+          "on": true,
+          "loc": "upper right"
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "line",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

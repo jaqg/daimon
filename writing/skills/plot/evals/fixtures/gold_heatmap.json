@@ -1,0 +1,38 @@
+{
+  "preset": "heatmap",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      5,
+      3.5
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "matrix.dat",
+              "format": "dat"
+            }
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Coordinate 1"
+          },
+          "y": {
+            "label": "Coordinate 2"
+          }
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "heatmap",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

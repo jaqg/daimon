@@ -1,0 +1,55 @@
+{
+  "preset": "spectrum_ir",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "letters": "auto",
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "ir.csv",
+              "format": "csv",
+              "x": {
+                "column": "wavenumber"
+              },
+              "y": {
+                "column": "transmittance"
+              }
+            },
+            "label": "IRMPD",
+            "color": "sky_blue",
+            "yerr": {
+              "column": "sigma"
+            }
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Wavenumber (cm$^{-1}$)",
+            "invert": true
+          },
+          "y": {
+            "label": "Transmittance"
+          }
+        },
+        "legend": {
+          "on": true,
+          "loc": "upper right"
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "ir_spectrum",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "preset": "spectrum_uvvis",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "uvvis.tsv",
+              "format": "tsv",
+              "x": {
+                "column": "wavelength"
+              },
+              "y": {
+                "column": "absorbance"
+              }
+            },
+            "color": "vermillion"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Wavelength (nm)"
+          },
+          "y": {
+            "label": "Absorbance"
+          }
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "uvvis",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

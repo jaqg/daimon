@@ -1,0 +1,38 @@
+% sci-doc report template — fill %%PLACEHOLDER%% marks, delete this comment block.
+% Preamble is fixed by daimon style rules (writing/skills/sci-doc/SKILL.md § tex rules).
+% Add project packages below the marked line only, with a comment saying why.
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{siunitx} % units: \qty{12.4}{\kilo\calorie\per\mole}, \qty{36.0}{\angstrom}
+\DeclareSIUnit\calorie{cal} % siunitx v3 dropped \calorie; redeclare for kcal use
+
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
+
+% Project-specific packages below this line only (comment the reason):
+% <e.g. \usepackage{chemformula}  % \ch{} formulas>
+
+\title{%%TITLE%%}
+\author{%%AUTHOR_NAME%%\\%%AUTHOR_AFFILIATION%%}
+\date{%%DATE%%}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+%%ABSTRACT%%
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%%BODY%%
+
+\end{document}

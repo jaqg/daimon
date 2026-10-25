@@ -1,0 +1,81 @@
+[
+  {
+    "id": "ir_spectrum_spec",
+    "description": "User provides ir.csv (columns wavenumber,transmittance,sigma) and asks for an IR spectrum figure",
+    "input": "Plot ir.csv as an IR spectrum: wavenumber vs transmittance with error bars from sigma, inverted x-axis, label the axes properly, PDF+PNG.",
+    "gold_spec": "fixtures/gold_spectrum_ir.json",
+    "expected_behavior": "Picks preset spectrum_ir, style paper. Writes JSON spec with data {file: ir.csv, format: csv, x column wavenumber, y column transmittance, yerr column sigma}, x label with cm$^{-1}$ and invert true, y lim near [0,110], then runs scripts/render.py. Never writes Python plotting code.",
+    "key_fields": {
+      "preset": "spectrum_ir",
+      "layout.panels[0].series[0].data.format": "csv",
+      "layout.panels[0].series[0].data.x.column": "wavenumber",
+      "layout.panels[0].series[0].data.y.column": "transmittance",
+      "layout.panels[0].series[0].yerr.column": "sigma",
+      "layout.panels[0].axes.x.invert": true,
+      "output.formats": ["pdf", "png"],
+      "output.transparent": false
+    },
+    "must_not_contain": ["import matplotlib", "plt.subplots", "savefig", "def plot", "histogram"]
+  },
+  {
+    "id": "unknown_preset_abort",
+    "description": "User asks for a violin plot — not covered in v1",
+    "input": "Make a violin plot of the values in data.csv",
+    "expected_behavior": "Does NOT improvise. Tells the user violin plots are not a v1 preset, lists available presets (line, scatter, bar, heatmap, spectrum_ir, spectrum_uvvis, energy_profile, parity, radial_distribution), and asks them to request a skill extension.",
+    "must_contain": ["not a v1 preset", "extend"],
+    "must_not_contain": ["import matplotlib", "seaborn", "violinplot(", "inline Python"]
+  },
+  {
+    "id": "unknown_format_abort",
+    "description": "User supplies an xlsx file — not covered in v1",
+    "input": "Plot the absorbance from my data.xlsx",
+    "expected_behavior": "Does NOT convert or improvise. Reports xlsx is not a v1 data format (csv, tsv, dat, npz), asks user to export to a supported format or request an extension.",
+    "must_contain": ["not a v1 data format", "csv"],
+    "must_not_contain": ["pandas", "read_excel", "import openpyxl"]
+  },
+  {
+    "id": "energy_profile_ticklabels",
+    "description": "Energy profile with custom x tick labels",
+    "input": "Plot energies.dat (columns: coordinate, energy) as a reaction energy profile with x labels '', 'Reactants', 'TS', 'Products', '' and label y as Energy, ΔE (kcal/mol).",
+    "gold_spec": "fixtures/gold_energy_profile.json",
+    "expected_behavior": "Preset energy_profile, axes.x.ticklabels exactly ['', 'Reactants', 'TS', 'Products', ''], y label written as TeX: Energy, $\\Delta E$ (kcal/mol). Renders via render.py.",
+    "key_fields": {
+      "preset": "energy_profile",
+      "layout.panels[0].axes.x.ticklabels": ["", "Reactants", "TS", "Products", ""]
+    },
+    "must_not_contain": ["set_xticklabels", "import matplotlib"]
+  },
+  {
+    "id": "multipanel_sharex",
+    "description": "Two-panel stacked figure sharing x-axis with panel letters",
+    "input": "Using data.npz (arrays 'time' and 'signal'), make a 2-row figure sharing the x-axis: panel a is signal vs time, panel b is the same signal scaled by 0.5 plus 1. Add panel letters and label axes. PNG for a vault note (screen style).",
+    "gold_spec": "fixtures/gold_npz_multipanel.json",
+    "expected_behavior": "Preset line, style screen, layout nrows 2 ncols 1 sharex true, letters auto, one-element-per-panel series arrays; panel b uses scale/offset fields (not manual arithmetic in code). Renders via render.py.",
+    "key_fields": {
+      "style": "screen",
+      "layout.nrows": 2,
+      "layout.sharex": true,
+      "layout.letters": "auto",
+      "layout.panels[1].series[0].scale": 0.5,
+      "layout.panels[1].series[0].offset": 1.0
+    },
+    "must_not_contain": ["np.load", "import numpy", "plt.subplots"]
+  },
+  {
+    "id": "parity_plot",
+    "description": "Parity plot from calculated vs experimental",
+    "input": "parity.csv has calculated and experimental columns. Make a parity plot.",
+    "gold_spec": "fixtures/gold_parity.json",
+    "expected_behavior": "Preset parity (1:1 line and equal aspect are added by the renderer, not by hand-written code). Equal figsize for x and y.",
+    "key_fields": {"preset": "parity"},
+    "must_not_contain": ["plot([lo, hi]", "set_aspect", "import matplotlib"]
+  },
+  {
+    "id": "render_error_resubmit",
+    "description": "render.py returns a structured error for a bad column; agent fixes and resubmits",
+    "input": "User: plot ir.csv, transmittance vs wavenumber. (Agent submits spec with y column 'transmittance' — render.py returns {\"error\": \"column 'transmittance' not found ... (available: wavenumber, transmittance, sigma)\"})",
+    "expected_behavior": "Reads details.available, corrects the column name to 'transmittance', re-runs render.py once, reports success. After two failures on the same spec, stops and reports to the user instead of retrying forever.",
+    "must_contain": ["render.py", "transmittance"],
+    "must_not_contain": ["np.loadtxt", "try:", "except Exception"]
+  }
+]

@@ -1,0 +1,76 @@
+# paper.mplstyle — publication figures (ported from old repo mine.mplstyle)
+# Okabe-Ito palette; must stay in sync with scripts/palette.py (asserted at render).
+
+# Figure
+figure.figsize: 4, 3
+figure.dpi: 300
+figure.titlesize: large
+
+# Text
+text.color: 323034
+
+# Font
+font.family: serif
+text.usetex: True
+text.latex.preamble: \usepackage{amsmath}\usepackage{amssymb}\usepackage{siunitx}[=v2]
+mathtext.fontset: cm
+pgf.rcfonts: False
+
+# Axes
+axes.labelcolor: black
+axes.edgecolor: black
+axes.linewidth: 0.6
+axes.labelpad: 3
+axes.titlesize: medium
+axes.labelsize: medium
+axes.spines.right: True
+axes.spines.top: True
+axes.grid: True
+axes.titlelocation: center
+axes.formatter.use_mathtext: True
+axes.autolimit_mode: round_numbers
+axes.formatter.limits: -4, 4
+axes.xmargin: 0
+axes.ymargin: 0
+axes.prop_cycle: (cycler(color=['56B4E9', 'E69F00', '009E73', '0072B2', 'D55E00', 'CC79A7', 'F0E442']) + cycler(marker=["o", "^", "s", "v", "o", "s", "^"]))
+
+# Ticks (both sides, inward)
+xtick.color: 323034
+xtick.labelsize: small
+xtick.top: True
+xtick.direction: in
+xtick.major.size: 5
+xtick.major.width: 0.6
+xtick.minor.size: 3
+xtick.minor.width: 0.6
+
+ytick.color: 323034
+ytick.labelsize: small
+ytick.right: True
+ytick.direction: in
+ytick.major.size: 5
+ytick.major.width: 0.6
+ytick.minor.size: 3
+ytick.minor.width: 0.6
+
+# Lines
+lines.linewidth: 1.5
+lines.markersize: 5
+lines.markeredgewidth: 1
+markers.fillstyle: none
+
+# Legend
+legend.framealpha: 0.8
+legend.frameon: True
+legend.fontsize: medium
+legend.title_fontsize: medium
+legend.edgecolor: 0.8
+legend.borderpad: 0.2
+legend.columnspacing: 1.5
+legend.labelspacing: 0.4
+
+# Patch / scatter / grid
+patch.force_edgecolor: True
+patch.linewidth: 0.8
+scatter.edgecolors: True
+grid.color: b1afb5

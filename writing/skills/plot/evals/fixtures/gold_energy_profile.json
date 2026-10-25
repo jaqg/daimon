@@ -1,0 +1,68 @@
+{
+  "preset": "energy_profile",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "energies.dat",
+              "format": "dat",
+              "x": {
+                "column": "0"
+              },
+              "y": {
+                "column": "1"
+              }
+            },
+            "color": "bluish_green",
+            "marker": "o",
+            "linestyle": "-"
+          }
+        ],
+        "axes": {
+          "x": {
+            "ticklabels": [
+              "",
+              "Reactants",
+              "TS",
+              "Products",
+              ""
+            ],
+            "label": ""
+          },
+          "y": {
+            "label": "Energy, $\\Delta E$ (kcal/mol)",
+            "lim": [
+              -15,
+              30
+            ]
+          }
+        },
+        "annotations": [
+          {
+            "text": "TS",
+            "x": 0.55,
+            "y": 26,
+            "fontsize": 12
+          }
+        ]
+      }
+    ],
+    "nrows": 1,
+    "ncols": 1
+  },
+  "output": {
+    "basename": "energy_profile",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

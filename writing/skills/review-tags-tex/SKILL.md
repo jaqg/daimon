@@ -1,11 +1,9 @@
 ---
 name: review-tags-tex
 disable-model-invocation: true
-description: "Process review tags embedded as LaTeX comments in .tex files. Use this skill whenever the user invokes /review-tags-tex, or asks to 'process tags', 'apply comments', 'review tex tags', or mentions %CT / %CQ / %CQ(render) tags in .tex files. Given a .tex file or a folder of .tex files (defaults to the current working directory), find and act on two kinds of tags: (1) %CT: <comment> — apply the change described in <comment> to the surrounding code, then mark the tag done as %(done)CT; (2) %CQ: <question> — answer the question and insert the answer as %ANSWER: <answer> on the line below (or, with --render-notes, inside a rendered claude-answer environment in Claude's orange color using /scientific-writing), then mark the tag done as %(done)CQ; (3) %CQ(render): <question> — like %CQ but forces a rendered claude-answer environment for that specific tag even without --render-notes, marking it done as %(done)CQ(render). Always invoke this skill when the user says /review-tags-tex."
+description: "Process review tags embedded as LaTeX comments in .tex files. Use this skill whenever the user invokes /review-tags-tex, or asks to 'process tags', 'apply comments', 'review tex tags', or mentions %CT / %CQ / %CQ(render) tags in .tex files. Given a .tex file or a folder of .tex files (defaults to the current working directory), find and act on two kinds of tags: (1) %CT: <comment> — apply the change described in <comment> to the surrounding code, then mark the tag done as %(done)CT; (2) %CQ: <question> — answer the question and insert the answer as %ANSWER: <answer> on the line below, or inside a rendered claude-answer environment with --render-notes, then mark the tag done as %(done)CQ; (3) %CQ(render): <question> — like %CQ but forces a rendered claude-answer environment for that specific tag even without --render-notes, marking it done as %(done)CQ(render). Always invoke this skill when the user says /review-tags-tex."
 tools: Read, Edit, Bash
 ---
-
-> **Dependency:** `--render-notes` mode requires the `/scientific-writing` skill from the `claude-scientific-writer` plugin. Without it, render-mode tags will fall back to comment mode and a warning will be shown.
 
 # review-tags-tex
 
@@ -32,7 +30,9 @@ Process embedded review tags in LaTeX source files.
 ## Step 1 — Extract tags
 
 ```bash
-SCRIPT=$(find -L ~/.claude -path "*/review-tags-tex/scripts/extract_tags.py" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+SCRIPT="$SKILL_DIR/scripts/extract_tags.py"
 python3 "$SCRIPT" <target>
 ```
 
@@ -76,7 +76,7 @@ Determine render mode for each tag:
 3. Mark done: `%CQ:` → `%(done)CQ:` (keep question text).
 
 **Render mode:**
-1. Use `/scientific-writing` to compose the answer as LaTeX prose.
+1. Compose the answer as LaTeX prose: concise, matches the manuscript's register and notation, no filler.
 2. Ensure `claude-answer` environment is defined in the root `.tex` file (the one with `\documentclass`):
    - If `\newenvironment{claude-answer}` not already present, add to preamble:
      ```latex
@@ -110,7 +110,7 @@ Flag any tags where interpretation was uncertain; show what was done and invite 
 
 - **Ambiguous CT instruction**: apply best-effort interpretation, flag in report.
 - **Multiple tags on nearby lines**: process each independently in order.
-- **`--render-notes` without `/scientific-writing`**: fall back to comment mode, warn user.
+- **`--render-notes` environment clash**: if `claude-answer` is already defined differently in the root file, do not redefine — insert answers as `%ANSWER:` comments and warn user.
 
 ## Example
 

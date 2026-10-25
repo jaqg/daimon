@@ -1,0 +1,45 @@
+{
+  "preset": "radial_distribution",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "rdf.dat",
+              "format": "dat",
+              "x": {
+                "column": "r"
+              },
+              "y": {
+                "column": "g_r"
+              }
+            },
+            "color": "orange"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "$r$ (\\AA)"
+          },
+          "y": {
+            "label": "$g(r)$"
+          }
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "rdf",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

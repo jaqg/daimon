@@ -1,0 +1,76 @@
+# poster.mplstyle — paper.mplstyle scaled ~2.5x for posters/slides
+
+# Figure
+figure.figsize: 8, 6
+figure.dpi: 300
+figure.titlesize: 34
+
+# Text
+text.color: 323034
+
+# Font
+font.family: serif
+font.size: 28
+text.usetex: True
+text.latex.preamble: \usepackage{amsmath}\usepackage{amssymb}\usepackage{siunitx}[=v2]
+mathtext.fontset: cm
+pgf.rcfonts: False
+
+# Axes
+axes.labelcolor: black
+axes.edgecolor: black
+axes.linewidth: 1.5
+axes.labelpad: 6
+axes.titlesize: 30
+axes.labelsize: 28
+axes.spines.right: True
+axes.spines.top: True
+axes.grid: True
+axes.titlelocation: center
+axes.formatter.use_mathtext: True
+axes.autolimit_mode: round_numbers
+axes.formatter.limits: -4, 4
+axes.xmargin: 0
+axes.ymargin: 0
+axes.prop_cycle: (cycler(color=['56B4E9', 'E69F00', '009E73', '0072B2', 'D55E00', 'CC79A7', 'F0E442']) + cycler(marker=["o", "^", "s", "v", "o", "s", "^"]))
+
+# Ticks
+xtick.color: 323034
+xtick.labelsize: 24
+xtick.top: True
+xtick.direction: in
+xtick.major.size: 12
+xtick.major.width: 1.5
+xtick.minor.size: 7
+xtick.minor.width: 1.5
+
+ytick.color: 323034
+ytick.labelsize: 24
+ytick.right: True
+ytick.direction: in
+ytick.major.size: 12
+ytick.major.width: 1.5
+ytick.minor.size: 7
+ytick.minor.width: 1.5
+
+# Lines
+lines.linewidth: 3.0
+lines.markersize: 12
+lines.markeredgewidth: 1.5
+markers.fillstyle: none
+
+# Legend
+legend.framealpha: 0.8
+legend.frameon: True
+legend.fontsize: 24
+legend.title_fontsize: 26
+legend.edgecolor: 0.8
+legend.borderpad: 0.4
+legend.columnspacing: 2.0
+legend.labelspacing: 0.6
+
+# Patch / scatter / grid
+patch.force_edgecolor: True
+patch.linewidth: 1.5
+scatter.edgecolors: True
+grid.color: b1afb5

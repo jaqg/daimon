@@ -27,10 +27,10 @@ Substitutions performed:
   %%LOGO_RIGHT%%     → \\logoright{...} or empty if path missing/unset
   %%CONFERENCE%%     → --conference value
   %%DATE%%           → --date value
-  %%EMAIL%%          → POSTER_EMAIL from config
+  %%EMAIL%%          → AUTHOR_EMAIL from config
   %%TITLE%%          → --title value
-  %%AUTHOR%%         → POSTER_AUTHOR from config
-  %%AFFILIATION%%    → POSTER_AFFILIATION from config
+  %%AUTHOR%%         → AUTHOR_NAME from config
+  %%AFFILIATION%%    → AUTHOR_AFFILIATION from config
 
 %%POSTER_BODY%% is intentionally left untouched.
 """
@@ -129,9 +129,9 @@ def main():
         "DATE": args.date,
         "TITLE": args.title,
         "TITLE_FONT_SIZE": TITLE_SIZE_TABLE.get(args.title_size, "\\Huge"),
-        "EMAIL": config.get("POSTER_EMAIL", "%%EMAIL%%"),
-        "AUTHOR": config.get("POSTER_AUTHOR", "%%AUTHOR%%"),
-        "AFFILIATION": config.get("POSTER_AFFILIATION", "%%AFFILIATION%%"),
+        "EMAIL": config.get("AUTHOR_EMAIL", "%%EMAIL%%"),
+        "AUTHOR": config.get("AUTHOR_NAME", "%%AUTHOR%%"),
+        "AFFILIATION": config.get("AUTHOR_AFFILIATION", "%%AFFILIATION%%"),
     }
 
     text = Path(args.template).read_text(encoding="utf-8")

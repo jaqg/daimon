@@ -1,0 +1,48 @@
+{
+  "preset": "bar",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      4,
+      3
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "bar.csv",
+              "format": "csv",
+              "x": {
+                "column": "index"
+              },
+              "y": {
+                "column": "value"
+              }
+            },
+            "color": "orange",
+            "label": "Counts"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Index"
+          },
+          "y": {
+            "label": "Value"
+          }
+        },
+        "legend": {
+          "on": true
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "bar",
+    "formats": [
+      "pdf"
+    ],
+    "transparent": false
+  }
+}

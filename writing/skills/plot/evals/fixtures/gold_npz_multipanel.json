@@ -1,0 +1,73 @@
+{
+  "preset": "line",
+  "style": "screen",
+  "layout": {
+    "figsize": [
+      6,
+      5
+    ],
+    "nrows": 2,
+    "ncols": 1,
+    "sharex": true,
+    "letters": "auto",
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "data.npz",
+              "format": "npz",
+              "x": {
+                "column": "time"
+              },
+              "y": {
+                "column": "signal"
+              }
+            },
+            "color": "blue"
+          }
+        ],
+        "axes": {
+          "y": {
+            "label": "Signal"
+          }
+        }
+      },
+      {
+        "series": [
+          {
+            "data": {
+              "file": "data.npz",
+              "format": "npz",
+              "x": {
+                "column": "time"
+              },
+              "y": {
+                "column": "signal"
+              }
+            },
+            "scale": 0.5,
+            "offset": 1.0,
+            "color": "vermillion",
+            "linestyle": "--"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Time (a.u.)"
+          },
+          "y": {
+            "label": "Scaled + offset"
+          }
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "npz_multipanel",
+    "formats": [
+      "png"
+    ],
+    "transparent": true
+  }
+}

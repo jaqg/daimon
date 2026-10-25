@@ -1,0 +1,45 @@
+{
+  "preset": "parity",
+  "style": "paper",
+  "layout": {
+    "figsize": [
+      3.5,
+      3.5
+    ],
+    "panels": [
+      {
+        "series": [
+          {
+            "data": {
+              "file": "parity.csv",
+              "format": "csv",
+              "x": {
+                "column": "calculated"
+              },
+              "y": {
+                "column": "experimental"
+              }
+            },
+            "color": "reddish_purple"
+          }
+        ],
+        "axes": {
+          "x": {
+            "label": "Calculated"
+          },
+          "y": {
+            "label": "Experimental"
+          }
+        }
+      }
+    ]
+  },
+  "output": {
+    "basename": "parity",
+    "formats": [
+      "pdf",
+      "png"
+    ],
+    "transparent": false
+  }
+}

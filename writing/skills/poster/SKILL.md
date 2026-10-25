@@ -28,7 +28,7 @@ Optionally produce a submission abstract and an audience Q&A prep sheet.
 
 | Flag | Default | Meaning |
 |------|---------|---------|
-| `--project` | infer from context | Project ID string (e.g. `PhD-Ch1-AIM4ML`) |
+| `--project` | infer from context | Project ID string (e.g. `PhD-AIM4ML`) |
 | `--conference` | ask if unknown | Conference name and location |
 | `--date` | ask if unknown | Event date (shown in footer) |
 | `--size` | `a0` | Print size; controls scale and figure recommendations |
@@ -47,17 +47,18 @@ If `--empty` is passed, `--conference` and `--date` are optional — leave as `%
 
 ## Step 1 — Load config
 
-Locate the skill's real path on disk and derive the daimon root:
+Derive paths from this SKILL.md's own directory (`$SKILL_DIR` = dir containing this
+file; verify with `readlink -f` if invoked through a symlink):
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f "$(find -L ~/.claude/skills/poster -name SKILL.md 2>/dev/null | head -1)")")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"   # $SKILL_MD = path of this SKILL.md
 DAIMON_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
 CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 TEMPLATE_DIR="$SKILL_DIR/templates/portrait-poster"
-FILL_SCRIPT=$(find -L ~/.claude -path "*/poster/scripts/fill_template.py" -type f | head -1)
+FILL_SCRIPT="$SKILL_DIR/scripts/fill_template.py"
 ```
 
-Read `VAULT_DIR` from `$CONFIG_LOCAL` (needed for Step 2). All other identity values (`POSTER_AUTHOR`, `POSTER_AFFILIATION`, `POSTER_EMAIL`, `POSTER_LOGO_LEFT`, `POSTER_LOGO_RIGHT`) are handled by the fill script in Step 4c — do not read them manually.
+Read `VAULT_DIR` from `$CONFIG_LOCAL` (needed for Step 2). All other identity values (`AUTHOR_NAME`, `AUTHOR_AFFILIATION`, `AUTHOR_EMAIL`, `POSTER_LOGO_LEFT`, `POSTER_LOGO_RIGHT`) are handled by the fill script in Step 4c — do not read them manually.
 
 If `CONFIG_LOCAL` does not exist, warn and proceed — the script uses `%%PLACEHOLDER%%` fallbacks.
 
