@@ -1,23 +1,14 @@
-# Required Claude Code Plugins
+# Plugins
 
-Install via Claude Code plugin marketplace before running setup.sh.
+None required. All functionality lives in this repo's skills.
 
-| Plugin | Marketplace ID | Purpose |
-|--------|---------------|---------|
-| scientific-skills | `scientific-skills@claude-scientific-skills` | Core scientific Python/data skills (k-dense) — many sci-AI skills build on these |
-| claude-scientific-writer | `claude-scientific-writer@claude-scientific-writer` | LaTeX, document generation, writing workflows |
-| caveman | `caveman@caveman` | Terse response mode for daily use |
-| skill-creator | `skill-creator@claude-plugins-official` | Build new skills interactively |
-| voltagent-meta | `voltagent-meta@voltagent-subagents` | Multi-agent orchestration subagents |
+Historical note: earlier versions required five Claude Code plugins
+(`scientific-skills`, `claude-scientific-writer`, `caveman`, `skill-creator`,
+`voltagent-meta`). Removed after migrating to Pi as primary harness:
+`claude-scientific-writer`'s writing workflow was superseded by the vendored
+K-Dense skill in `writing/skills/sci-doc/`, and the rest had no dependents.
 
-## Install command
+## Separate binaries (not plugins)
 
-```
-/install <marketplace-id>
-```
-
-## Notes
-
-- `notebooklm` CLI is a separate binary at `~/.local/bin/notebooklm` — not a Claude Code plugin.
-  Install separately; path goes in `config/config.local` as `NOTEBOOKLM_CMD`.
-- `scientific-skills` is the foundation for most `computation/` and `literature/` skills here.
+- `notebooklm` CLI at `~/.local/bin/notebooklm` (`pip install notebooklm-py`) —
+  path goes in `config/config.local` as `NOTEBOOKLM_CMD`.

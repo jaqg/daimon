@@ -46,13 +46,15 @@ Determine mode:
 
 Source config.local:
 ```bash
-CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [[ -n "$CONFIG" ]] && source "$CONFIG"
 ```
 
 Load state:
 ```bash
-STATE_SCRIPT=$(find -L ~/.claude -path "*/lit-watch/scripts/watch_state.py" -type f | head -1)
+STATE_SCRIPT="$SKILL_DIR/scripts/watch_state.py"
 python3 "$STATE_SCRIPT" --show [--state-dir "$LIT_WATCH_STATE_DIR"]
 ```
 
@@ -74,7 +76,7 @@ If no matching memory file found: fall back to `--topics` mode and warn user.
 ## Step 2: Collect papers (all topics, parallel)
 
 ```bash
-COLLECT=$(find -L ~/.claude -path "*/lit-watch/scripts/collect.py" -type f | head -1)
+COLLECT="$SKILL_DIR/scripts/collect.py"
 python3 "$COLLECT" \
   --topics "TOPIC1, TOPIC2, ..." \
   --results ${RESULTS:-50} \
@@ -173,7 +175,7 @@ Consider lowering --threshold or checking back next week."
 
 User sets up weekly run:
 ```
-/schedule weekly /lit-watch --project PhD-Ch1-AIM4ML
+/schedule weekly /lit-watch --project PhD-AIM4ML
 ```
 
 ## Security: what this skill guarantees

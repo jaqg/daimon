@@ -63,7 +63,9 @@ ZOTERO_API_URL
 
 Source config.local:
 ```bash
-CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [[ -n "$CONFIG" ]] && source "$CONFIG"
 NLM="${NOTEBOOKLM_CMD:-notebooklm}"
 ```
@@ -80,7 +82,7 @@ MEMORY_DIR=$(find ~/.claude/projects -name "MEMORY.md" | head -1 | xargs dirname
 
 Locate search script:
 ```bash
-SEARCH_SCRIPT=$(find -L ~/.claude -path "*/lit-search/scripts/search.py" -type f | head -1)
+SEARCH_SCRIPT="$SKILL_DIR/../lit-search/scripts/search.py"
 ```
 
 ```bash
@@ -103,7 +105,7 @@ Display coverage statement and paper count. Proceed even if fewer than 5 papers 
 Run before Claude sees any abstracts:
 
 ```bash
-PREFILTER=$(find -L ~/.claude -path "*/lit-review/scripts/prisma_prefilter.py" -type f | head -1)
+PREFILTER="$SKILL_DIR/scripts/prisma_prefilter.py"
 python3 "$PREFILTER" \
   --papers "$OUTPUT_DIR/papers-raw.json" \
   [--keywords "K1,K2,..."] \
@@ -345,8 +347,8 @@ Read the downloaded markdown file and embed its full content verbatim in the rep
 ## Stage 4: Generate .bib (if --bib or --full)
 
 ```bash
-FETCH_SCRIPT=$(find -L ~/.claude -path "*/lit-bib/scripts/fetch_bibtex.py" -type f | head -1)
-ZOTERO_SCRIPT=$(find -L ~/.claude -path "*/lit-bib/scripts/zotero_sync.py" -type f | head -1)
+FETCH_SCRIPT="$SKILL_DIR/../lit-bib/scripts/fetch_bibtex.py"
+ZOTERO_SCRIPT="$SKILL_DIR/../lit-bib/scripts/zotero_sync.py"
 
 python3 "$FETCH_SCRIPT" --papers "$OUTPUT_DIR/papers-screened.json" --style phys \
   > "$OUTPUT_DIR/refs.bib"

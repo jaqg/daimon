@@ -2,7 +2,7 @@
 # Run graphify --update on vault after new notes are imported.
 # Usage: update_graph.sh
 
-CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)/config/config.local"
 [[ -n "$CONFIG" ]] && source "$CONFIG"
 
 VAULT="${VAULT_DIR:-$HOME/vault}"

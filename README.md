@@ -1,6 +1,6 @@
 # daimon
 
-Personal Claude Code skill and prompt library for computational chemistry research.
+Personal agent skill and prompt library for computational chemistry research.
 
 ## Setup
 
@@ -8,7 +8,7 @@ Personal Claude Code skill and prompt library for computational chemistry resear
 bash setup.sh
 ```
 
-Symlinks all skills into `~/.claude/skills/` and checks required plugins.
+Symlinks all skills into the agent skill dirs (`~/.claude/skills/`, `~/.pi/agent/skills/`, `~/.agents/skills/` — Pi reads all three), agents into `~/.pi/agent/agents/`, prompts into `~/.pi/agent/prompts/`, and checks required plugins.
 
 ## Structure
 

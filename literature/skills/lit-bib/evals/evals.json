@@ -85,6 +85,87 @@
           "check": "all_entries_have_citekey"
         }
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "/lit-bib verify literature/refs.bib — the 2026-10-21 audit flagged 14/21 entries; verify it and tell me what to do",
+      "expected_output": "Runs scripts/verify_bibtex.py, passes the structured JSON report back with per-entry status + reasons, proposes gate actions per entry (fabricated: delete/flag for user; mismatch: correct with details.resolved metadata; unverified: ask for DOI/arXiv) — model never edits entries itself",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e3_report_interpreted",
+          "name": "statuses interpreted from status+details.reasons, not re-derived",
+          "check": "classifies_from_script_report"
+        },
+        {
+          "id": "e3_no_self_editing",
+          "name": "no entries edited/deleted by the model; verify report only",
+          "check": "no_entry_mutation"
+        },
+        {
+          "id": "e3_gate_actions",
+          "name": "proposes per-entry gate actions incl. delete for fabricated",
+          "check": "proposes_gate_actions"
+        },
+        {
+          "id": "e3_exit1_not_error",
+          "name": "exit 1 treated as expected when problems found, not a tooling failure",
+          "check": "exit1_not_reported_as_crash"
+        },
+        {
+          "id": "e3_dup_keys",
+          "name": "duplicate keys in report.duplicates flagged as hard exit-blocking finding",
+          "check": "reports_duplicate_keys"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "verify bib — report says various2024quantifying is mismatch with key_check {expected_surname: dalton, expected_year: 2024, ok: false}. What is wrong and what do I do?",
+      "expected_output": "Explains key mislabel (key must contain resolved first-author surname 'dalton' + year 2024 — audit case: rename to dalton2024), distinguishes from fabricated (fields themselves match, only the key is wrong), proposes rename as gate action without editing",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e4_key_mismatch_identified",
+          "name": "identifies key mislabel vs fabricated correctly",
+          "check": "distinguishes_key_mismatch_from_fabricated"
+        },
+        {
+          "id": "e4_uses_details",
+          "name": "uses key_check.expected_surname/expected_year from report details",
+          "check": "cites_details_fields",
+          "target": "key_check"
+        },
+        {
+          "id": "e4_rename_suggested",
+          "name": "suggests dalton2024-style rename as gate action",
+          "check": "proposes_rename"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "check refs on my in-progress bib — several entries are hand-typed without DOI or arXiv ID yet",
+      "expected_output": "Runs verify script; no-DOI/no-eprint entries come back unverified (provenance unverified) — reported as manual follow-up (ask user for identifiers), NOT fabricated; summary line passed through; exit 0 without --strict treated as clean-of-fabrication, --strict only when user wants hard gate",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e5_unverified_not_fabricated",
+          "name": "no-identifier entries classified unverified, not fabricated",
+          "check": "unverified_not_fabricated"
+        },
+        {
+          "id": "e5_summary_line",
+          "name": "human summary line 'Verified: N | Fabricated: N | Mismatch: N | Unverified: N' reported",
+          "check": "log_contains_summary",
+          "target": "Verified:"
+        },
+        {
+          "id": "e5_strict_flag",
+          "name": "uses --strict only when user demands hard gate",
+          "check": "strict_flag_used_conditionally"
+        }
+      ]
     }
   ]
 }

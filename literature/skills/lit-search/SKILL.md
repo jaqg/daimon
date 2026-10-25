@@ -62,15 +62,17 @@ Parse the user request to extract:
 
 Source config.local for API keys:
 ```bash
-CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [[ -n "$CONFIG" ]] && source "$CONFIG"
 ```
 
 ## Step 1: Locate scripts
 
 ```bash
-SEARCH_SCRIPT=$(find -L ~/.claude -path "*/lit-search/scripts/search.py" -type f | head -1)
-CHASE_SCRIPT=$(find -L ~/.claude -path "*/lit-search/scripts/chase.py" -type f | head -1)
+SEARCH_SCRIPT="$SKILL_DIR/scripts/search.py"
+CHASE_SCRIPT="$SKILL_DIR/scripts/chase.py"
 ```
 
 ## Step 2: Run search

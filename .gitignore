@@ -29,3 +29,25 @@ diagram-example.pdf
 
 # venv accidentally committed (tools/pdf-to-md)
 tools/pdf-to-md/venv/
+
+# agent scratch + role pointers (local only)
+.agent/
+.agent-paths
+.pi-role
+# --- bake-off: harness only. Fixtures that carry research content, the venv, and every run artifact
+# stay out of the public repo (see ../bakeoff-private and orchestration/bakeoff/README.md).
+orchestration/bakeoff/selection/
+orchestration/bakeoff/lib/
+orchestration/bakeoff/acceptance/
+orchestration/bakeoff/METHODS.md
+orchestration/bakeoff/grade-long.py
+orchestration/bakeoff/.venv
+orchestration/bakeoff/results/
+orchestration/bakeoff/results-*/
+orchestration/bakeoff/results.jsonl
+orchestration/bakeoff/results-long.json
+orchestration/bakeoff/scored.json
+orchestration/bakeoff/*.log
+orchestration/bakeoff/gate-test.json
+orchestration/bakeoff/integrator-probe.json
+orchestration/bakeoff/__pycache__/

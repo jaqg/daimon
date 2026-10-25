@@ -1,0 +1,72 @@
+% Fixture for verify_bibtex tests — mirrors the 2026-10-21 citation-audit
+% failure classes (fabricated DOIs, mislabeled keys, wrong-year fields).
+% Fake resolver metadata for these DOIs/arXiv IDs lives in tests/test_verify.py.
+
+@string{jctc = {J. Chem. Theory Comput.}}
+
+@comment{This line must be skipped by the parser.}
+
+% multi-line entry, nested braces in title, verified against fake Crossref
+@article{zhao2021tomography,
+  author = {Zhao, Chang-Xun and others},
+  title = {Fermionic partial tomography via {Classical} shadows},
+  journal = jctc,
+  volume = {127},
+  pages = {110504},
+  year = {2021},
+  doi = {10.1103/PhysRevLett.127.110504}
+}
+
+% single-line entry with a quoted value, verified
+@article{coleman1963structure, author = {Coleman, Sylvester}, title = "Structure of Fermion Density Matrices", journal = {Rev. Mod. Phys.}, volume = {35}, pages = {668}, year = {1963}, doi = {10.1103/RevModPhys.35.668}}
+
+% DOI 404s on Crossref (real-world: 10.1021/ct050106q) -> fabricated
+@article{pendas2005,
+  author = {Blanco, Miguel A. and Mart{\'i}n Pend{\'a}s, {\'A}ngel and Francisco, a-collaborator},
+  title = {Interacting Quantum Atoms: {A} correlated energy decomposition},
+  journal = {J. Chem. Theory Comput.},
+  volume = {1}, pages = {1096--1109}, year = {2005},
+  doi = {10.1021/ct050106q}
+}
+
+% DOI resolves to a real paper but the title is unrelated (sim < 0.5)
+% -> fabricated (the tiwari2021 pattern: Nation et al. fields hijacked)
+@article{tiwari2021fabricated,
+  author = {Tiwari, Rishi and Babbush, Ryan},
+  title = {Quantum chemical bond theory for heavy fermion lattices},
+  journal = {PRX Quantum},
+  volume = {2}, pages = {040326}, year = {2021},
+  doi = {10.1103/PRXQuantum.2.040326}
+}
+
+% right paper, wrong year (single-line entry, quoted title) -> mismatch
+@article{wan2019matchgate, author = {Wan, Kianna and Huggins, William J.}, title = "Matchgate shadows for fermionic quantum simulation", journal = {Commun. Math. Phys.}, year = {2019}, doi = {10.1007/s00220-023-04844-0}}
+
+% all fields right, key mislabeled (various2024quantifying pattern)
+% -> mismatch via key check (resolved first author: dalton)
+@article{various2024quantifying,
+  author = {Dalton, Benjamin and Long, Ethan and Yordanov, Alexander and others},
+  title = {Quantifying the effect of gate errors on variational quantum
+           eigensolvers for quantum chemistry},
+  journal = {npj Quantum Inf.},
+  volume = {10}, pages = {1}, year = {2024},
+  doi = {10.1038/s41534-024-00808-x}
+}
+
+% arXiv-only entry, verified via fake arXiv resolver
+@misc{swain2023dipole,
+  author = {Swain, K. R. and Prasannaa, V. S. and Sugisaki, Kenji and Das, B. P.},
+  title = {Molecular electric dipole moments: from light to heavy molecules
+           using a relativistic {VQE} algorithm},
+  howpublished = {arXiv:2211.06907},
+  eprint = {2211.06907},
+  archivePrefix = {arXiv},
+  year = {2023}
+}
+
+% no DOI, no eprint -> unverified (nothing to verify against)
+@misc{ownresult2026,
+  author = {Nobody, A.},
+  title = {The order rule is our own result},
+  year = {2026}
+}

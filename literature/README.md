@@ -52,9 +52,9 @@ Use for a new project or chapter kick-off.
 # (optional) paste top 1-2 landmark paper DOIs into Connected Papers (web)
 # to spot foundational works the keyword search may miss
 
-/lit-review --papers papers-iqa.json --project PhD-Ch1-AIM4ML --full
+/lit-review --papers papers-iqa.json --project PhD-AIM4ML --full
 
-/lit-vault --papers papers-iqa.json --project PhD-Ch1-AIM4ML
+/lit-vault --papers papers-iqa.json --project PhD-AIM4ML
 
 # open Obsidian → Graph view → filter by tag or project to see paper cluster
 ```
@@ -73,7 +73,7 @@ Use when you have one key paper and want its full neighborhood.
 # or from a local PDF (paywalled paper):
 /lit-search --chase /path/to/paper.pdf --chase-mode backward --output papers-refs.json
 
-/lit-vault --papers papers-chase.json --project PhD-Ch1-AIM4ML
+/lit-vault --papers papers-chase.json --project PhD-AIM4ML
 ```
 
 **Complement with Research Rabbit:** paste the landmark DOI (and any already-known related papers) into Research Rabbit to see the co-author network and surface closely related research groups. Useful for discovering papers that use different terminology from your keywords.
@@ -85,10 +85,10 @@ Use when you have one key paper and want its full neighborhood.
 Set up once, runs via `/schedule`.
 
 ```
-/lit-watch --project PhD-Ch1-AIM4ML --threshold 4
+/lit-watch --project PhD-AIM4ML --threshold 4
 
 # schedule weekly:
-/schedule weekly /lit-watch --project PhD-Ch1-AIM4ML
+/schedule weekly /lit-watch --project PhD-AIM4ML
 ```
 
 Each Monday (or whatever day you schedule): a `lit-watch-YYYY-MM-DD.md` digest appears in `00-Inbox/` with new papers scored ≥ 4/5. Process with `/process-inbox` or read directly.
@@ -96,7 +96,7 @@ Each Monday (or whatever day you schedule): a `lit-watch-YYYY-MM-DD.md` digest a
 To act on high-relevance papers from a watch digest:
 
 ```
-/lit-vault --papers papers-watch-YYYY-MM-DD.json --project PhD-Ch1-AIM4ML
+/lit-vault --papers papers-watch-YYYY-MM-DD.json --project PhD-AIM4ML
 ```
 
 ---
@@ -125,7 +125,7 @@ After reading a paper, convert your notes into structured vault content.
 /lit-annotate --note smith2023-qtaim --text "Key method: QTAIM + NCI on 40 dimers at CCSD(T)/aug-cc-pVTZ. Main result: BCP density correlates with binding energy (R²=0.94). Vcl sign switches for weak H-bonds. Limitation: gas phase only."
 
 # from a local PDF:
-/lit-annotate --note garcia2022-iqa --pdf ~/Downloads/garcia2022.pdf --project PhD-Ch1-AIM4ML
+/lit-annotate --note garcia2022-iqa --pdf ~/Downloads/garcia2022.pdf --project PhD-AIM4ML
 
 # re-fetch full text from arXiv:
 /lit-annotate --note jones2024-elf --url https://arxiv.org/abs/2404.01234
@@ -164,19 +164,19 @@ Useful for: spotting structural gaps (an expected concept node has no paper link
 
 ### Dataview queries
 
-Add to your project dashboard (`10-Projects/PhD-Ch1-AIM4ML/project-dashboard.md`):
+Add to your project dashboard (`10-Projects/PhD-AIM4ML/project-dashboard.md`):
 
 ```dataview
 TABLE venue, year, citations, screening_score, full_text_available
 FROM "20-Sources/papers"
-WHERE contains(project, "PhD-Ch1-AIM4ML")
+WHERE contains(project, "PhD-AIM4ML")
 SORT citations DESC
 ```
 
 ```dataview
 TABLE venue, year, full_text_available
 FROM "20-Sources/papers"
-WHERE contains(project, "PhD-Ch1-AIM4ML") AND full_text_available = false
+WHERE contains(project, "PhD-AIM4ML") AND full_text_available = false
 SORT year DESC
 ```
 
@@ -185,7 +185,7 @@ Second query: papers where full text was unavailable — your reading backlog fo
 ```dataview
 TABLE venue, year, citations
 FROM "20-Sources/papers"
-WHERE contains(project, "PhD-Ch1-AIM4ML") AND !contains(file.content, "**Methods:** \n")
+WHERE contains(project, "PhD-AIM4ML") AND !contains(file.content, "**Methods:** \n")
 SORT citations DESC
 ```
 

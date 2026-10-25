@@ -42,12 +42,14 @@ If `review` is detected, ask whether the user also wants vault notes (→ `full`
 ## Scripts
 
 ```bash
-COVERAGE_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/coverage_check.py" -type f | head -1)
-FRESHNESS_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/graph_freshness.py" -type f | head -1)
-UPDATE_SCRIPT=$(find -L ~/.claude -path "*/lit/scripts/update_graph.sh" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+COVERAGE_SCRIPT="$SKILL_DIR/scripts/coverage_check.py"
+FRESHNESS_SCRIPT="$SKILL_DIR/scripts/graph_freshness.py"
+UPDATE_SCRIPT="$SKILL_DIR/scripts/update_graph.sh"
 
 # Resolve VAULT_DIR (needed for direct graphify calls)
-_CONFIG=$(find -L ~/.claude -name "config.local" -path "*/daimon/config/*" | head -1)
+_CONFIG="$SKILL_DIR/../../../config/config.local"
 [[ -n "$_CONFIG" ]] && source "$_CONFIG"
 VAULT_DIR="${VAULT_DIR:-$HOME/vault}"
 VAULT_DIR="${VAULT_DIR/#\~/$HOME}"
@@ -303,7 +305,7 @@ Cite paper notes by short key (e.g. `rogers2010-ecfp`) and Galaxy concepts by na
 
 Requires `bib2papers.py` — locate with:
 ```bash
-BIB2PAPERS=$(find -L ~/.claude -path "*/lit/scripts/bib2papers.py" -type f | head -1)
+BIB2PAPERS="$SKILL_DIR/scripts/bib2papers.py"
 ```
 If not found, warn the user: "bib2papers.py not yet in daimon — conversion step must be done manually (see note below)."
 
@@ -375,7 +377,7 @@ lit-review: --papers "$PAPERS_OUT" --no-search --notebooklm [--project PROJECT]
 
 Requires `pdf2papers.py` — locate with:
 ```bash
-PDF2PAPERS=$(find -L ~/.claude -path "*/lit/scripts/pdf2papers.py" -type f | head -1)
+PDF2PAPERS="$SKILL_DIR/scripts/pdf2papers.py"
 ```
 If not found, warn the user: "pdf2papers.py not found in daimon — run `find ~/.claude -name pdf2papers.py` to locate it."
 

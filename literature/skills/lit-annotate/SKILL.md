@@ -22,7 +22,9 @@ Works with notes created by `lit-vault` or any note that follows the vault namin
 ## Config
 
 ```bash
-CONFIG=$(find -L ~/.claude -path "*/daimon/config/config.local" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [ -f "$CONFIG" ] && source "$CONFIG"
 ```
 
@@ -72,7 +74,7 @@ Build `source_text` from the inputs provided, in priority order (use all that ar
 
 2. **`--pdf`** or **`--url`**: extract with the script:
    ```bash
-   EXTRACT=$(find -L ~/.claude -path "*/lit-annotate/scripts/extract_text.py" -type f | head -1)
+   EXTRACT="$SKILL_DIR/scripts/extract_text.py"
    python3 "$EXTRACT" [--pdf PATH | --url URL]
    ```
    Output JSON: `{"source", "text", "char_count", "truncated", "error"}`.
@@ -122,7 +124,7 @@ the proposed expansion. Only update if the user agrees (in Step 5 approval).
 
 **Additional Galaxy link candidates:** Run the suggest script:
 ```bash
-SUGGEST=$(find -L ~/.claude -path "*/lit-annotate/scripts/suggest_galaxy.py" -type f | head -1)
+SUGGEST="$SKILL_DIR/scripts/suggest_galaxy.py"
 # Write source_text to a temp file first
 echo "$SOURCE_TEXT" > /tmp/lit-annotate-source.txt
 python3 "$SUGGEST" \

@@ -68,6 +68,64 @@ def title_ok(fetched_title, expected_title, threshold=0.85):
 
 
 # ---------------------------------------------------------------------------
+# Author-set verification
+# ---------------------------------------------------------------------------
+# Failure mode this guards (observed 2026-10-21): a hand-typed entry with a
+# REAL, resolving DOI but a WRONG author set (e.g. doi of Nation et al.
+# attributed to "Tiwari, Babbush, Hayden"; Bader/MacDougall/Lau paper
+# attributed to "Bader, Heroux, Car"). DOI resolution alone passes these.
+
+def _norm_name(s):
+    """Accent-stripped, lowercase, alpha-only form of a name."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r"[^a-z]", "", s.lower())
+
+
+def _family_names(author_str):
+    """Family names from a BibTeX-style 'A and B and C' author string.
+    Handles both 'Last, First' and 'First Last' forms."""
+    families = []
+    for part in re.split(r"\s+and\s+", author_str or ""):
+        part = part.strip().strip("{}")
+        if not part:
+            continue
+        token = part.split(",")[0] if "," in part else part.split()[-1]
+        f = _norm_name(token)
+        if f:
+            families.append(f)
+    return families
+
+
+def authors_ok(bibtex_str, expected_authors):
+    """Check fetched entry's author set against the expected set.
+    Rule: first-author family must match AND >=50% of expected family names
+    must appear among fetched families (when 2+ expected authors given).
+    No expected authors -> pass (nothing to check against).
+    Returns (ok, detail)."""
+    if not expected_authors:
+        return True, ""
+    m = re.search(r"author\s*=\s*\{([^}]+)\}", bibtex_str, re.IGNORECASE)
+    if not m:
+        return True, ""  # no author field to check; other validators govern
+    fetched = _family_names(m.group(1))
+    expected = [_norm_name(a.split(",")[0] if "," in a else a.split()[-1]) for a in expected_authors]
+    expected = [e for e in expected if e]
+    if not expected or not fetched:
+        return True, ""
+    if expected[0] != fetched[0]:
+        return False, (f"first author mismatch: expected '{expected_authors[0]}', "
+                       f"fetched family '{fetched[0]}'")
+    if len(expected) >= 2:
+        overlap = sum(1 for e in expected if e in fetched)
+        if overlap < (len(expected) + 1) // 2:
+            return False, (f"author-set mismatch: expected families {expected}, "
+                           f"fetched {fetched} (overlap {overlap}/{len(expected)})")
+    return True, ""
+
+
+# ---------------------------------------------------------------------------
 # DOI resolution check
 # ---------------------------------------------------------------------------
 
@@ -181,7 +239,10 @@ def _make_key(first_author, year, title, style="phys"):
       apa:  firstauthor_YEAR
       ieee: firstauthorYYkeyword
     """
-    last = re.split(r"[\s,]", first_author.strip())[-1].lower()
+    name = first_author.strip()
+    if "," in name:
+        name = name.split(",")[0]
+    last = re.split(r"\s+", name.strip())[-1].lower()
     last = re.sub(r"[^a-z]", "", last)
     yr = str(year)[:4]
 
@@ -247,6 +308,13 @@ def process_papers(papers, style="phys", validate_doi=False):
                     "reason": f"Title mismatch: expected '{title[:60]}', got '{fetched_title[:60]}'"
                 })
                 continue
+            ok, detail = authors_ok(bibtex, authors)
+            if not ok:
+                manual_needed.append({
+                    "id": p.get("id"),
+                    "reason": f"Author mismatch (CrossRef): {detail}"
+                })
+                continue
             time.sleep(0.1)
 
         # Fallback: arXiv
@@ -263,9 +331,25 @@ def process_papers(papers, style="phys", validate_doi=False):
             failed.append({"id": p.get("id"), "title": title[:80], "reason": "No DOI or arXiv ID, or all fetches failed"})
             continue
 
+        # Security: author-set verification (both crossref and arxiv paths)
+        ok, detail = authors_ok(bibtex, authors)
+        if not ok:
+            manual_needed.append({
+                "id": p.get("id"),
+                "reason": f"Author mismatch: {detail}"
+            })
+            continue
+
         # Generate citekey
-        first_author = authors[0] if authors else (re.split(r",", (bibtex or ""))[0].strip() or "anon")
-        key = _make_key(first_author, year or fetched_title[:4], fetched_title or title, style)
+        if authors:
+            first_author = authors[0]
+        else:
+            am = re.search(r"author\s*=\s*\{([^}]+)\}", bibtex or "", re.IGNORECASE)
+            first_author = am.group(1).split(" and ")[0].strip() if am else "anon"
+        if not year:
+            ym = re.search(r"year\s*=\s*\{?(\d{4})", bibtex or "", re.IGNORECASE)
+            year = ym.group(1) if ym else ""
+        key = _make_key(first_author, year, fetched_title or title, style)
         bibtex = inject_citekey(bibtex, key)
 
         entries.append({
@@ -283,14 +367,31 @@ def process_papers(papers, style="phys", validate_doi=False):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--papers", required=True)
+    parser.add_argument("--papers")
+    parser.add_argument("--dois", help="comma-separated DOI list (manual input)")
+    parser.add_argument("--arxiv", help="comma-separated arXiv ID list (manual input)")
     parser.add_argument("--style", default="phys", choices=["phys", "acs", "apa", "ieee"])
     parser.add_argument("--validate", action="store_true")
     args = parser.parse_args()
 
-    data = papers_io.load(args.papers)
-    entries, failed, manual = process_papers(data["papers"], args.style, args.validate)
+    if args.papers:
+        data = papers_io.load(args.papers)
+        papers = data["papers"]
+    elif args.dois or args.arxiv:
+        # Manual inputs carry no expected title/authors: title/author checks
+        # pass vacuously. DOI resolution (--validate) is the guard here.
+        papers = []
+        for d in filter(None, (x.strip() for x in (args.dois or "").split(","))):
+            papers.append({"doi": d, "title": "", "authors": []})
+        for a in filter(None, (x.strip() for x in (args.arxiv or "").split(","))):
+            papers.append({"doi": None, "title": "", "authors": [], "id": f"arxiv:{a}"})
+    else:
+        parser.error("one of --papers, --dois, --arxiv is required")
+
+    entries, failed, manual = process_papers(papers, args.style, args.validate)
     print(f"Fetched: {len(entries)} | Failed: {len(failed)} | Manual needed: {len(manual)}")
     for e in entries:
         print(e["bibtex"])
         print()
+    for m in manual:
+        print(f"MANUAL NEEDED: {m.get('id')}: {m.get('reason')}", file=sys.stderr)

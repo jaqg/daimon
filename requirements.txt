@@ -1,3 +1,5 @@
 # Optional — skills degrade gracefully without these
 pymupdf>=1.24       # PDF text extraction: lit-annotate, lit-vault, lit-search/chase
 qrcode[pil]>=7.4    # Python QR generation: qr-code (falls back to qrencode CLI)
+matplotlib>=3.8      # Figure rendering: plot (needs numpy, pulled in automatically)
+numpy>=1.26          # Data loading: plot

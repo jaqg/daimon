@@ -32,7 +32,9 @@ WILEY_TDM_TOKEN        # optional — Wiley TDM PDF for 10.1002/*, 10.1111/* DOI
 
 Source config:
 ```bash
-CONFIG=$(find -L ~/.claude -path "*/daimon/config/config.local" -type f | head -1)
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
 [ -f "$CONFIG" ] && source "$CONFIG"
 ```
 
@@ -76,7 +78,7 @@ If no matching file: proceed without project context; omit project-framing from 
 ### Step 2: Fetch full text (skip if --no-full-text)
 
 ```bash
-FETCH_SCRIPT=$(find -L ~/.claude -path "*/lit-vault/scripts/fetch_fulltext.py" -type f | head -1)
+FETCH_SCRIPT="$SKILL_DIR/scripts/fetch_fulltext.py"
 FULLTEXT_OUT="/tmp/lit-vault-fulltext-$(date +%s).json"
 CACHE_DIR="${LIT_VAULT_CACHE_DIR:-$HOME/.cache/daimon/lit-vault}"
 python3 "$FETCH_SCRIPT" \
@@ -115,7 +117,7 @@ After the script completes, load the JSON and map each paper ID to its full text
 ### Step 3: Locate Galaxy suggestion script
 
 ```bash
-SUGGEST_SCRIPT=$(find -L ~/.claude -path "*/lit-annotate/scripts/suggest_galaxy.py" -type f | head -1)
+SUGGEST_SCRIPT="$SKILL_DIR/../lit-annotate/scripts/suggest_galaxy.py"
 ```
 
 Used per-paper in Step 4c to score concept overlap. If not found, skip Galaxy suggestions and omit `## Connections` block.

@@ -1,12 +1,20 @@
 # Machine-specific configuration
 # Copy to config/config.local and fill in values for your machine.
 # config.local is gitignored — never commit it.
+#
+# Agent skill directories — auto-detected, override only if needed:
+# SKILL_DIRS=("$HOME/.claude/skills" "$HOME/.pi/agent/skills")
 
 # Path to jaqg/sci-scripts repo on this machine
 SCI_SCRIPTS_DIR=~/path/to/sci-scripts
 
 # Path to Obsidian vault on this machine
 VAULT_DIR=~/path/to/vault
+
+# LaTeX templates repo (report/presentation/poster masters). Used by sci-doc
+# for .tex drafts: copies template into project dir; unset/missing = fall back
+# to skill-bundled templates/report.tex
+LATEX_TEMPLATES_DIR=~/Documents/GitHub/latex-templates
 
 # HPC cluster SSH alias (as defined in ~/.ssh/config)
 HPC_HOST=your-cluster
@@ -39,10 +47,10 @@ LIT_WATCH_STATE_DIR=~/.config/daimon   # state file dir for lit-watch
 # lit-search --chase PDF mode: pip install pymupdf
 # (no config key needed — detected automatically)
 
-# Poster skill — personal identity injected into generated posters
-POSTER_AUTHOR="First Last"
-POSTER_AFFILIATION="Department, University"
-POSTER_EMAIL="you@example.com"
-# Paths to logo files for poster header (leave empty to omit logos)
+# Personal identity — shared by all writing skills/agents (poster, sci-doc, report-writer)
+AUTHOR_NAME="First Last"
+AUTHOR_AFFILIATION="Department, University"
+AUTHOR_EMAIL="you@example.com"
+# Poster-specific: logo files for poster header (leave empty to omit logos)
 POSTER_LOGO_LEFT=""
 POSTER_LOGO_RIGHT=""
