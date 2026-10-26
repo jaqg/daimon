@@ -11,8 +11,16 @@ This script only moves text that already exists.
 Usage
   merge-status.py [--repo PATH] [--part NAME] [--dry-run] [--max-lines 15] [--force]
 Reads <repo>/.agent-paths for vault_project / status_dir / integration_branch. Exit 0 = rollup
-written (or would be, under --dry-run). Exit 3 = nothing to do. Exit 4 = contract broken
-(no .agent-paths, no status dir, unparseable delta names) — it never guesses a destination.
+written or deltas consumed. Exit 3 = state unchanged (the rollup on disk already says what git says).
+Exit 4 = contract broken (no .agent-paths, no status dir, unparseable delta names) — it never guesses a
+destination.
+
+It always reads the consumed deltas too, and always reports the part's git state. That is a fix, not a
+feature: the first version returned early on "0 unprocessed deltas", so the rollup froze at whatever the
+last delivery said and its most load-bearing line — how many agent branches are inside the integration
+branch — went stale at the exact moment it changed. Measured 2026-10-26: the integrator had just merged
+both slices (git says 2/2), the file still said 0/2, and the brain — obeying rule 3c, which forbids it
+from inventing commands — recommended "delegate to integrator" on data that no longer existed.
 """
 from __future__ import annotations
 
@@ -154,14 +162,23 @@ def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocke
 
 
 def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: list[str],
-                 integ: str, max_lines: int, note: str = "") -> list[str]:
+                 integ: str, max_lines: int, note: str = "",
+                 fresh: int | None = None, total: int | None = None) -> list[str]:
     tot: dict[str, int] = {}
     for _, _, d in per_agent:
         for k, v in d["counts"].items():
             tot[k] = tot.get(k, 0) + v
+    n_total = len(per_agent) if total is None else total
+    n_fresh = len(per_agent) if fresh is None else fresh
+    agents = ", ".join(sorted({a for _, a, _ in per_agent})) or "—"
+    dl = f"deltas: {n_total} · agents: {agents}"
+    if n_total == 0:
+        dl += " — no delivery records for this part yet"
+    elif n_fresh == 0:
+        dl += " — all consumed; git state below is live"
     head = [
         f"# {part} — status (rolled up {dt.datetime.now():%Y-%m-%d %H:%M} by merge-status)",
-        f"deltas: {len(per_agent)} · agents: {', '.join(sorted({a for _, a, _ in per_agent})) or '—'}",
+        dl,
         "tally: " + " · ".join(f"{k.upper()} {tot.get(k, 0)}" for k in ("done", "blocked", "debt")) or "tally: —",
     ]
     rows = []
@@ -180,7 +197,6 @@ def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: li
     if nxt:
         tail.append(f"- next: {nxt[0][:120]}" + (f" (+{len(nxt) - 1} more)" if len(nxt) > 1 else ""))
     tail.append(f"- branches: {', '.join(branches) or 'none'} · integration: {note or integ or 'unset'}")
-
     out = head + rows + tail
     if len(out) > max_lines:
         # Order of sacrifice: tail is load-bearing, tally is load-bearing, agent lines are not.
@@ -191,13 +207,29 @@ def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: li
     return out[:max_lines]
 
 
+def gather_deltas(src: Path) -> tuple[list[Path], list[Path]]:
+    """(unprocessed, processed) with the current delivery winning per (part, agent).
+
+    A worker can re-deliver the same slice on the same date — the queue is append-only, so the old record
+    is history and the new one is the report. Keeping both would double-count the tally."""
+    unproc = sorted(p for p in src.glob("*.md") if not p.name.endswith(".processed"))
+    live = set()
+    for p in unproc:
+        m = DELTA_RE.match(p.name)
+        if m:
+            live.add((m.group("part"), m.group("agent")))
+    proc = [p for p in sorted(src.glob("*.md.processed"))
+            if (lambda m: not m or (m.group("part"), m.group("agent")) not in live)(DELTA_RE.match(p.name))]
+    return unproc, proc
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".")
     ap.add_argument("--part")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-lines", type=int, default=15)
-    ap.add_argument("--force", action="store_true", help="rewrite the rollup even with no new deltas")
+    ap.add_argument("--force", action="store_true", help="rewrite the rollup even if it is unchanged")
     a = ap.parse_args()
 
     repo = Path(a.repo).resolve()
@@ -207,36 +239,33 @@ def main() -> None:
         die(4, f"status_dir {status_dir} does not exist (create it or fix .agent-paths)")
     src = repo / ".agent" / "status"
     if not src.is_dir():
-        print(f"merge-status: no {src} — nothing rolled up (workers have not reported)")
+        print(f"merge-status: no {src} — no queue yet. `worktree.sh add` symlinks it; until then nobody can report.")
         raise SystemExit(3)
 
-    deltas = sorted(p for p in src.glob("*.md") if not p.name.endswith(".processed"))
-    if not deltas:
-        if not a.force:
-            print("merge-status: 0 unprocessed deltas (use --force to rebuild from .processed)")
-            raise SystemExit(3)
-        # --force = rebuild the rollup from what was already consumed, marking nothing new.
-        deltas = sorted(src.glob("*.md.processed"))
-    consumed = [p for p in deltas if not p.name.endswith(".processed")]
-
+    unproc, proc = gather_deltas(src)
     by_part: dict[str, list[tuple[Path, str, dict]]] = {}
-    for p in deltas:
+    for p in unproc + proc:
         part, agent, lines = parse_delta(p)
         by_part.setdefault(part, []).append((p, agent, digest(lines)))
 
+    # The part is reportable whether or not it has deltas: its branches and its integration state come
+    # from git, and those are what the next command depends on. Without this, `/merge-status <part>` on a
+    # fully consumed queue answered nothing at all.
     if a.part:
-        by_part = {k: v for k, v in by_part.items() if k == a.part}
-        if not by_part:
-            die(3, f"no unprocessed deltas for part {a.part!r}")
+        if a.part not in by_part:
+            by_part[a.part] = []
+        by_part = {a.part: by_part[a.part]}
 
     contract_integ = paths.get("integration_branch", "")
-    for part, ds in by_part.items():
+    wrote = consumed_here = 0
+    for part, ds in sorted(by_part.items()):
         integ = f"integration/{part}"
         brs = branch_of(repo, part)
+        fresh = sum(1 for f_path, _, _ in ds if not f_path.name.endswith(".processed"))
         rollup = build_rollup(part, ds, brs, integ, a.max_lines,
-                              integ_note(repo, integ, brs, part))
+                              integ_note(repo, integ, brs, part), fresh=fresh, total=len(ds))
         dst = status_dir / f"{part}.md"
-        print(f"=== {dst} ({len(rollup)} lines, {len(ds)} deltas consumed)")
+        print(f"=== {dst} ({len(rollup)} lines, {fresh} fresh / {len(ds) - fresh} consumed)")
         for l in rollup:
             print(l)
         # Not part of the rollup body: the rollup is a durable artifact, these are live instructions for
@@ -249,12 +278,25 @@ def main() -> None:
             print(c)
         if a.dry_run:
             continue
-        dst.write_text("\n".join(rollup) + "\n")
-    if not a.dry_run:
-        for p in consumed:
+        # Rewrite only when the state actually differs — the header timestamp is not state, or every run
+        # would dirty the vault and "is this tree clean?" would stop meaning anything.
+        body = [l for l in rollup[1:]]
+        old = dst.read_text(errors="replace").splitlines() if dst.exists() else []
+        old_body = [l for l in old[1:]]
+        if body != old_body or a.force or not old:
+            dst.write_text("\n".join(rollup) + "\n")
+            wrote += 1
+        here = [p for p, _, _ in ds if not p.name.endswith(".processed")]
+        for p in here:
             p.rename(p.with_name(p.name + ".processed"))
+        consumed_here += len(here)
     if a.dry_run:
         print("--- dry run: nothing written, no delta marked .processed")
+        raise SystemExit(0)
+    if not wrote and not consumed_here:
+        print("note: rollup already matches git state; nothing changed")
+        raise SystemExit(3)
+
 
 
 if __name__ == "__main__":

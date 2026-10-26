@@ -7,7 +7,7 @@
 # own worktree because `.agent/status` is per-worktree, and /merge-status asked the brain to run
 # `git branch --list`, which its own tier denies. Every case here is deterministic: no model, no network.
 #
-#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M15
+#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M20
 set -euo pipefail
 
 S="${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}"
@@ -15,7 +15,7 @@ M="${PI_MERGE_STATUS:-$HOME/.pi/agent/scripts/merge-status.py}"
 ROOT=/tmp/test-merge-status
 for f in "$S" "$M"; do [ -f "$f" ] || { echo "missing $f — run deploy.sh"; exit 1; }; done
 rm -rf "$ROOT"; mkdir -p "$ROOT/vault"
-R="$ROOT/repo"; git init -q -b main "$R"
+R="$ROOT/repo"; SRC="$ROOT/repo/.agent/status"; git init -q -b main "$R"
 cd "$R" && git config user.email t@t && git config user.name t && echo 'x=1' > a.py && git add -A && git commit -qm seed
 bash "$S" init --repo "$R" --vault "$ROOT/vault" --part structure --test-cmd 'true' >/dev/null
 
@@ -97,6 +97,44 @@ out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
 echo "$out" | grep -q 'is already in main' \
   && ok "M15 landed part reports prune, not merge" \
   || bad "M15 landed part reports prune — got: $(echo "$out" | grep -o 'next-command.*' | head -1)"
+
+# M16 — the bug that froze the brain. A plain run with the queue fully consumed must STILL report the
+# part: the old version returned early on "0 unprocessed deltas", so the file kept saying 0/2 after the
+# integrator had merged both slices, and the brain recommended work that was already finished.
+rc=0; python3 "$M" --repo "$R" >/tmp/m16a 2>&1 || rc=$?
+grep -q 'is already in main' /tmp/m16a && grep -q 'note: rollup already matches git state' /tmp/m16a \
+  && [ $rc -eq 3 ] && ok "M16 consumed queue still reports live git state (exit 3 = unchanged)" \
+  || bad "M16 consumed queue reports live state" "rc=$rc $(tail -1 /tmp/m16a)"
+
+# M17 — a git-side change alone rewrites the file, no --force, and the exit code says so.
+git -C "$R" branch -q agent/vault-structure-late c60e16e 2>/dev/null || git -C "$R" branch -q agent/vault-structure-late main
+rc=0; python3 "$M" --repo "$R" >/tmp/m17 2>&1 || rc=$?
+grep -q 'agent/vault-structure-late' "$ROOT/vault/status/vault-structure.md" && [ $rc -eq 0 ] \
+  && ok "M17 new branch alone refreshes the rollup (exit 0)" \
+  || bad "M17 git change alone refreshes the rollup" "rc=$rc $(grep branches "$ROOT/vault/status/vault-structure.md" | head -1)"
+
+# M18 — a part with zero delivery records is still reportable, and says it has none.
+rc=0; python3 "$M" --repo "$R" --part orphan >/tmp/m18 2>&1 || rc=$?
+grep -q 'no delivery records for this part yet' /tmp/m18 \
+  && ok "M18 --part with no deltas still answers from git" || bad "M18 --part with no deltas answers" "rc=$rc $(tail -1 /tmp/m18)"
+
+# M19 — a re-delivered slice counts once. The queue is append-only, so a second delivery of the same
+# (part, agent, date) sits next to the consumed twin: the fresh text must win and the twin must drop out,
+# or the tally would report the slice as done twice. Uses `init-script`, which already has a .processed
+# twin here; an earlier draft of this case wrote `init`, a *different* agent, and so proved nothing.
+printf 'DONE: second delivery of the same slice\n' > "$SRC/$DATE-vault-structure.init-script.md"
+out=$(python3 "$M" --repo "$R" --part vault-structure --dry-run 2>&1)
+n=$(grep -c '^- init-script:' <<<"$out")
+[ "$n" -eq 1 ] && grep -q 'second delivery of the same slice' <<<"$out" \
+  && ! grep -q 'two hyphens in the part name' <<<"$out" \
+  && ok "M19 re-delivery replaces its consumed twin instead of doubling the tally" \
+  || bad "M19 re-delivery counted once" "n=$n fresh-text=$(grep -c 'second delivery' <<<"$out")"
+
+# M20 — asking about one part must not consume another part's deltas (data loss class).
+printf 'DONE: other part ready\n' > "$SRC/$DATE-other.again.md"
+python3 "$M" --repo "$R" --part vault-structure >/dev/null 2>&1
+[ -f "$SRC/$DATE-other.again.md" ] && ok "M20 --part consumes only that part's queue entries" \
+  || bad "M20 --part consumed an unrelated delta"
 
 # M8 — one shared queue: a leaf writing the documented relative path from inside its worktree must land
 # in the repo queue that merge-status actually reads.

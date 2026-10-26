@@ -15,6 +15,12 @@ José only wants to see what would change.
 
 Then, and only then, report in **≤6 lines**:
 
+
+Exit 3 now means *the rollup already matches git state*, not "there is nothing to say": the script still
+prints the part's branch/integration line and its `next-command` lines, so read them. It does not return
+early on an empty queue any more — an empty queue with a merged branch is exactly the state where the
+commands matter.
+
 1. The rollup path and its line count (must be ≤15 — if the script says more, something is wrong, say so).
 2. `tally:` line, verbatim.
 3. Every `BLOCKED(...)` line, verbatim — these are the decisions owed. Do not paraphrase them.
@@ -28,7 +34,7 @@ Then, and only then, report in **≤6 lines**:
 Rules:
 - Never open a delta's `.processed` twin unless José asks for provenance.
 - Never edit a worker's delta. It is that agent's append-only record.
-- If the script exits 4 (contract broken: no `.agent-paths`, missing key, malformed delta name),
+- If the script exits 4 (contract broken: no `.agent-paths`, missing key, malformed delta name — report it, never hand-assemble the rollup instead),
   **report the error text and stop** — do not hand-assemble a rollup from the files instead. That
   failure means the delegation contract is broken, and papering over it is how a 58-file sprawl starts.
 - If the repo has no `.agent-paths` at all, this is a repo that was never set up for workers: the fix is
