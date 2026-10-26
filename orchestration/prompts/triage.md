@@ -10,25 +10,19 @@ Project: `${1:-ask José which project, then continue}`
 ## 1. Deterministic recon first (zero tokens per fact, run it before reading anything)
 
 ```bash
-: "${VAULT_ROOT:=$HOME/Documents/vault}"   # override: export VAULT_ROOT=~/path/to/your/vault
-V="$VAULT_ROOT/10-Projects"
-P="$V/${1:?}"
-[ -d "$P" ] || P=$(find "$V" -maxdepth 2 -type d -iname "*${1}*")
-ls "$P"
-echo "-- state file:"; grep -m1 -o 'memory/project_[a-z0-9_]*\.md' "$P/AGENTS.md"
-echo "-- structure generation:"
-for d in plans status ai-out handoffs; do [ -d "$P/$d" ] && echo "   $d/ present ($(ls "$P/$d" | wc -l) entries)" || echo "   $d/ MISSING"; done
-echo "-- dashboard head:"; head -20 "$P/project-dashboard.md" 2>/dev/null
-echo "-- last history entries:"; grep -n '^##\|^###' "$P/history.md" 2>/dev/null | tail -6
-echo "-- open questions:"; grep -c '^\s*-\s*\[ \]' "$P/open-questions.md" 2>/dev/null || echo "   none"
-echo "-- linked repos:"; cat "$P/status/repos.txt" 2>/dev/null; grep -m2 -o '/home/[^ )`]*' "$P/AGENTS.md"
-echo "-- recent commits per linked repo:"
-for r in $(cat "$P/status/repos.txt" 2>/dev/null); do echo "  $r: $(git -C "$r" log --oneline -3 2>/dev/null | tr '\n' ' | ')"; done
-echo "-- part rollups:"; for f in "$P"/status/*.md; do [ -f "$f" ] && echo "  $(basename "$f"): $(head -3 "$f" | tr '\n' ' ')"; done
+bash ~/.pi/agent/scripts/triage.sh <project> [--vault <path>]
 ```
 
-Never substitute an `ls` for a `read` of a file you intend to summarise — this block exists so you do
-not burn cache on directory listing. Read files *after* it, and only the ones it points at.
+That script is on your allow-list; everything else in `bash` is denied. It resolves the vault (flag,
+then `VAULT_ROOT`, then `~/.config/pi/vault-root`), finds the project under `10-Projects/` (exact, then
+unique case-insensitive match; ambiguous or absent exits 4 rather than guessing), and prints `VAULT=`,
+`PROJECT=`, `REL=`, `STATE=`, `STRUCTURE`, `DOC=` paths with line counts, recent `history.md` headings,
+open-question count, `ROLLUP=` lines, `REPOS` with branch/dirty/last-commit, and `STRUCTURE DEBT` with
+the exact `next-command[operator]:` line that clears it. Exit 4 means the name was not resolvable —
+report it, do not widen the search by hand.
+
+It prints pointers and counts, not bodies. Never substitute a listing for a `read` of a file you intend
+to summarise: read the two or three files it names, after it.
 
 ## 2. Then read, in this order, and stop when you can answer
 
@@ -46,7 +40,7 @@ and do not invent a path. Missing directory ≠ missing knowledge.
 
 **STRUCTURE DEBT** — one line per generation-old element, with the fix being *always* the same script, never you:
 ```
-plans/ missing → bash <repo>/orchestration/scripts/vault-init.sh --project <X>   (José runs it — your bash is denied)
+plans/ missing → the `next-command[operator]:` line that triage.sh already printed   (José runs it — your bash is denied for it)
 no memory/project_*.md pointer in AGENTS.md → same script
 ```
 You cannot `mkdir`: the gate denies it. Reporting the debt is your whole job for this block.

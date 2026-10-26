@@ -62,16 +62,17 @@ type Profile = {
 // redirection, pipes, or a here-doc. A allowlisted script name plus any of these is refused.
 const SHELL_SMUGGLE_RE = /[;&|`<>\n]|\$\(|\|\|/;
 
-// The brain's entire shell: the two deterministic scripts of the delegation contract.
+// The brain's entire shell: three deterministic scripts, named exactly. `/triage` used to instruct
+// bash one-liners this role cannot run, so the recon it needed became a script instead (2026-10-26).
 const BRAIN_SCRIPT_RE =
-	/^\s*(?:(?:python3?(?:\.\d+)?|bash|sh|zsh)\s+)?(?:~|\$HOME|\/[A-Za-z0-9._@/-]*)\/\.pi\/agent\/scripts\/(?:worktree\.sh|merge-status\.py)(?![\w.-])/;
+	/^\s*(?:(?:python3?(?:\.\d+)?|bash|sh|zsh)\s+)?(?:~|\$HOME|\/[A-Za-z0-9._@/-]*)\/\.pi\/agent\/scripts\/(?:worktree\.sh|merge-status\.py|triage\.sh)(?![\w.-])/;
 
 const BRAIN_PROFILE: Profile = {
 	toolResultCap: 12_000, // ~3K tokens
 	intercomSendCap: 400,
 	deny: ["bash", "grep", "find", "ls", "codemode"],
 	bashAllow: [BRAIN_SCRIPT_RE],
-	note: "brain tier: digests only. Route raw reading to a scout (subagent). bash is denied except for worktree.sh / merge-status.py.",
+	note: "brain tier: digests only. Route raw reading to a scout (subagent). bash is denied except for the three named scripts under ~/.pi/agent/scripts (worktree.sh, merge-status.py, triage.sh).",
 };
 
 const PROFILES: Record<string, Profile> = {

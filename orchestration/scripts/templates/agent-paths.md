@@ -34,7 +34,7 @@ in the contract changes, and re-running `init` keeps any key you do not pass.
 
 ## Rules this file enforces
 
-1. **The brain runs the two scripts, and nothing else.** `bash` is denied for the brain tier except
+1. **The brain runs the named scripts, and nothing else.** `bash` is denied for the brain tier except
    for `worktree.sh` and `merge-status.py` (`bashAllow` in `role-gate.ts`), and the allowance is refused
    if the command contains `;`, `&&`, `|`, backticks or redirection — the allowlist covers the *bare*
    command, so it cannot be used to read a file or chain a shell. Its worktree path comes from `worktrees` + `--part/--agent`;

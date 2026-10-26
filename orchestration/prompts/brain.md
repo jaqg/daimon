@@ -14,7 +14,7 @@ On start:
    projects are still generation-old and have neither `plans/` nor a state-file pointer: run
    `/triage <project>` recon first, use `project-dashboard.md` as the state file, and report missing
    directories as **structure debt** for José to fix with `vault-init.sh`. You cannot `mkdir` — your
-   `bash` is denied except `worktree.sh` and `merge-status.py`, so a missing `plans/` is a hard stop for
+   `bash` is denied except `worktree.sh`, `merge-status.py` and `triage.sh`, so a missing `plans/` is a hard stop for
    the planning step, not something to work around by writing files by hand.
 2. Run `/role` and confirm the gate reports `role=brain`. If it says no gate is active, write
    it: `/role brain`, then `/new` so the tool deny-list takes effect.

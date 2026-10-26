@@ -148,7 +148,7 @@ def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocke
     return [
         f"next-command[operator]: bash {wt} lab --repo {repo} --part {part}   # detached checkout for the verifier",
         f"next-command[operator]: pi-agents verifier --repo {repo}/.labs/{part}",
-        f"next-command[operator, after reading the integrator's OUT.md and the verdict]: git -C {repo} merge --no-ff {integ}",
+        f"next-command[operator, after reading the integrator's report (it has no write tool) and the verdict]: git -C {repo} merge --no-ff {integ}",
         f"next-command[operator]: bash {wt} prune --repo {repo}",
     ]
 

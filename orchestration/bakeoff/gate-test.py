@@ -139,7 +139,9 @@ def report(name: str, r: dict, check) -> bool:
 def provision_brain() -> Path:
     root = Path("/tmp/gate-brain")
     subprocess.run(["bash", "-c",
-                    f"rm -rf {root} && mkdir -p {root}/repo {root}/vault/status && "
+                    f"rm -rf {root} && mkdir -p {root}/repo {root}/vault/status "
+                    f"{root}/vault/10-Projects/Bcase && "
+                    f"printf 'State file: memory/project_bcase.md\\n' > {root}/vault/10-Projects/Bcase/AGENTS.md && "
                     f"cd {root}/repo && git init -q -b main && git config user.email t@t && "
                     "git config user.name t && echo x > a.py && git add -A && git commit -qm seed"],
                    check=True, capture_output=True)
@@ -147,7 +149,7 @@ def provision_brain() -> Path:
 
 
 def brain_cases(root: Path) -> bool:
-    """The brain has no shell — except the two scripts of the delegation contract. These police that
+    """The brain has no shell — except the named scripts of the delegation contract. These police that
     exception: allowed bare, refused when composed, refused for anything else."""
     R, V = root / "repo", root / "vault"
     cases = [
@@ -157,6 +159,15 @@ def brain_cases(root: Path) -> bool:
         ("B2 merge-status.py --dry-run (allowed)",
          f"python3 {SCRIPTS}/merge-status.py --repo {R} --dry-run",
          lambda r: not r["blocked"] and ("unprocessed deltas" in r["snip"] or "merge-status:" in r["snip"])),
+        # B7 is the case José found: `/triage` told the brain to run find/ls/grep one-liners, so the first
+        # move of every triage cycle hit a tool-deny. The recon became a script and joined the allow-list;
+        # this proves the allow-list took it AND that the script resolves a vault from a brain pane.
+        ("B7 triage.sh (allowed, must really run)",
+         f"bash {SCRIPTS}/triage.sh Bcase --vault {V}",
+         lambda r: not r["blocked"] and "PROJECT=" in r["snip"] and "STRUCTURE" in r["snip"]),
+        ("B8 triage.sh smuggled with `| wc -l` (denied)",
+         f"bash {SCRIPTS}/triage.sh Bcase --vault {V} | wc -l",
+         lambda r: r["blocked"] and "smuggle-block" in r["why"]),
         ("B3 `ls -la` (denied)", "ls -la", lambda r: r["blocked"] and "tool-deny" in r["why"]),
         ("B4 `cat <allowed script>` to read a file (denied)",
          f"cat {SCRIPTS}/merge-status.py", lambda r: r["blocked"] and "tool-deny" in r["why"]),
