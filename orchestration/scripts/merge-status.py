@@ -112,6 +112,47 @@ def integ_note(repo: Path, integ: str, branches: list[str], part: str) -> str:
     return f"{integ} (EXISTS, {len(merged)}/{len(branches)} agent branches merged{tail})"
 
 
+def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocked: int) -> list[str]:
+    """The commands, spelled out, for whoever has to act next.
+
+    Why this lives in the script and not in the brain's prose: José should never have to remember a
+    spawn command, and a brain that writes a command from memory can drift (wrong path, a flag that no
+    longer exists) while still sounding confident. Machine-emitted here means the rollup and the
+    instructions cannot disagree. `WT` is the brain's own allowed script, so it can paste its line back
+    verbatim; the pane line is José's, because opening a pane is the one thing no agent may do for itself.
+    """
+    wt = "$HOME/.pi/agent/scripts/worktree.sh"
+    if blocked:
+        return [f"next-command[brain]: amend the {part} spec — {blocked} BLOCKED line(s); nothing to integrate yet"]
+    exists = bool(_git_out(repo, "branch", "--list", integ))
+    if not exists:
+        return [
+            f"next-command[brain]: bash {wt} integrate --repo {repo} --part {part}",
+            f"next-command[operator]: pi-agents integrator --repo {repo}/.worktrees/integrate-{part}",
+        ]
+    merged = [b for b in branches
+              if subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", b, integ],
+                                 capture_output=True).returncode == 0]
+    if len(merged) < len(branches):
+        back = [b for b in branches if b not in merged]
+        return [
+            f"next-command[operator]: pi-agents integrator --repo {repo}/.worktrees/integrate-{part}",
+            f"  not yet in {integ}: {', '.join(back)}",
+        ]
+    landed = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", integ, "main"],
+                            capture_output=True).returncode == 0
+    if landed:
+        return [f"next-command[operator]: bash {wt} prune --repo {repo}  ({integ} is already in main)"]
+    # Ready to land, but the contract wants a checker that never shared a lab with the producers, so the
+    # verify step is printed as a command too rather than left as something José has to remember.
+    return [
+        f"next-command[operator]: bash {wt} lab --repo {repo} --part {part}   # detached checkout for the verifier",
+        f"next-command[operator]: pi-agents verifier --repo {repo}/.labs/{part}",
+        f"next-command[operator, after reading the integrator's OUT.md and the verdict]: git -C {repo} merge --no-ff {integ}",
+        f"next-command[operator]: bash {wt} prune --repo {repo}",
+    ]
+
+
 def build_rollup(part: str, per_agent: list[tuple[str, str, dict]], branches: list[str],
                  integ: str, max_lines: int, note: str = "") -> list[str]:
     tot: dict[str, int] = {}
@@ -188,8 +229,9 @@ def main() -> None:
         if not by_part:
             die(3, f"no unprocessed deltas for part {a.part!r}")
 
-    integ = paths.get("integration_branch", "")
+    contract_integ = paths.get("integration_branch", "")
     for part, ds in by_part.items():
+        integ = f"integration/{part}"
         brs = branch_of(repo, part)
         rollup = build_rollup(part, ds, brs, integ, a.max_lines,
                               integ_note(repo, integ, brs, part))
@@ -197,6 +239,14 @@ def main() -> None:
         print(f"=== {dst} ({len(rollup)} lines, {len(ds)} deltas consumed)")
         for l in rollup:
             print(l)
+        # Not part of the rollup body: the rollup is a durable artifact, these are live instructions for
+        # the terminal, and they would go stale the moment another branch lands.
+        blocked = sum(1 for _, _, d in ds if "blocked" in d["found"])
+        if contract_integ and contract_integ != integ:
+            print(f"note[drift]: .agent-paths integration_branch={contract_integ} is not this part's "
+                  f"branch ({integ}); re-run worktree.sh init --repo {repo} --part {part}")
+        for c in next_commands(repo, part, integ, brs, blocked):
+            print(c)
         if a.dry_run:
             continue
         dst.write_text("\n".join(rollup) + "\n")

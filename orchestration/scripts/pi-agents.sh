@@ -118,11 +118,27 @@ if [ -n "$WT" ]; then
   fi
   bash "$WT_SCRIPT" add --repo "$REPO" --part "$PART" --agent "$SLICE" --role "$ROLE"
   CWD="$REPO/.worktrees/$PART-$SLICE"
+elif [ -n "$REPO" ]; then
+  # `--repo` without `--wt` means "run in that project directory". It used to be ignored for leafless
+  # roles, so `pi-agents integrator --repo <worktree>` launched in the caller's cwd while claiming the
+  # worktree — and then refused for the *parent* checkout's role. A path argument that does not position
+  # you is worse than no path argument, because the printed command looked correct.
+  CWD="$REPO"
 fi
 
 # ---------------------------------------------------------------- gate consistency
 # The gate enforces whatever .pi-role says upward from cwd — if that disagrees with the prompt we just
 # loaded, you get one tier's instructions under another tier's tool policy. Loud, never silent.
+# A directory that does not exist must not be resolved by walking upward: `--repo
+# .../.worktrees/integrate-structure` before `worktree.sh integrate` has run used to land on the MAIN
+# checkout's `.pi-role=brain` and refuse with a mixed-tier error, which reads like a config problem and
+# is really "the workspace has not been created yet".
+if [ ! -d "$CWD" ]; then
+  die "no such directory: $CWD
+        for an integrator pane the integration worktree has to exist first — from the PROJECT ROOT run:
+          bash $WT_SCRIPT integrate --repo <project-root> --part <part>
+        /merge-status prints that line with the real paths; the brain owns the command."
+fi
 FOUND=""; D="$CWD"
 while [ "$D" != "/" ]; do
   if [ -f "$D/.pi-role" ]; then FOUND="$(tr -d '[:space:]' < "$D/.pi-role")"; GATADIR="$D"; break; fi
@@ -148,7 +164,9 @@ CMD=(pi --append-system-prompt "$FILE" --model "$MODEL")
 # forgets a tool would silently cripple the pane.
 if [ "$STRICT" = 1 ]; then
   TOOLS=$(awk -F': ' '/^tools:/{print $2; exit}' "$FILE")
-  [ -n "$TOOLS" ] && CMD+=(--tools "${TOOLS// /}")  # frontmatter is already comma-separated: delete spaces, do not add commas || echo "pi-agents: --strict ignored ($ROLE.md declares no tools line)" >&2
+  # An inline `#` comment used to swallow the `||` fallback on the previous line, so a role with no tools
+  # line silently produced `--tools` with an empty value instead of a warning.
+  if [ -n "$TOOLS" ]; then CMD+=(--tools "${TOOLS// /}"); else echo "pi-agents: --strict ignored ($ROLE.md declares no tools line)" >&2; fi
 fi
 [ ${#PI_ARGS[@]} -gt 0 ] && CMD+=("${PI_ARGS[@]}")
 echo "pi-agents: role=$ROLE model=$MODEL gate=${FOUND:-none} dir=$CWD" >&2

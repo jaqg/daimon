@@ -7,7 +7,7 @@
 # own worktree because `.agent/status` is per-worktree, and /merge-status asked the brain to run
 # `git branch --list`, which its own tier denies. Every case here is deterministic: no model, no network.
 #
-#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M10
+#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M15
 set -euo pipefail
 
 S="${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}"
@@ -45,17 +45,58 @@ out=$(python3 "$M" --repo "$R" --force 2>&1); chk $? "M4 --force rebuilds from .
 echo "$out" | grep -q 'deltas: 1 · agents: init-script' && ok "M5 --force rollup names the consumed delta" \
   || bad "M5 --force rollup names the consumed delta: $(echo "$out" | grep -o 'deltas:.*')"
 
-# M6 — the integration note has to answer existence, because the brain cannot run git.
-grep -q 'integration/structure (MISSING' "$ROOT/vault/status/vault-structure.md" \
+# M6 — the integration note has to answer existence, because the brain cannot run git. The branch name
+# is derived per part (`integration/<part>`), which is what worktree.sh integrate itself creates.
+grep -q 'integration/vault-structure (MISSING' "$ROOT/vault/status/vault-structure.md" \
   && ok "M6 rollup reports the integration branch as MISSING" \
-  || bad "M6 rollup reports the integration branch as MISSING"
-# M7 — after the branch exists and carries the agent's work, the note must say so with a tally.
+  || bad "M6 rollup reports MISSING — got: $(grep -o 'integration:.*' "$ROOT/vault/status/vault-structure.md")"
+
+# M11 — and it prints the command that fixes it, with real paths, so nobody has to remember syntax.
+out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
+echo "$out" | grep -q 'next-command\[brain\]: bash .*worktree.sh integrate --repo .*/repo --part vault-structure' \
+  && ok "M11 next-command names worktree.sh integrate with real paths" \
+  || bad "M11 next-command names integrate — got: $(echo "$out" | grep -o 'next-command.*' | head -1)"
+
+# M7 — `integrate` PREPARES the integration branch; merging the agent branches is the integrator session's
+# job (prepare-only role), so the honest state right after it is EXISTS with nothing merged yet.
 bash "$S" add --repo "$R" --part vault-structure --agent init --role worker >/dev/null
-git -C "$R" branch -f integration/structure agent/vault-structure-init
+# The agent branch needs a commit main does not have, otherwise integrating it is a no-op and the
+# rollup correctly reports the part as already landed — which is not the state M12/M14 assert on.
+printf 'x = 2  # slice work\n' >> "$R/.worktrees/vault-structure-init/a.py"
+git -C "$R/.worktrees/vault-structure-init" commit -qam "vault-structure: slice work"
+printf 'DONE: worker output ready to integrate\n' > "$R/.agent/status/$DATE-vault-structure.init.md"
+bash "$S" integrate --repo "$R" --part vault-structure >/dev/null 2>&1 || true
 python3 "$M" --repo "$R" --force >/dev/null 2>&1 || true
-grep -q 'integration/structure (EXISTS, 1/1' "$ROOT/vault/status/vault-structure.md" \
-  && ok "M7 rollup reports EXISTS + merged tally after integrate" \
-  || bad "M7 rollup reports EXISTS + merged tally (got: $(grep -o 'integration:.*' "$ROOT/vault/status/vault-structure.md"))"
+grep -q 'integration/vault-structure (EXISTS, 0/1' "$ROOT/vault/status/vault-structure.md" \
+  && ok "M7 integrate prepares the branch without merging (0/1, integrator's job)" \
+  || bad "M7 integrate prepares the branch without merging — got: $(grep -o 'integration:.*' "$ROOT/vault/status/vault-structure.md")"
+out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
+echo "$out" | grep -q 'not yet in it: agent/vault-structure-init' \
+  && ok "M13 unmerged branches are named, not counted vaguely" || bad "M13 unmerged branches are named"
+
+# Now let the integrator do its merge, and check the rollup moves to verify-then-land.
+git -C "$R/.worktrees/integrate-vault-structure" merge --no-ff -q agent/vault-structure-init -m "integrate vault-structure"
+python3 "$M" --repo "$R" --force >/dev/null 2>&1 || true
+out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
+grep -q 'integration/vault-structure (EXISTS, 1/1' "$ROOT/vault/status/vault-structure.md" \
+  && ok "M7b tally reaches 1/1 after the integrator merges" \
+  || bad "M7b tally after merge — got: $(grep -o 'integration:.*' "$ROOT/vault/status/vault-structure.md")"
+echo "$out" | grep -q 'merge --no-ff integration/vault-structure' \
+  && ok "M12 landing command targets the part's integration branch" \
+  || bad "M12 landing command — got: $(echo "$out" | grep -o 'next-command.*' | head -2 | tr '\n' '|')"
+echo "$out" | grep -q 'worktree.sh lab --repo .*/repo --part vault-structure' \
+  && ok "M14 verify-before-landing prints the lab command" \
+  || bad "M14 lab command printed — got: $(echo "$out" | grep -o 'next-command.*' | head -3 | tr '\n' '|')"
+grep -q 'note\[drift\]' <<<"$out" \
+  && ok "M13b contract/part mismatch is reported as drift, not applied blindly" \
+  || bad "M13b contract/part mismatch reported as drift"
+
+# M15 — once the part is in main, stop telling people to merge it.
+git -C "$R" merge --no-ff -q integration/vault-structure -m "land vault-structure" 2>/dev/null || true
+out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
+echo "$out" | grep -q 'is already in main' \
+  && ok "M15 landed part reports prune, not merge" \
+  || bad "M15 landed part reports prune — got: $(echo "$out" | grep -o 'next-command.*' | head -1)"
 
 # M8 — one shared queue: a leaf writing the documented relative path from inside its worktree must land
 # in the repo queue that merge-status actually reads.

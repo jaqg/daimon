@@ -183,6 +183,40 @@ case "$CMD" in
     echo "note: the merge lock in role-gate.ts lets this session merge ONLY while HEAD is $INTEG_BRANCH"
     ;;
 
+  lab)
+    # A checker must not share a lab with a producer (contract rule). Until now the machinery had no way
+    # to express that: `/merge-status` could tell you to verify a part but nobody could say *where*, so
+    # the verifier ended up reading the integrator's own worktree. `lab` makes a throwaway detached
+    # checkout of the ref under review, tagged with the checker's role, and prints the pane command.
+    [[ -n "$PART" ]] || die "lab needs --part"
+    # Default ref, in the order a checker actually needs it: the integration branch if the part has one
+    # (the normal pre-landing check), else the newest agent branch for the part (verifying one slice while
+    # it is still separate), else main. An earlier version insisted on integration/<part> and so refused
+    # the single-slice case, which is exactly when cross-lab checking was invented.
+    if [[ -z "${BASE:-}" ]]; then
+      if git -C "$REPO" show-ref --verify --quiet "refs/heads/integration/$PART"; then BASE="integration/$PART"
+      else BASE="$(git -C "$REPO" branch --list "agent/$PART-*" --format='%(refname:short)' | tail -1)"; fi
+      [[ -n "$BASE" ]] || BASE="main"
+    fi
+    REF="$BASE"
+    git -C "$REPO" show-ref --verify --quiet "refs/heads/$REF" \
+      || git -C "$REPO" rev-parse --verify --quiet "$REF" >/dev/null \
+      || die "lab: no such ref: $REF (pass --base <ref>)"
+    LAB="$REPO/.labs/$PART"
+    if [[ -e "$LAB" ]]; then
+      [[ -L "$LAB" ]] && { rm "$LAB"; } || refuse "$LAB exists and is not a symlink — remove it by hand"
+    fi
+    git -C "$REPO" worktree add --detach "$LAB" "$REF" >/dev/null 2>&1 \
+      || die "lab: git worktree add --detach $LAB $REF failed"
+    # Hardcoded, not ${ROLE:-verifier}: the global `ROLE` already defaults to `worker` from the shared
+    # flag parser, so honouring it tagged every checker workspace as a producer. A lab is a checker's
+    # workspace by definition; if another checker tier needs one, add --checker-role rather than reuse ROLE.
+    echo verifier > "$LAB/.pi-role"
+    grep -qxF '.labs/' "$(exclude_file)" 2>/dev/null || echo '.labs/' >> "$(exclude_file)"
+    echo "LAB=$LAB"; echo "REF=$REF"; echo "ROLE=verifier"
+    echo "next-command[operator]: pi-agents verifier --repo $LAB"
+    ;;
+
   list)
     git -C "$REPO" worktree list
     ;;
