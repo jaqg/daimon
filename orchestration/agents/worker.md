@@ -3,6 +3,8 @@ name: worker
 description: Executes one code spec in its own worktree — TDD, typecheck, commit, status delta
 tools: read, write, edit, bash, grep, find, ls
 model: opencode-go/gpt-6-luna
+thinking: medium
+
 # bake-off 2026-10-24 (short + long task). Short: Luna implemented the fused-ring spec correctly while
 # MiMo-v2.6-Flash and GLM-5.3-Flash silently merged SPIRO systems (atom-sharing != bond-sharing), and
 # used 2.7x fewer output tokens for the same green run. Long (multi-file, under-specified, no verification

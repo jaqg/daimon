@@ -89,6 +89,11 @@ fi
 FILE="$AGENTS_DIR/$ROLE.md"
 [ -f "$FILE" ] || die "no such role: $ROLE (have: ${roles[*]})"
 MODEL=$(awk '/^model:/{print $2; exit}' "$FILE")
+# pi has NO `thinking:` frontmatter field (verified against main.js: the level comes from --thinking, the
+# `model:pattern:level` shorthand, scoped model config, or settings.json's defaultThinkingLevel). The field
+# below is this launcher's own convention, forwarded as a flag — which is the point: without it every tier
+# silently inherits the global default, and one settings.json edit re-prices seven roles at once.
+THINK=$(awk '/^thinking:/{print $2; exit}' "$FILE")
 # An unpinned role silently inherits the default model — the bug that made every subagent a premium
 # session. Refuse rather than burn quota in silence (deploy.sh checks the same thing).
 [ -n "$MODEL" ] || die "$ROLE.md has no 'model:' in frontmatter — pin it before launching"
@@ -191,6 +196,7 @@ elif [ "$FOUND" != "$ROLE" ]; then
 fi
 
 CMD=(pi --append-system-prompt "$FILE" --model "$MODEL")
+[ -n "$THINK" ] && CMD+=(--thinking "$THINK")
 # The agent file's `tools:` line is a hard whitelist for subagents but pi has no --agent flag, so a pane
 # would otherwise get the full default toolset minus the gate's denies. --strict closes that last gap
 # for tiers whose tools line is known to be complete (leaves); off by default because a role file that
@@ -202,7 +208,7 @@ if [ "$STRICT" = 1 ]; then
   if [ -n "$TOOLS" ]; then CMD+=(--tools "${TOOLS// /}"); else echo "pi-agents: --strict ignored ($ROLE.md declares no tools line)" >&2; fi
 fi
 [ ${#PI_ARGS[@]} -gt 0 ] && CMD+=("${PI_ARGS[@]}")
-echo "pi-agents: role=$ROLE model=$MODEL gate=${FOUND:-none} dir=$CWD" >&2
+echo "pi-agents: role=$ROLE model=$MODEL thinking=${THINK:-settings-default} gate=${FOUND:-none} dir=$CWD" >&2
 [ "$DRY" = 1 ] && { printf '  %q' "${CMD[@]}"; echo; exit 0; }
 cd "$CWD"
 exec "${CMD[@]}"

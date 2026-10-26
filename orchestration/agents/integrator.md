@@ -3,6 +3,8 @@ name: integrator
 description: Prepares the merge — N worker branches onto an integration branch, tests the result, reports conflicts. Never lands on main, never pushes.
 tools: read, bash, ls, grep
 model: opencode-go/mimo-v2.6-flash
+thinking: medium
+
 # measured 2026-10-24 (bakeoff/integrator-probe.py): 10/10 checks, 13 turns, $0.0046, 0 gate hits. It merged
 # the clean branch, aborted the conflicting one, named both sides, refused to pick ("not mine to pick"), and
 # caught that the supplied test_cmd was vacuously green (`no tests ran`, exit 5) instead of reporting a pass.

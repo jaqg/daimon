@@ -3,6 +3,8 @@ name: calcs
 description: Runs one calculation batch — driver scripts, reduced outputs, tables. Never touches src/, never sshes.
 tools: read, write, edit, bash, grep, find, ls
 model: opencode-go/gpt-6-luna
+thinking: medium
+
 # bake-off 2026-10-24: on an input with duplicate (mol,state) rows — where S1-S0 is genuinely
 # unresolvable — Luna refused and documented why. MiniMax-M3 invented 51 numbers. Verbosity makes
 # it the priciest calcs model by 20x.

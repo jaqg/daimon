@@ -17,6 +17,8 @@ TOOLS = {
     "worker": "read,edit,write,bash,ls,grep,find",
     "calcs": "read,edit,write,bash,ls,grep,find",
     "verifier": "read,bash,ls,grep,find",
+    # `-short` is a TASK alias, not a tier: same whitelist, same gate role, smaller spec.
+    "worker-short": "read,edit,write,bash,ls,grep,find",
     "writer": "read,write,ls",
 }
 TIMEOUT = 780
@@ -37,6 +39,11 @@ def fixture(name: str):
 
 def setup_work(model: str, role: str) -> Path:
     safe = model.replace("/", "_").replace(":", "_").replace(".", "_")
+    # PROBE_TAG separates runs of the SAME model+role at different thinking levels — the crossed
+    # high/medium/low probe would otherwise overwrite its own run dir three times.
+    tag = os.environ.get("PROBE_TAG", "").strip()
+    if tag:
+        safe = f"{safe}__{tag}"
     work = BAKE / "run" / f"{safe}__{role}"
     if work.exists():
         shutil.rmtree(work)
@@ -54,7 +61,9 @@ def setup_work(model: str, role: str) -> Path:
     for f in (f"task-{role}.md", "SPEC-max-rings.md"):
         if (BAKE / f).exists():
             shutil.copy(BAKE / f, work / f)
-    (work / ".pi-role").write_text(role + "\n")
+    # The gate knows tiers, not task aliases — `worker-short` must still resolve to the worker profile,
+    # or the probe would measure an UNGATED worker and call it thinking-level data.
+    (work / ".pi-role").write_text(role.split("-")[0] + "\n")
     (work / "prompt.json").write_text(
         json.dumps({"type": "prompt", "message": (work / f"task-{role}.md").read_text()}) + "\n")
     return work

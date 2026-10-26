@@ -116,5 +116,23 @@ set -e
   && ok "P14 leaf mismatch hint warns --claim re-gates live panes" \
   || bad "P14 leaf mismatch hint" "${o:0:160}"
 
+# P15 — the launcher must forward the agent file's `thinking:` as a flag. pi has no such frontmatter field,
+# so if this passthrough breaks the pin is silently dead and every tier falls back to
+# settings.json defaultThinkingLevel — which is exactly how all 7 tiers ended up on `high` in the first
+# place without anyone deciding it.
+o=$(cd "$R/repo" && bash "$P" worker --dry 2>&1)
+# (the dry line is printed with `printf %q`, which double-spaces arguments, so a literal
+# "--thinking medium" substring can never match — a test that can only fail is not a test.)
+{ echo "$o" | grep -q 'thinking=medium' && echo "$o" | grep -qE -- '--thinking[[:space:]]+medium'; } \
+  && ok "P15 worker.md thinking pin reaches the pi command line" || bad "P15 thinking passthrough" "${o:0:200}"
+
+# P16 — and a role with NO thinking line says so out loud instead of pretending it decided.
+mkdir -p "$R/defs"
+sed '/^thinking:/d' "$HOME/.pi/agent/agents/worker.md" > "$R/defs/naive.md"
+sed -i 's/^name:.*/name: naive/; s/^model:.*/model: opencode-go\/mimo-v2.6-flash/' "$R/defs/naive.md"
+o=$(cd "$R/repo" && PI_AGENTS_DIR="$R/defs" bash "$P" naive --dry 2>&1)
+{ echo "$o" | grep -q 'thinking=settings-default' && ! echo "$o" | grep -q -- '--thinking'; } \
+  && ok "P16 unpinned role inherits + reports the global default" || bad "P16 unpinned role" "${o:0:200}"
+
 echo "---- pi-agents launcher: $pass passed, $fail failed"
 [ $fail -eq 0 ]

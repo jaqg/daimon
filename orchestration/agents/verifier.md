@@ -3,6 +3,8 @@ name: verifier
 description: Independently adjudicates a numeric artifact — CSV, table, fit, adjudication result. Read-only, returns PASS/FAIL with evidence.
 tools: read, bash, ls, grep
 model: opencode-go/mimo-v2.6-flash
+thinking: medium
+
 ---
 Tier: `verifier`
 

@@ -2,6 +2,8 @@
 name: implementer
 description: RETIRED — alias of worker, kept only so an old prompt cannot spawn an unpinned agent
 model: opencode-go/gpt-6-luna
+thinking: medium
+
 ---
 Tier: `worker`
 

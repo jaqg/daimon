@@ -2,6 +2,8 @@
 name: planner
 description: RETIRED — planning is the brain's job; this shim exists to block an unpinned model
 model: opencode-go/mimo-v2.6-pro:high
+thinking: high
+
 tools: read, grep, find, ls
 ---
 Tier: `brain`

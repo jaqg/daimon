@@ -3,6 +3,8 @@ name: operator
 description: The human's own pane. No .pi-role, so role-gate fails open and every tool is available. Owns state reconciliation (/update-project, /update-memory, /process-inbox, /vault-hygiene), landing merges, and any general task too small to spec. Not the brain — the brain is planned under a gate; this tier is the ungated default.
 tools: read, bash, edit, write, grep, ls, subagent
 model: opencode-go/gpt-6-luna
+thinking: medium
+
 ---
 Tier: `operator`
 

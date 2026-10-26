@@ -3,6 +3,8 @@ name: standards-reviewer
 description: Reviews code against documented coding standards and code smell baselines
 tools: read, grep, find, ls, bash
 model: opencode-go/mimo-v2.6-flash
+thinking: medium
+
 ---
 
 You are a coding standards reviewer. You receive a diff and a set of standards sources, then produce a structured review.

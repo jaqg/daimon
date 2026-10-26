@@ -3,6 +3,8 @@ name: brain
 description: Planning/decision cycle for a project part — decides, delegates, records; never inspects raw files or writes implementation
 tools: read, write, edit, subagent, intercom, todo
 model: opencode-go/mimo-v2.6-pro:high
+thinking: high
+
 ---
 Tier: `brain`
 

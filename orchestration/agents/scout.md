@@ -3,6 +3,8 @@ name: scout
 description: Fast codebase recon returning compressed findings for other agents
 tools: read, grep, find, ls, bash
 model: opencode-go/gpt-6-luna
+thinking: low
+
 # bake-off 2026-10-24: Luna returned a 2.3K-char digest, actually inside the <=3K-token budget;
 # MiMo returned 4.0K chars, GLM 4.3K, DeepSeek 6.5K. Nobody broke the <=3K-token budget, but Luna
 # costs ~4x less to read and that is what the brain pays for.

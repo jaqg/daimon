@@ -363,3 +363,64 @@ Two things it did that a checklist would not have asked for, and that decide the
    when there is no code to write.
 
 **integrator = `mimo-v2.6-flash`, now measured rather than assumed.** All seven tiers have evidence.
+
+
+## Thinking level is a cost lever, not a quality lever (2026-10-26)
+
+**Question.** Workers ran `thinking: high` because `settings.json` says `defaultThinkingLevel: "high"` —
+nobody ever decided it. Reasoning tokens are 32.5% of the output-side stream in the 30-day history
+(7.8M of 23.9M over 20,549 turns), so the level looked like a big dial. Does turning it down cost
+correctness?
+
+**Method.** `gpt-6-luna` × {`high`, `medium`, `low`} × two worker tasks, real tool whitelist and role gate
+(`.pi-role=worker`), fresh sandbox per run:
+
+- **long** (`task-worker.md`, n=2 per level): bring stage 01 up to stage 03's machine-readable contract —
+  seven exact accounting keys, a deliberate "you decide whether these stdout lines stay" clause, and the
+  rule that nothing currently passing may break. Scored by `grade-long.py`: hash the acceptance test and
+  the original suite for tampering, run the whole suite, check the agent ran a verification command itself.
+- **short** (`SPEC-max-rings.md`, n=1 per level): implement largest *fused* ring set. The spec's own test
+  asserts only 0/1/3, which a wrong implementation passes — counting SSSR rings gives 2 for
+  spiro[4.5]decane and 2 for biphenyl, and that is the failure `mimo-v2.6-flash` and `glm-5.3-flash`
+  committed at `high` on 2026-10-24. So `grade-short.py` supplies 7 hidden cases the candidate never sees.
+  Grader validated two ways before use: a hand-written reference solution scores `wrong = {}`, and a naive
+  `NumRings()` implementation scores **green on the visible suite** while `wrong = {spiro: 2≠1, biphenyl:
+  2≠1}` — i.e. the grader discriminates exactly where the spec does not.
+
+**Result — correctness did not move.**
+
+| level | long (2 runs) | short | hidden 7/7 | output tok (3 runs) | nominal $ | median s |
+|---|---|---|---|---|---|---|
+| `high` | PASS, PASS | PASS | **yes** | 37,146 | 0.0602 | 111 |
+| `medium` | PASS, PASS | PASS | **yes** | 27,742 | 0.0607 | 87 |
+| `low` | PASS, PASS | PASS | **yes** | 8,636 | 0.0273 | 93 |
+
+`low` used **4.3× fewer output tokens** than `high` for the same accepted work and was 1.6× faster. Nominal
+dollars move less than tokens (2.2×) because high's bill is cache-read dominated: 1.77M cache tokens vs
+0.90M — more thinking means more exploratory tool calls, which means more of the queue re-read.
+
+**The one quality difference was diligence, not correctness.** `low` run 1 never ran the suite: it used
+bare `python3` (no pytest in that interpreter), reported `TESTS: … not run; pytest unavailable`, and shipped
+after `compileall`. `low` run 2 found `.venv/bin/python -m pytest` and ran it. Both were honest about it in
+the delta — which is the behaviour the contract asks for — so the failure mode is "shipped unverified",
+1 of 6 runs, and it is exactly what the cross-lab verifier exists to catch. `high` and `medium` each ran the
+suite in both replicates and additionally did things nobody asked for (baseline capture, a counter/filter
+fixture, a ruff sweep).
+
+**Decision.** `worker`/`calcs`/`verifier`/`integrator`/`operator`/`writer`/reviewers → `medium`;
+`scout` → `low`; brain and planner stay `high`. Pinned in the agent files as `thinking:` and forwarded by
+`pi-agents` (P15/P16). Not `low` for workers, despite 7/7: the one wobble in six runs was at `low`, and
+`medium` costs 0.3× of `high`'s output tokens while keeping the suite-runs-itself behaviour.
+
+**Limits.** n=2 (long) / n=1 (short) per level on one model, on tasks that are single-file and locally
+verifiable. Both tasks were passable — so this experiment measures the *floor* of the quality effect, not
+the ceiling; a multi-day refactor with cross-module invariants may separate the levels. Sample sizes below
+3 per cell cannot see a 30% miss rate, and the honest reading of "no difference" here is "no difference
+large enough to matter at this n". Re-run before re-pinning a different model: the 2026-10-24 bake-off
+proved spiro-merging is a **model** property, not a level one — `high` thinking did not stop Flash and GLM
+from doing it.
+
+**Knock-on, not yet applied.** `subagent`-delegated leaves bypass `pi-agents` (pi passes only `--model`), so
+they still inherit the global default `high`. Either drop `defaultThinkingLevel` to `medium` — which also
+fixes hand-opened panes, at the cost of a plainly-launched brain running `medium` unless it uses
+`pi-agents brain` — or accept that delegated leaves run expensive. José's call.
