@@ -159,6 +159,11 @@ case "$CMD" in
     echo "PI_ROLE=$WT/.pi-role"
     # Exact delta name, so the dot convention is not something each leaf re-derives by hand.
     echo "DELTA=$REPO/.agent/status/$(date +%F)-$PART.$AGENT.md"
+    # R1: the launch line for THIS row, machine-emitted (rule 3c forbids composing it from memory).
+    # The rollup line's flags come from merge-status.py's own argparse (--repo and --part are both
+    # real), not from either prose contract that disagreed on --part.
+    echo "next-command[operator]: pi-agents $ROLE --repo $REPO --wt $PART/$AGENT"
+    echo "next-command[operator]: python3 \$HOME/.pi/agent/scripts/merge-status.py --repo $REPO --part $PART"
     ;;
 
   integrate)
@@ -181,6 +186,9 @@ case "$CMD" in
     grep -qxF .pi-role "$EXC" 2>/dev/null || echo .pi-role >> "$EXC"
     echo "WORKTREE=$WT"; echo "BRANCH=$INTEG_BRANCH"; echo "ROLE=integrator"
     echo "note: the merge lock in role-gate.ts lets this session merge ONLY while HEAD is $INTEG_BRANCH"
+    # Byte-identical to the line merge-status.py prints in its post-worker rollup (next_commands),
+    # so the two emitters can never drift apart.
+    echo "next-command[operator]: pi-agents integrator --repo $WT"
     ;;
 
   lab)
@@ -221,7 +229,7 @@ case "$CMD" in
         echo "next-command[operator]: pi-agents verifier --repo $LAB"
         exit 0
       fi
-      [[ -L "$LAB" ]] && { rm "$LAB"; } || refuse "$LAB exists and is not a git worktree — remove it by hand"
+      if [[ -L "$LAB" ]]; then rm "$LAB"; else refuse "$LAB exists and is not a git worktree — remove it by hand"; fi
     fi
     git -C "$REPO" worktree add --detach "$LAB" "$REF" >/dev/null 2>&1 \
       || die "lab: git worktree add --detach $LAB $REF failed"
@@ -277,7 +285,7 @@ case "$CMD" in
       done
     fi
     n=0
-    for WT in "$WT_ROOT"/$PART-*; do
+    for WT in "$WT_ROOT"/"$PART"-*; do
       [[ -d "$WT" ]] || continue
       name="$(basename "$WT")"; BR="agent/${name}"
       if ! git -C "$REPO" show-ref --verify --quiet "refs/heads/$INTEG_BRANCH"; then
