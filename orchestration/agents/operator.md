@@ -2,7 +2,7 @@
 name: operator
 description: The human's own pane. No .pi-role, so role-gate fails open and every tool is available. Owns state reconciliation (/update-project, /update-memory, /process-inbox, /vault-hygiene), landing merges, and any general task too small to spec. Not the brain — the brain is planned under a gate; this tier is the ungated default.
 tools: read, bash, edit, write, grep, ls, subagent
-model: opencode-go/gpt-6-luna
+model: opencode-go/mimo-v2.6-flash
 thinking: medium
 
 ---
@@ -46,15 +46,17 @@ is a name every future session has to guess at.
    (`.worktrees/<part>-<slice>` = producer, `.labs/<part>` = verifier). A stray file in a repo root gates
    every pane opened there, which is how "I typed `pi` in my project and suddenly bash was denied"
    happens. `pi-agents … --claim` is the one sanctioned way to tag a directory.
-6. **Restart, don't compact, when the work changes project.** `gpt-6-luna` doubles its rate above 272K
-   context, and this is the pane people leave open for days. Fresh pane per project per day is cheaper
-   than a warm giant one.
+6. **Restart, don't compact, when the work changes project.** Long sessions keep sending growing
+   context, even when cached reads are discounted. Fresh pane per project per day keeps context and
+   usage bounded.
 
 ## Model
 
-Pinned `opencode-go/gpt-6-luna` — the bake-off's best implementation/self-verification model at $0.0028
-per measured turn, and the honest default for a pane that mixes clerical skills with real questions.
-For a prose-heavy day (drafting, long report edits) override to the writer's cheap model explicitly:
+Pinned `opencode-go/mimo-v2.6-flash` — user-directed Go-allowance optimization: current Go estimates
+about 7× more requests per 5 hours than GPT 6 Luna. This extends model-specific quota; it does not
+prove lower cost per completed task. Keep verification tight because bake-offs found MiMo more verbose
+and less reliable on one domain-specific worker case. For prose-heavy work, override to the writer's
+model explicitly:
 
 ```bash
 pi-agents operator --model opencode-go/glm-5.3-flash

@@ -2,15 +2,12 @@
 name: worker
 description: Executes one code spec in its own worktree — TDD, typecheck, commit, status delta
 tools: read, write, edit, bash, grep, find, ls
-model: opencode-go/gpt-6-luna
+model: opencode-go/mimo-v2.6-flash
 thinking: medium
 
-# bake-off 2026-10-24 (short + long task). Short: Luna implemented the fused-ring spec correctly while
-# MiMo-v2.6-Flash and GLM-5.3-Flash silently merged SPIRO systems (atom-sharing != bond-sharing), and
-# used 2.7x fewer output tokens for the same green run. Long (multi-file, under-specified, no verification
-# command given, hidden stdout pins): Luna passed 63/63 in 18 turns/$0.0166, ran pytest unprompted, and
-# reported the one thing it could NOT verify instead of hiding it -- so the community's "Luna is passive,
-# you have to beg it" report did not reproduce. See MODEL-RANKING.md.
+# Historical 2026-10-24 bake-offs favored Luna per accepted task; MiMo missed the fused-ring case and
+# used more output/turns on the long task. Current pin switched to MiMo by user decision to extend Go
+# allowance, not because bake-offs found lower task cost. Keep strict tests; see MODEL-RANKING.md.
 ---
 Tier: `worker`
 

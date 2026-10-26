@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: RETIRED — alias of worker, kept only so an old prompt cannot spawn an unpinned agent
-model: opencode-go/gpt-6-luna
+model: opencode-go/mimo-v2.6-flash
 thinking: medium
 
 ---

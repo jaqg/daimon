@@ -2,12 +2,12 @@
 name: calcs
 description: Runs one calculation batch — driver scripts, reduced outputs, tables. Never touches src/, never sshes.
 tools: read, write, edit, bash, grep, find, ls
-model: opencode-go/gpt-6-luna
+model: opencode-go/mimo-v2.6-flash
 thinking: medium
 
-# bake-off 2026-10-24: on an input with duplicate (mol,state) rows — where S1-S0 is genuinely
-# unresolvable — Luna refused and documented why. MiniMax-M3 invented 51 numbers. Verbosity makes
-# it the priciest calcs model by 20x.
+# Historical 2026-10-24 bake-off: Luna refused an unresolvable duplicate-state input; MiniMax-M3
+# invented 51 numbers. Current pin switched to MiMo for Go allowance; retain explicit refusal,
+# provenance, and verification. See MODEL-RANKING.md.
 ---
 Tier: `calcs`
 

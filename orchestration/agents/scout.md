@@ -2,12 +2,12 @@
 name: scout
 description: Fast codebase recon returning compressed findings for other agents
 tools: read, grep, find, ls, bash
-model: opencode-go/gpt-6-luna
+model: opencode-go/mimo-v2.6-flash
 thinking: low
 
-# bake-off 2026-10-24: Luna returned a 2.3K-char digest, actually inside the <=3K-token budget;
-# MiMo returned 4.0K chars, GLM 4.3K, DeepSeek 6.5K. Nobody broke the <=3K-token budget, but Luna
-# costs ~4x less to read and that is what the brain pays for.
+# Historical 2026-10-24 bake-off: Luna returned a 2.3K-char digest; MiMo returned 4.0K chars.
+# Current pin switched to MiMo to extend Go allowance. Keep the <=3K-token digest cap strict;
+# see MODEL-RANKING.md.
 ---
 Tier: `scout`
 

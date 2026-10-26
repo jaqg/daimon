@@ -1,5 +1,14 @@
 # Model ranking per tier (OpenCode Go)
 
+## Current pin override
+
+Current user-directed pins: `worker`, `calcs`, `scout`, `operator`, and the retired `implementer` alias
+use `opencode-go/mimo-v2.6-flash`. This supersedes historical Luna assignments below to make better
+use of MiMo's larger Go allowance (the current Go page estimates about 7× more requests per 5 hours).
+It is a quota-capacity choice, **not** a claim of lower cost per completed task: local bake-offs found
+Luna cheaper on the tested worker tasks. Keep tests, the scout digest cap, and the MiMo repetition guard.
+Brain remains on `mimo-v2.6-pro:high`; other role pins unchanged. See [current Go limits](https://opencode.ai/v2/docs/console/go/#usage-limits).
+
 Question: is pinning every cheap tier to `mimo-v2.6-flash` (Xiaomi) smart, or a monoculture that
 buys correlated failures? Answer from the data: **it is a monoculture and MiMo is not the best model
 for most of those tiers.** The cheap tier is not Xiaomi-only: **11 paid Go models** cost ≤$0.20 in /
@@ -135,7 +144,7 @@ Four things only a bake-off could show:
    and from files the models wrote); the digest **ranking** survives, the absolute numbers are the ones
    above. No model actually breached the ≤3K-token scout budget — Luna simply costs 4× less to read.
 
-## Pins adopted from this
+## Historical pins adopted from 2026-10-24 bake-off (superseded for Luna roles)
 
 | tier | was | now | why |
 |---|---|---|---|
