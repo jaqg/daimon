@@ -186,6 +186,31 @@ def brain_cases(root: Path) -> bool:
     return ok
 
 
+def verifier_cases() -> bool:
+    """Read-only plumbing must stay reachable to a checker. The verifier that reviewed `structure` could
+    not run `git merge-base --is-ancestor` because `\b` matches at a hyphen, so the merge ban also ate
+    `merge-base` — the one command that proves ancestry. It worked around us with `git rev-list | grep`.
+    Two proofs: ancestry checks are allowed, real merges still are not."""
+    root = Path("/tmp/gate-verifier")
+    subprocess.run(["bash", "-c",
+                    f"rm -rf {root} && mkdir -p {root}/repo && cd {root}/repo && git init -q -b main && "
+                    "git config user.email t@t && git config user.name t && echo x > a.py && git add -A && "
+                    "git commit -qm one && echo y >> a.py && git commit -qam two"], check=True,
+                   capture_output=True)
+    R = root / "repo"
+    cases = [
+        ("V1 verifier may run git merge-base (read-only ancestry)",
+         "git merge-base --is-ancestor HEAD HEAD~1 && echo ANCESTOR",
+         lambda r: not r["blocked"] and ("ANCESTOR" in r["snip"] or r["cmds"])),
+        ("V2 verifier may not merge (the ban is about the verb, not the letter pair)",
+         "git merge --no-ff HEAD~1", lambda r: r["blocked"] and "bash-deny" in r["why"]),
+    ]
+    ok = True
+    for i, (name, cmd, check) in enumerate(cases):
+        ok &= report(name, run_case(R, "verifier", cmd, tag=f"v{i}"), check)
+    return ok
+
+
 def is_ancestor(repo: Path, a: str, b: str) -> bool:
     return subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", a, b],
                           capture_output=True).returncode == 0
@@ -298,6 +323,8 @@ def main():
     pos = [a for a in args if not a.startswith("--")]
     what = flags[0] if flags else "--locks"
     ok = True
+    if what == "--verifier":
+        raise SystemExit(0 if verifier_cases() else 1)
     if what == "--brain":
         ok &= brain_cases(Path(pos[0]).resolve() if pos else provision_brain())
     if what in ("--subagent", "--all"):

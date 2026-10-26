@@ -7,7 +7,7 @@
 # own worktree because `.agent/status` is per-worktree, and /merge-status asked the brain to run
 # `git branch --list`, which its own tier denies. Every case here is deterministic: no model, no network.
 #
-#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M20
+#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M25
 set -euo pipefail
 
 S="${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}"
@@ -45,6 +45,17 @@ out=$(python3 "$M" --repo "$R" --force 2>&1); chk $? "M4 --force rebuilds from .
 echo "$out" | grep -q 'deltas: 1 · agents: init-script' && ok "M5 --force rollup names the consumed delta" \
   || bad "M5 --force rollup names the consumed delta: $(echo "$out" | grep -o 'deltas:.*')"
 
+# M7 — `integrate` PREPARES the integration branch; merging the agent branches is the integrator session's
+# job (prepare-only role), so the honest state right after it is EXISTS with nothing merged yet.
+bash "$S" add --repo "$R" --part vault-structure --agent init --role worker >/dev/null
+# The agent branch needs a commit main does not have, otherwise integrating it is a no-op and the
+# rollup correctly reports the part as already landed — which is not the state M12/M14 assert on.
+printf 'x = 2  # slice work\n' >> "$R/.worktrees/vault-structure-init/a.py"
+git -C "$R/.worktrees/vault-structure-init" commit -qam "vault-structure: slice work"
+printf 'DONE: worker output ready to integrate\n' > "$R/.agent/status/$DATE-vault-structure.init.md"
+# Re-rollup first: the file on disk was written when this part had no branch at all.
+python3 "$M" --repo "$R" --force >/dev/null 2>&1 || true
+
 # M6 — the integration note has to answer existence, because the brain cannot run git. The branch name
 # is derived per part (`integration/<part>`), which is what worktree.sh integrate itself creates.
 grep -q 'integration/vault-structure (MISSING' "$ROOT/vault/status/vault-structure.md" \
@@ -57,14 +68,6 @@ echo "$out" | grep -q 'next-command\[brain\]: bash .*worktree.sh integrate --rep
   && ok "M11 next-command names worktree.sh integrate with real paths" \
   || bad "M11 next-command names integrate — got: $(echo "$out" | grep -o 'next-command.*' | head -1)"
 
-# M7 — `integrate` PREPARES the integration branch; merging the agent branches is the integrator session's
-# job (prepare-only role), so the honest state right after it is EXISTS with nothing merged yet.
-bash "$S" add --repo "$R" --part vault-structure --agent init --role worker >/dev/null
-# The agent branch needs a commit main does not have, otherwise integrating it is a no-op and the
-# rollup correctly reports the part as already landed — which is not the state M12/M14 assert on.
-printf 'x = 2  # slice work\n' >> "$R/.worktrees/vault-structure-init/a.py"
-git -C "$R/.worktrees/vault-structure-init" commit -qam "vault-structure: slice work"
-printf 'DONE: worker output ready to integrate\n' > "$R/.agent/status/$DATE-vault-structure.init.md"
 bash "$S" integrate --repo "$R" --part vault-structure >/dev/null 2>&1 || true
 python3 "$M" --repo "$R" --force >/dev/null 2>&1 || true
 grep -q 'integration/vault-structure (EXISTS, 0/1' "$ROOT/vault/status/vault-structure.md" \
@@ -91,20 +94,59 @@ grep -q 'note\[drift\]' <<<"$out" \
   && ok "M13b contract/part mismatch is reported as drift, not applied blindly" \
   || bad "M13b contract/part mismatch reported as drift"
 
-# M15 — once the part is in main, stop telling people to merge it.
+# M21 — the prune line has to be pasteable. `prune` dies without --part, and this command exists precisely
+# so nobody has to remember that.
+echo "$out" | grep -q 'prune --repo .*/repo --part vault-structure' \
+  && ok "M21 prune command carries --part" || bad "M21 prune command carries --part"
+
+# M22/M23 — before landing, prune cleans the slices but must REFUSE to touch the integration worktree or
+# the lab: the verdict is still open, and deleting the thing under review is how you lose an integration.
+bash "$S" lab --repo "$R" --part vault-structure >/dev/null 2>&1 || true
+po=$(bash "$S" prune --repo "$R" --part vault-structure 2>&1)
+[ ! -e "$R/.worktrees/vault-structure-init" ] && grep -q 'dropped vault-structure-init' <<<"$po" \
+  && ok "M22 prune removes a slice worktree once it is inside the integration branch" \
+  || bad "M22 prune removes merged slice worktree" "$(tail -2 <<<"$po")"
+grep -q 'integrate-vault-structure kept' <<<"$po" && grep -q '.labs/vault-structure kept' <<<"$po" \
+  && [ -e "$R/.worktrees/integrate-vault-structure" ] && [ -e "$R/.labs/vault-structure" ] \
+  && ok "M23 prune keeps integration worktree + lab while the part is not in main" \
+  || bad "M23 prune keeps unlanded workspaces" "$(tail -2 <<<"$po")"
+
+# M15 — landing changes the answer: the part is in main, so stop telling people to merge it.
 git -C "$R" merge --no-ff -q integration/vault-structure -m "land vault-structure" 2>/dev/null || true
 out=$(python3 "$M" --repo "$R" --force --dry-run 2>&1)
 echo "$out" | grep -q 'is already in main' \
   && ok "M15 landed part reports prune, not merge" \
   || bad "M15 landed part reports prune — got: $(echo "$out" | grep -o 'next-command.*' | head -1)"
 
-# M16 — the bug that froze the brain. A plain run with the queue fully consumed must STILL report the
-# part: the old version returned early on "0 unprocessed deltas", so the file kept saying 0/2 after the
-# integrator had merged both slices, and the brain recommended work that was already finished.
+# M16 — the bug that froze the brain. A plain run with a fully consumed queue must STILL report the part:
+# the old version returned early on "0 unprocessed deltas", so the file kept saying 0/2 after the
+# integrator merged both slices, and the brain recommended work that was already finished.
 rc=0; python3 "$M" --repo "$R" >/tmp/m16a 2>&1 || rc=$?
-grep -q 'is already in main' /tmp/m16a && grep -q 'note: rollup already matches git state' /tmp/m16a \
-  && [ $rc -eq 3 ] && ok "M16 consumed queue still reports live git state (exit 3 = unchanged)" \
-  || bad "M16 consumed queue reports live state" "rc=$rc $(tail -1 /tmp/m16a)"
+[ $rc -eq 0 ] && grep -q 'is already in main' /tmp/m16a \
+  && ok "M16a consumed queue still reports live git state (wrote: exit 0)" \
+  || bad "M16a consumed queue reports live state" "rc=$rc $(tail -1 /tmp/m16a)"
+rc=0; python3 "$M" --repo "$R" >/tmp/m16b 2>&1 || rc=$?
+[ $rc -eq 3 ] && grep -q 'note: rollup already matches git state' /tmp/m16b \
+  && ok "M16b second run is a no-op (exit 3 = unchanged), commands still printed" \
+  || bad "M16b unchanged run exits 3" "rc=$rc $(tail -1 /tmp/m16b)"
+
+# M24/M25 — after landing the whole scaffold is dead weight: integration worktree, its branch, the lab.
+po=$(bash "$S" prune --repo "$R" --part vault-structure 2>&1)
+grep -q 'dropped integrate-vault-structure' <<<"$po" && [ ! -e "$R/.worktrees/integrate-vault-structure" ] \
+  && ! git -C "$R" show-ref --verify --quiet refs/heads/integration/vault-structure \
+  && ok "M24 prune removes the integration worktree and branch after landing" \
+  || bad "M24 prune removes integration scaffold after landing" "$(tail -2 <<<"$po")"
+grep -q 'dropped lab .labs/vault-structure' <<<"$po" && [ ! -e "$R/.labs/vault-structure" ] \
+  && ok "M25 prune removes the checker lab once the part landed" \
+  || bad "M25 prune removes the lab" "$(tail -2 <<<"$po")"
+
+# M26 — a pruned part must not be reported as "integration branch MISSING, go integrate". The branch is
+# gone because the work is in main; telling the brain to recreate it would resurrect a finished part.
+rc=0; python3 "$M" --repo "$R" --part vault-structure >/tmp/m26 2>&1 || rc=$?
+grep -q 'landed and pruned, or never started; main is the record' /tmp/m26 \
+  && ! grep -q 'next-command' /tmp/m26 \
+  && ok "M26 pruned part reports the finished state and prints no commands" \
+  || bad "M26 pruned part is not re-suggested for integration" "rc=$rc $(grep -o 'next-command.*' /tmp/m26 | head -1)"
 
 # M17 — a git-side change alone rewrites the file, no --force, and the exit code says so.
 git -C "$R" branch -q agent/vault-structure-late c60e16e 2>/dev/null || git -C "$R" branch -q agent/vault-structure-late main

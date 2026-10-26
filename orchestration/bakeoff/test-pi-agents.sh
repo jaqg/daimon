@@ -65,5 +65,12 @@ echo "$o" | grep -q "role=verifier" && echo "$o" | grep -q "dir=$LABP" \
   && ok "P9 the printed verifier command opens the lab as its own tier" \
   || bad "P9 verifier command works — ${o:0:120}"
 
+# P10 — re-verification is a normal second pass: `lab` on an existing lab reuses it and says so, instead of
+# refusing (which pushed people to delete a workspace that may still hold an open session).
+again=$(bash "${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}" lab --repo "$R/repo" --part demo 2>&1); rc=$?
+[ $rc -eq 0 ] && grep -q 'LAB=.* (existing)' <<<"$again" && grep -q 'already checked out' <<<"$again" \
+  && ok "P10 lab reuses an existing workspace and reports the ref match" \
+  || bad "P10 lab reuse" "${again:0:120}"
+
 echo "---- pi-agents launcher: $pass passed, $fail failed"
 [ $fail -eq 0 ]

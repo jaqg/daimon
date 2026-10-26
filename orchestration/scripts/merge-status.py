@@ -104,23 +104,47 @@ def _git_out(repo: Path, *a: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True).stdout.strip()
 
 
-def integ_note(repo: Path, integ: str, branches: list[str], part: str) -> str:
+def integ_note(repo: Path, integ: str, branches: list[str], part: str) -> tuple[str, str]:
     """Answer item 4 of the /merge-status contract *inside* the allowed script: the brain cannot run
     `git branch --list` (its tier denies bash by design), so existence and merged-ness have to come out
-    of the rollup. Deterministic, positional, no prose interpretation."""
+    of the rollup. Deterministic, positional, no prose interpretation.
+
+    Returns (line, state). State is reported here and acted on in `next_commands`; keeping the two
+    in sync by hand already failed once (the frozen 0/2 rollup), so this is the one place that
+    decides whether a part still has work pending."""
     if not integ:
-        return "unset — contract has no integration_branch (run `worktree.sh init --part <part>`)"
+        return "unset — contract has no integration_branch (run `worktree.sh init --part <part>`)", "unset"
     if not _git_out(repo, "branch", "--list", integ):
-        return f"{integ} (MISSING — `worktree.sh integrate --repo <repo> --part {part}` has not run)"
+        if not branches:
+            # `prune` deletes the integration branch after a landing, so an absent branch with no agent
+            # branches is the *finished* state — not an invitation to integrate a part that has no work.
+            return (f"{integ} (absent) · no agent branches for this part — landed and pruned, or never "
+                    f"started; main is the record", "no-work")
+        return (f"{integ} (MISSING — `worktree.sh integrate --repo <repo> --part {part}` has not run)",
+                "missing")
     merged = [b for b in branches
               if subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", b, integ],
                                  capture_output=True).returncode == 0]
     back = [b for b in branches if b not in merged]
     tail = f" — not yet in it: {', '.join(back)}" if back else ""
-    return f"{integ} (EXISTS, {len(merged)}/{len(branches)} agent branches merged{tail})"
+    # Landed means the part's WORK is in main, not that the integration branch is an ancestor of it: an
+    # untouched integration branch equals main, and the fixture caught this script calling an empty
+    # scaffold "LANDED" with 0/1 merged. Requires every agent branch in main as well.
+    if (branches and not back
+            and all(subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", b, "main"],
+                                   capture_output=True).returncode == 0 for b in branches)
+            and subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", integ, "main"],
+                                capture_output=True).returncode == 0):
+        # Landed-ness belongs in the file, not only in the live commands: without it the rollup body is
+        # byte-identical before and after José's merge, so landing reads as "nothing changed" to anyone
+        # who opens the status dir tomorrow.
+        return (f"{integ} (EXISTS, {len(merged)}/{len(branches)} agent branches merged · LANDED in main)",
+                "landed")
+    return f"{integ} (EXISTS, {len(merged)}/{len(branches)} agent branches merged{tail})", "exists"
 
 
-def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocked: int) -> list[str]:
+def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocked: int,
+                  state: str) -> list[str]:
     """The commands, spelled out, for whoever has to act next.
 
     Why this lives in the script and not in the brain's prose: José should never have to remember a
@@ -132,12 +156,18 @@ def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocke
     wt = "$HOME/.pi/agent/scripts/worktree.sh"
     if blocked:
         return [f"next-command[brain]: amend the {part} spec — {blocked} BLOCKED line(s); nothing to integrate yet"]
-    exists = bool(_git_out(repo, "branch", "--list", integ))
-    if not exists:
+    if state == "no-work":
+        # Nothing exists for this part: no slice branches, no integration branch. `integrate` would fail
+        # (there is nothing to combine) and `add` needs a slice name this script cannot know, so the honest
+        # answer is no command at all — the brain reports `no command for: <step>` instead of guessing.
+        return []
+    if state in ("missing", "unset"):
         return [
             f"next-command[brain]: bash {wt} integrate --repo {repo} --part {part}",
             f"next-command[operator]: pi-agents integrator --repo {repo}/.worktrees/integrate-{part}",
         ]
+    if state == "landed":
+        return [f"next-command[operator]: bash {wt} prune --repo {repo} --part {part}  ({integ} is already in main)"]
     merged = [b for b in branches
               if subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", b, integ],
                                  capture_output=True).returncode == 0]
@@ -147,17 +177,13 @@ def next_commands(repo: Path, part: str, integ: str, branches: list[str], blocke
             f"next-command[operator]: pi-agents integrator --repo {repo}/.worktrees/integrate-{part}",
             f"  not yet in {integ}: {', '.join(back)}",
         ]
-    landed = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", integ, "main"],
-                            capture_output=True).returncode == 0
-    if landed:
-        return [f"next-command[operator]: bash {wt} prune --repo {repo}  ({integ} is already in main)"]
     # Ready to land, but the contract wants a checker that never shared a lab with the producers, so the
     # verify step is printed as a command too rather than left as something José has to remember.
     return [
         f"next-command[operator]: bash {wt} lab --repo {repo} --part {part}   # detached checkout for the verifier",
         f"next-command[operator]: pi-agents verifier --repo {repo}/.labs/{part}",
         f"next-command[operator, after reading the integrator's report (it has no write tool) and the verdict]: git -C {repo} merge --no-ff {integ}",
-        f"next-command[operator]: bash {wt} prune --repo {repo}",
+        f"next-command[operator]: bash {wt} prune --repo {repo} --part {part}",
     ]
 
 
@@ -262,8 +288,8 @@ def main() -> None:
         integ = f"integration/{part}"
         brs = branch_of(repo, part)
         fresh = sum(1 for f_path, _, _ in ds if not f_path.name.endswith(".processed"))
-        rollup = build_rollup(part, ds, brs, integ, a.max_lines,
-                              integ_note(repo, integ, brs, part), fresh=fresh, total=len(ds))
+        note, state = integ_note(repo, integ, brs, part)
+        rollup = build_rollup(part, ds, brs, integ, a.max_lines, note, fresh=fresh, total=len(ds))
         dst = status_dir / f"{part}.md"
         print(f"=== {dst} ({len(rollup)} lines, {fresh} fresh / {len(ds) - fresh} consumed)")
         for l in rollup:
@@ -274,7 +300,7 @@ def main() -> None:
         if contract_integ and contract_integ != integ:
             print(f"note[drift]: .agent-paths integration_branch={contract_integ} is not this part's "
                   f"branch ({integ}); re-run worktree.sh init --repo {repo} --part {part}")
-        for c in next_commands(repo, part, integ, brs, blocked):
+        for c in next_commands(repo, part, integ, brs, blocked, state):
             print(c)
         if a.dry_run:
             continue

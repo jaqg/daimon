@@ -93,7 +93,10 @@ const PROFILES: Record<string, Profile> = {
 		// "Never merge, never push" is in the agent file, which is a suggestion. Landing is the
 		// integrator's and José's decision, so the leaf tiers lose the verbs entirely.
 		bashDeny: [
-			/\bgit\s+(push|merge|rebase)\b/,
+			// Read-only ancestry plumbing stays reachable. `\b` matches at a hyphen, so this pattern used to
+			// block `git merge-base` — the exact command a checker needs, and a real verifier worked around it
+			// with `git rev-list HEAD | grep` to prove ancestry at a detached HEAD.
+			/\bgit\s+(push|rebase)\b|\bgit\s+merge(?!-(?:base|tree))\b/,
 			/\bgit\s+(checkout|switch)\s+(main|master)\b/,
 			/\bgit\s+reset\s+--hard\b/,
 			/\bgit\s+branch\s+-[dD]\b/,
@@ -114,7 +117,10 @@ const PROFILES: Record<string, Profile> = {
 			/\bscp\b/,
 			/\brsync\b/,
 			/\bsshpass\b/,
-			/\bgit\s+(push|merge|rebase)\b/,
+			// Read-only ancestry plumbing stays reachable. `\b` matches at a hyphen, so this pattern used to
+			// block `git merge-base` — the exact command a checker needs, and a real verifier worked around it
+			// with `git rev-list HEAD | grep` to prove ancestry at a detached HEAD.
+			/\bgit\s+(push|rebase)\b|\bgit\s+merge(?!-(?:base|tree))\b/,
 			/\bgit\s+(checkout|switch)\s+(main|master)\b/,
 		],
 		note: "calcs tier: numbers + provenance, never src/, never ssh. Report circularity, don't fix code.",
@@ -124,7 +130,11 @@ const PROFILES: Record<string, Profile> = {
 		intercomSendCap: 0, // verdicts travel as return values, not as messages
 		deny: ["write", "edit", "subagent", "codemode", "intercom"],
 		// A verifier that repairs what it verifies is a second producer.
-		bashDeny: [/\bgit\s+(checkout|switch|restore|reset|clean|revert|merge|rebase|push)\b/],
+		// Mutation verbs only. `merge-base` and `merge-tree` are read-only plumbing and the checker's best
+		// proof of ancestry, so they are excluded by lookahead: `\b` matches at a hyphen, and the flat
+		// alternation used to deny `git merge-base` outright (the `structure` verifier had to fall back to
+		// `git rev-list HEAD | grep` and said so in its Method section).
+		bashDeny: [/\bgit\s+(checkout|switch|restore|reset|clean|revert|rebase|push)\b|\bgit\s+merge(?!-(?:base|tree))\b/],
 		note: "verifier tier: read + recompute only. PASS/FAIL/UNVERIFIABLE plus an independence argument.",
 	},
 	integrator: {
@@ -149,7 +159,7 @@ const PROFILES: Record<string, Profile> = {
 		intercomSendCap: 3_000,
 		deny: ["edit", "write", "codemode"],
 		pathAllow: ["/queries/", "/lit-reviews/", "/.agent/digests/", "/ai-out/"],
-		bashDeny: [/\brm\s+-[rf]/, /\bgit\s+(push|merge|rebase|reset\s+--hard)\b/, /\b(make|cmake|meson|cargo\s+build|npm\s+run\s+build)\b/],
+		bashDeny: [/\brm\s+-[rf]/, /\bgit\s+(push|rebase|reset\s+--hard)\b|\bgit\s+merge(?!-(?:base|tree))\b/, /\b(make|cmake|meson|cargo\s+build|npm\s+run\s+build)\b/],
 		note: "scout tier: read anything, return a digest <= 3K tokens. No builds, no deletes; lit-* scripts write queries/, lit-reviews/ via --output.",
 	},
 	reporter: {

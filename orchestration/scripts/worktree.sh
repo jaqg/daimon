@@ -204,7 +204,24 @@ case "$CMD" in
       || die "lab: no such ref: $REF (pass --base <ref>)"
     LAB="$REPO/.labs/$PART"
     if [[ -e "$LAB" ]]; then
-      [[ -L "$LAB" ]] && { rm "$LAB"; } || refuse "$LAB exists and is not a symlink — remove it by hand"
+      # Re-verifying a part is normal (the integrator landed a fix, or the first verdict was wrong), so an
+      # existing lab is reused rather than refused — but never silently moved: a worktree can still hold an
+      # open session, and pulling its HEAD out from under a verifier is how a verdict describes a commit
+      # nobody looked at. If it points elsewhere, the refresh command is printed for the operator.
+      if git -C "$LAB" rev-parse --git-dir >/dev/null 2>&1; then
+        CUR="$(git -C "$LAB" rev-parse --short HEAD 2>/dev/null || echo '?')"
+        WANT="$(git -C "$REPO" rev-parse --short "$REF" 2>/dev/null || echo '?')"
+        echo "LAB=$LAB (existing)"
+        if [[ "$CUR" == "$WANT" ]]; then
+          echo "REF=$REF (already checked out at $CUR)"
+        else
+          echo "REF=$REF — lab is at $CUR, NOT refreshed. operator: git -C $LAB checkout --detach $REF"
+        fi
+        echo "ROLE=$(cat "$LAB/.pi-role" 2>/dev/null || echo verifier)"
+        echo "next-command[operator]: pi-agents verifier --repo $LAB"
+        exit 0
+      fi
+      [[ -L "$LAB" ]] && { rm "$LAB"; } || refuse "$LAB exists and is not a git worktree — remove it by hand"
     fi
     git -C "$REPO" worktree add --detach "$LAB" "$REF" >/dev/null 2>&1 \
       || die "lab: git worktree add --detach $LAB $REF failed"
@@ -241,24 +258,85 @@ case "$CMD" in
 
   prune)
     [[ -n "$PART" ]] || die "prune needs --part"
-    INTEG_BRANCH="$(old_val integration_branch)"
+    # Prefer the per-part name (what `integrate` creates and what merge-status derives); fall back to the
+    # contract file only if that ref does not exist. Reading the contract first meant pruning looked for a
+    # branch nobody created when a second part shared the repo.
+    INTEG_BRANCH="integration/$PART"
+    if ! git -C "$REPO" show-ref --verify --quiet "refs/heads/$INTEG_BRANCH"; then
+      ALT="$(old_val integration_branch)"
+      [[ -n "$ALT" && "$ALT" != "$INTEG_BRANCH" ]] && git -C "$REPO" show-ref --verify --quiet "refs/heads/$ALT" \
+        && INTEG_BRANCH="$ALT"
+    fi
+    # Same rule as merge-status: landed means the part's work is in main. An integration branch that was
+    # created and never merged equals main, and would otherwise be "landed" with nothing in it.
+    LANDED=0
+    if git -C "$REPO" merge-base --is-ancestor "$INTEG_BRANCH" main 2>/dev/null; then
+      LANDED=1
+      for BRX in $(git -C "$REPO" branch --list "agent/$PART-*" --format='%(refname:short)'); do
+        git -C "$REPO" merge-base --is-ancestor "$BRX" main 2>/dev/null || { LANDED=0; break; }
+      done
+    fi
     n=0
     for WT in "$WT_ROOT"/$PART-*; do
       [[ -d "$WT" ]] || continue
       name="$(basename "$WT")"; BR="agent/${name}"
-      if [[ -z "$INTEG_BRANCH" ]] || ! git -C "$REPO" show-ref --verify --quiet "refs/heads/$INTEG_BRANCH"; then
-        echo "prune: $name kept — integration branch '${INTEG_BRANCH:-unset}' does not exist yet"
+      if ! git -C "$REPO" show-ref --verify --quiet "refs/heads/$INTEG_BRANCH"; then
+        echo "prune: $name kept — integration branch '${INTEG_BRANCH}' does not exist yet"
         continue
       fi
       if git -C "$REPO" merge-base --is-ancestor "$BR" "$INTEG_BRANCH" 2>/dev/null; then
         dirty="$(git -C "$WT" status --porcelain | grep -v '^?? \.pi-role$' || true)"
         [[ -z "$dirty" ]] || { echo "prune: $name dirty, kept"; continue; }
         git -C "$REPO" worktree remove "$WT" && echo "prune: dropped $name (merged into $INTEG_BRANCH)" && n=$((n+1))
-        git -C "$REPO" branch -d "$BR" 2>/dev/null || true
+        git -C "$REPO" branch -d "$BR" 2>/dev/null || echo "prune: $BR left — not deletable from here"
       else
         echo "prune: $name still ahead of $INTEG_BRANCH, kept"
       fi
     done
+
+    # A branch is not the same thing as its worktree: a slice pruned on an earlier pass keeps its branch
+    # when `branch -d` was refused then (not yet in main), and nothing ever revisits it — the part would
+    # report phantom branches forever. Sweep by ref, independent of any directory.
+    for BRX in $(git -C "$REPO" branch --list "agent/$PART-*" --format='%(refname:short)'); do
+      [[ -d "$WT_ROOT/${BRX#agent/}" ]] && continue
+      if [[ $LANDED -eq 1 ]] && git -C "$REPO" merge-base --is-ancestor "$BRX" main 2>/dev/null; then
+        git -C "$REPO" branch -d "$BRX" >/dev/null 2>&1 \
+          && echo "prune: dropped $BRX (in main, no worktree)" || true
+      fi
+    done
+
+    # The integration worktree and the checker's lab matched no glob here, so both survived the landing
+    # that finished the part: `git worktree list` kept advertising directories whose whole purpose was over.
+    # Removal is gated on the same fact a human would check — the branch is in main, and the tree is clean.
+    IWT="$WT_ROOT/integrate-$PART"
+    if [[ -e "$IWT" ]]; then
+      if [[ $LANDED -eq 1 ]]; then
+        dirty="$(git -C "$IWT" status --porcelain 2>/dev/null | grep -v '^?? \.pi-role$' || true)"
+        if [[ -z "$dirty" ]]; then
+          git -C "$REPO" worktree remove "$IWT" && echo "prune: dropped integrate-$PART" && n=$((n+1))
+          git -C "$REPO" branch -d "$INTEG_BRANCH" 2>/dev/null || echo "prune: $INTEG_BRANCH left — not deletable from here"
+        else
+          echo "prune: integrate-$PART dirty, kept (the integrator may still be in there)"
+        fi
+      else
+        echo "prune: integrate-$PART kept — $INTEG_BRANCH is not in main yet"
+      fi
+    fi
+    LAB="$REPO/.labs/$PART"
+    if [[ -e "$LAB" ]]; then
+      if [[ $LANDED -ne 1 ]]; then
+        echo "prune: .labs/$PART kept — verdict still open for this part"
+      else
+        dirty="$(git -C "$LAB" status --porcelain 2>/dev/null | grep -v '^?? \.pi-role$' || true)"
+        if [[ -z "$dirty" ]]; then
+          git -C "$REPO" worktree remove --force "$LAB" 2>/dev/null \
+            || { rm -rf "$LAB"; git -C "$REPO" worktree prune; }
+          echo "prune: dropped lab .labs/$PART"; n=$((n+1))
+        else
+          echo "prune: .labs/$PART dirty, kept (unsaved verifier notes?)"
+        fi
+      fi
+    fi
     echo "prune: $n worktree(s) removed"
     ;;
 
