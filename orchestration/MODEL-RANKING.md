@@ -420,7 +420,14 @@ large enough to matter at this n". Re-run before re-pinning a different model: t
 proved spiro-merging is a **model** property, not a level one — `high` thinking did not stop Flash and GLM
 from doing it.
 
-**Knock-on, not yet applied.** `subagent`-delegated leaves bypass `pi-agents` (pi passes only `--model`), so
-they still inherit the global default `high`. Either drop `defaultThinkingLevel` to `medium` — which also
-fixes hand-opened panes, at the cost of a plainly-launched brain running `medium` unless it uses
-`pi-agents brain` — or accept that delegated leaves run expensive. José's call.
+**Knock-on, applied 2026-10-26.** `subagent` passes only `--model`, so delegated leaves bypass `pi-agents` and
+inherit the global default. José's call: `settings.json → defaultThinkingLevel` is now **`medium`**, so every
+hand-opened pane and every delegated leaf runs medium instead of the accidental `high`. The trade-off that made
+this a decision — a plainly-launched brain dropping to medium — is closed by a second key,
+`modelThinkingLevels: {"opencode-go/mimo-v2.6-pro": "high"}`: the default model *is* the brain's model, so pinning
+that one model at high keeps `pi` (no `pi-agents`) brain-grade while the rest of the fleet sits at medium. Key
+shape confirmed against pi's own bundle (`modelThinkingLevels?.[\`${provider}/${modelId}\`]`) and
+`schemas/settings.schema.json` (`patternProperties` → `ModelThinkingLevel`); precedence per `main.js` is
+`--thinking` > scoped model > `modelThinkingLevels` > `defaultThinkingLevel`. What is *not* verified: watching the
+level land at runtime — check it yourself in pi's settings menu, "Per-Model Thinking Level". Previous settings kept
+at `~/.pi/agent/settings.json.bak-2026-10-26`.
