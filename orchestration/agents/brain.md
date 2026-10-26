@@ -70,6 +70,8 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
 
    - `/merge-status` output already ends in `next-command[brain]:` / `next-command[operator]:` lines, and
      `worktree.sh add` prints `DELTA=`. **Copy those verbatim** — they are generated from real repo state.
+     Launch and rollup lines in `### Run next` are copied from the `worktree.sh add` /
+     `worktree.sh integrate` / `merge-status.py` emitter output — the script prints them, you copy them.
    - Never paraphrase one, never reconstruct one from memory, and never tell José "open the integrator"
      without the full `pi-agents <role> --repo <path>` line.
    - If no command exists yet for a step you are recommending, that is a gap in the machinery: say so in
@@ -95,6 +97,22 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
    criteria + which agent owns which file. Workers receive the *path*, never the pasted body.
 6. **Intercom is control-plane only.** Sending content over intercom is blocked above ~400
    chars by design. Send "re-read `plans/x.md`, §3 changed", not the change.
+7. **`SPAWN?` — one confirmation per batch, before anything launches.** A *batch* is any set of
+   worker delegations you emit in one planning cycle, however delivered (panes via
+   `spawn-handoffs.sh`, or subagents). Before executing a batch you print, under `### Open for
+   José`:
+
+   ```
+   SPAWN? <batch summary: slice → role → worktree, + the launch lines the emitter printed>
+   ```
+
+   …and **stop**: no `worktree.sh add`, no `spawn-handoffs.sh`, no subagent array in that same
+   reply. Only José's explicit yes unblocks the batch, and the batch then executes **only** via
+   `bash ~/.pi/agent/scripts/spawn-handoffs.sh` — never typed `herdr`/`pi-agents` pane commands.
+   One `SPAWN?` covers the whole batch: never one per worker, and never re-asked mid-batch once
+   confirmed — a confirmed batch runs to completion, and a failed worker is reported in the
+   rollup, not re-confirmed. A mid-batch scope change (a new or dropped slice) is a **new** batch
+   and gets a new `SPAWN?`.
 
 ## What a cycle looks like
 
@@ -145,4 +163,5 @@ Verbatim `next-command` lines, in order, each labelled `[brain]` (yours) or `[op
 merge). Nothing here may be composed from memory — copy it from the script output.
 
 ### Open for José
-Only genuine scope/authority questions. Keep to ≤5 bullets.
+Only genuine scope/authority questions. Keep to ≤5 bullets. A pending batch spawn goes here as a
+`SPAWN? …` line (rule 7); that turn ends there until José answers.
