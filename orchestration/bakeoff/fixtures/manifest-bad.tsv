@@ -1,0 +1,9 @@
+# manifest-bad.tsv — rows a per-row error must swallow WITHOUT aborting the batch (R3 error handling).
+# Row with badcols has 3 columns (missing prompt_file); Bad-Slice's slice starts uppercase (fails the
+# herdr rename regex); toolong has 6 columns (note column may not be followed by more columns);
+# first/last are fine and must still spawn. $TEST_ROOT is substituted by the test.
+worker	demo/first	$TEST_ROOT/repo	$TEST_ROOT/prompts/w1.md
+worker	demo/badcols	$TEST_ROOT/repo
+worker	demo/Bad-Slice	$TEST_ROOT/repo	$TEST_ROOT/prompts/w2.md
+worker	demo/toolong	$TEST_ROOT/repo	$TEST_ROOT/prompts/w1.md	note	extra
+worker	demo/last	$TEST_ROOT/repo	$TEST_ROOT/prompts/w3.md	ok row
