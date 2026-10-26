@@ -92,5 +92,29 @@ set -e
 [ $rc -ne 0 ] && grep -q 'needs no --claim' <<<"$o" && [ ! -f "$R/repo/.pi-role" ] \
   && ok "P12 operator refuses --claim and writes nothing" || bad "P12 operator --claim" "${o:0:140}"
 
+# P13 — the mismatch hint for `operator` must not offer --claim (the launcher refuses it) and must not say
+# "launch brain instead". José hit exactly this in 10-Projects/IQARIS-extension/, a directory the documented
+# rhythm claims for the brain: the refusal was correct, the advice in it was unusable. It must print the
+# path that has no tag, and warn that deleting the tag would strip the gate from a live pane.
+set +e
+echo brain > "$R/repo/wt/.pi-role"          # deterministic: the seat the daily rhythm claims for the brain
+rm -f "$R/repo/.pi-role"                    # its parent stays unclaimed
+o=$(cd "$R/repo/wt" && bash "$P" operator --dry 2>&1); rc=$?
+set -e
+{ [ $rc -ne 0 ] && echo "$o" | grep -q 'operator has no tag' \
+  && echo "$o" | grep -qF "cd $R/repo && pi-agents operator" \
+  && ! echo "$o" | grep -q -- '--claim to overwrite' \
+  && echo "$o" | grep -q 'every tool call'; } \
+  && ok "P13 operator hint gives the unclaimed seat + live-pane warning (exit $rc)" \
+  || bad "P13 operator hint" "${o:0:200}"
+
+# P14 — and for a real role the hint keeps --claim but names its blast radius.
+set +e
+o=$(cd "$R/repo/wt" && bash "$P" worker --dry 2>&1); rc=$?
+set -e
+[ $rc -ne 0 ] && echo "$o" | grep -q 'Caveat on --claim' && echo "$o" | grep -q 'LIVE brain pane' \
+  && ok "P14 leaf mismatch hint warns --claim re-gates live panes" \
+  || bad "P14 leaf mismatch hint" "${o:0:160}"
+
 echo "---- pi-agents launcher: $pass passed, $fail failed"
 [ $fail -eq 0 ]

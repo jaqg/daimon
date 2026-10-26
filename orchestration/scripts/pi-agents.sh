@@ -166,8 +166,28 @@ if [ -z "$FOUND" ]; then
     echo "           fix: cd to the right dir, or re-run with --claim, or use --wt for leaf roles." >&2
   fi
 elif [ "$FOUND" != "$ROLE" ]; then
+  # Nearest directory ABOVE the tagged one that carries no tag — the only place `operator` can sit.
+  U="$(dirname "$GATADIR")"
+  while [ "$U" != "/" ] && [ -f "$U/.pi-role" ]; do U="$(dirname "$U")"; done
+  if [ "$ROLE" = "operator" ]; then
+    # The generic hint below is WRONG for this case: it offers --claim, which we refuse, and offers to
+    # launch $FOUND, which is not what "open the daily-driver pane" means. operator has no tag by
+    # definition, so the only honest answer is the path that has none.
+    die "gate says role=$FOUND ($GATADIR/.pi-role) but you asked for operator — and operator has no tag.
+        It is the tier defined by the ABSENCE of one, so there is nothing to claim here (--claim would
+        also make a later 'pi-agents worker' in $GATADIR a mixed tier).
+        Launch it from the nearest unclaimed directory instead:
+          cd $U && pi-agents operator
+        From there it still reads and writes $GATADIR: role-gate resolves the gate from the SESSION's
+        cwd, not the target's — which is why state reconciliation lives in this tier.
+        Do NOT delete $GATADIR/.pi-role to force this seat. The gate is re-read on every tool call, so a
+        live $FOUND pane in that directory loses its denials mid-session and starts doing leaf work with
+        full tools."
+  fi
   die "gate says role=$FOUND ($GATADIR/.pi-role) but you asked for $ROLE — that is a mixed tier.
-        Either launch $FOUND, or --claim to overwrite this directory's role, or --wt for a clean leaf."
+        Either launch $FOUND, or --claim to overwrite this directory's role, or --wt for a clean leaf.
+        Caveat on --claim: it changes the gate for a LIVE $FOUND pane too (role-gate re-reads .pi-role on
+        every tool call), so overwrite only when no pane is running in $GATADIR."
 fi
 
 CMD=(pi --append-system-prompt "$FILE" --model "$MODEL")
