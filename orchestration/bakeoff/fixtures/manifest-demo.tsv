@@ -1,0 +1,9 @@
+# manifest-demo.tsv — spawn-handoffs.sh input format (R3): TSV, `#` comments, one row per worker.
+# Columns: role<TAB>wt<TAB>repo<TAB>prompt_file[<TAB>note] — TAB-separated, first four non-empty,
+# the 5th (note) is optional human context that round-trips into the MAP printout.
+# wt = part/slice; worktree and the dual alias both derive from it: <repo>/.worktrees/<part>-<slice>,
+# herdr agent rename <pane> <part>-<slice>, pi --name <part>-<slice>.
+# $TEST_ROOT is substituted by the test with its sandbox root.
+worker	demo/w1	$TEST_ROOT/repo	$TEST_ROOT/prompts/w1.md	plan step 3 gate
+worker	demo/w2	$TEST_ROOT/repo	$TEST_ROOT/prompts/w2.md
+calcs	demo/w3	$TEST_ROOT/repo	$TEST_ROOT/prompts/w3.md	hand-checked numbers
