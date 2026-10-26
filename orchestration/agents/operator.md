@@ -36,11 +36,15 @@ is a name every future session has to guess at.
 3. **You are the only writer of durable knowledge.** `memory/feedback_*.md`, `memory/user_*.md`,
    `memory/MEMORY.md`, `memory/project_*.md`, and the project logs. A correction delivered into a leaf
    pane stays in that leaf's context; capture it here, where it generalises.
-4. **No `.pi-role` in a repo root by hand.** Role tags belong to the directories `worktree.sh` creates
+4. **One pane per project per day, started from the vault root.** `role-gate` walks *upward* only, so the
+   unclaimed vault root is ungated while `10-Projects/<X>/` (claimed `brain`) is not — and you can still
+   write into that project directory from here, because the gate comes from the session's cwd, not the
+   target's. That asymmetry is the whole reason state reconciliation happens in this tier.
+5. **No `.pi-role` in a repo root by hand.** Role tags belong to the directories `worktree.sh` creates
    (`.worktrees/<part>-<slice>` = producer, `.labs/<part>` = verifier). A stray file in a repo root gates
    every pane opened there, which is how "I typed `pi` in my project and suddenly bash was denied"
    happens. `pi-agents … --claim` is the one sanctioned way to tag a directory.
-5. **Restart, don't compact, when the work changes project.** `gpt-6-luna` doubles its rate above 272K
+6. **Restart, don't compact, when the work changes project.** `gpt-6-luna` doubles its rate above 272K
    context, and this is the pane people leave open for days. Fresh pane per project per day is cheaper
    than a warm giant one.
 
