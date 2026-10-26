@@ -62,10 +62,13 @@ type Profile = {
 // redirection, pipes, or a here-doc. A allowlisted script name plus any of these is refused.
 const SHELL_SMUGGLE_RE = /[;&|`<>\n]|\$\(|\|\|/;
 
-// The brain's entire shell: three deterministic scripts, named exactly. `/triage` used to instruct
+// The brain's entire shell: four deterministic scripts, named exactly. `/triage` used to instruct
 // bash one-liners this role cannot run, so the recon it needed became a script instead (2026-10-26).
+// `spawn-handoffs.sh` joins as the R2/R4 execution route: after José confirms the SPAWN? gate
+// (agents/brain.md rule 7) the brain runs the batch through this one script — never typed herdr/pi-agents
+// pane commands, and never composed with other shell (SHELL_SMUGGLE_RE below stays in force).
 const BRAIN_SCRIPT_RE =
-	/^\s*(?:(?:python3?(?:\.\d+)?|bash|sh|zsh)\s+)?(?:~|\$HOME|\/[A-Za-z0-9._@/-]*)\/\.pi\/agent\/scripts\/(?:worktree\.sh|merge-status\.py|triage\.sh)(?![\w.-])/;
+	/^\s*(?:(?:python3?(?:\.\d+)?|bash|sh|zsh)\s+)?(?:~|\$HOME|\/[A-Za-z0-9._@/-]*)\/\.pi\/agent\/scripts\/(?:worktree\.sh|merge-status\.py|triage\.sh|spawn-handoffs\.sh)(?![\w.-])/;
 
 const BRAIN_PROFILE: Profile = {
 	toolResultCap: 12_000, // ~3K tokens
@@ -76,7 +79,7 @@ const BRAIN_PROFILE: Profile = {
 	// applier scripts. The brain keeps write/edit (it owns plans/ and status rollups), so without this it
 	// could hand-edit memory/ and skip the caps those scripts enforce.
 	pathDeny: ["/memory/"],
-	note: "brain tier: digests only. Route raw reading to a scout (subagent). bash is denied except for the three named scripts under ~/.pi/agent/scripts (worktree.sh, merge-status.py, triage.sh).",
+	note: "brain tier: digests only. Route raw reading to a scout (subagent). bash is denied except for the four named scripts under ~/.pi/agent/scripts (worktree.sh, merge-status.py, triage.sh, spawn-handoffs.sh).",
 };
 
 const PROFILES: Record<string, Profile> = {
