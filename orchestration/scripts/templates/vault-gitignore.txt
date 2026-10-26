@@ -1,0 +1,5 @@
+# generated / agent scratch
+.smart-env/
+graphify-out/
+**/graphify-out/
+.obsidian/workspace*.json
