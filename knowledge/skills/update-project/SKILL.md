@@ -40,6 +40,39 @@ Capture a work session's scientific content into the project folder's structured
 
 Both `--daily-note` and `--session-summary` may be combined: the daily note plus a brief inline addendum.
 
+## Step 0 — Role guard: only an operator pane may apply
+
+This skill reconciles project-wide state and edits files that already exist. Most tiers are missing one of
+those two abilities, and the failure is **silent**: with `bash` denied the script calls below cannot run,
+so the session degrades into hand-editing the dashboard — which bypasses every cap `apply_updates.py`
+enforces (CURRENT ≤5 bullets, file length, replace-not-delta semantics). A hand-transcribed rollup looks
+right and then drifts, which is the same class of bug as a status file frozen at its last consumption.
+
+Detect before touching anything. `Read` is the one tool every tier keeps, so the check works even in the
+brain pane where `bash` does not exist:
+
+1. `Read` `./.pi-role`, then each parent up to the vault root (`../.pi-role`, `../../.pi-role`, …, 8 hops).
+2. Any file found and non-empty ⇒ this is a gated tier ⇒ **STOP**. Write nothing, edit nothing.
+3. Secondary signal: if any `Bash` call returns a role-gate refusal (`bash-deny`, or the allow-list note),
+   stop for the same reason even if no `.pi-role` was found.
+
+| Role found | What that pane does instead |
+|---|---|
+| none / empty | continue to Step 1 — this is an operator pane |
+| `worker`, `calcs` | write `current:` (≤4 date-stamped bullets) and `next:` (≤3) lines in your `.agent/status/` delta — Step 4 reads those. Never edit `history.md`, `results-log.md`, or anything under `memory/`: `role-gate` denies `memory/` writes for your tier, so a refusal there means this table, not a bug |
+| `scout`, `verifier`, `integrator` | you have no write tools by design; put the state change in your report/delta and let an operator apply it |
+| `brain` | you may draft candidate CURRENT bullets into `10-Projects/<X>/plans/`, but `bash` is denied so `apply_updates.py` cannot run here. Emit the hand-off line below |
+| `reporter` (the writer tier) | prose for humans only; project state is not yours to reconcile |
+
+Print the hand-off verbatim, so nobody has to remember the syntax:
+
+```
+next-command[operator]: cd "$VAULT_DIR" && pi   # unroled pane, then /update-project --project <id>
+```
+
+Unroled means **operator**: no `.pi-role` anywhere up the tree ⇒ `role-gate` fails open ⇒ full tools. It is
+the human's own pane, not an agent file — see `USAGE.md § 1`.
+
 ## Step 1 — Locate scripts and vault
 
 ```bash

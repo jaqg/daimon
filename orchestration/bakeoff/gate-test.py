@@ -186,6 +186,34 @@ def brain_cases(root: Path) -> bool:
     return ok
 
 
+def memory_cases() -> bool:
+    """`/update-memory` and `/update-project` must run only in an operator pane, because they need the
+    applier scripts' caps and the whole cross-slice view. The prose guard in those SKILL.md files is a
+    suggestion, so the tier split is enforced on the tool layer too: any write/edit under a `memory/`
+    path component is denied for the tiers that are not the operator's own session. Three proofs: brain
+    denied, worker denied, and an empty `.pi-role` (unroled = operator) still allowed — which also pins
+    the Step 0 detection rule both skills use, "found AND non-empty"."""
+    root = Path("/tmp/gate-memory")
+    subprocess.run(["bash", "-c", f"rm -rf {root} && mkdir -p {root}/vault/memory"], check=True)
+    target = root / "vault" / "memory" / "probe_feedback.md"
+    instr = ("Use the write tool ONCE to create the file " + str(target) +
+             " with content `probe`. Then quote the tool's verbatim response, including any refusal text. "
+             "Do not use another tool and do not retry.")
+    cases = [
+        ("G1 brain may not write vault memory (operator-only skill's surface)",
+         "brain", lambda r: r["blocked"] and "path-deny" in r["why"]),
+        ("G2 worker may not write vault memory (rule belongs to the pane that heard the correction)",
+         "worker", lambda r: r["blocked"] and "path-deny" in r["why"]),
+        ("G3 empty .pi-role means NO gate (that absence is the operator tier)",
+         "", lambda r: not r["blocked"] and target.exists()),
+    ]
+    ok = True
+    for name, role, check in cases:
+        ok &= report(name, run_case(root / "vault", role, "write", tag="mem",
+                                    tools="write,edit,read,bash", instruction=instr), check)
+    return ok
+
+
 def verifier_cases() -> bool:
     """Read-only plumbing must stay reachable to a checker. The verifier that reviewed `structure` could
     not run `git merge-base --is-ancestor` because `\b` matches at a hyphen, so the merge ban also ate
@@ -323,6 +351,8 @@ def main():
     pos = [a for a in args if not a.startswith("--")]
     what = flags[0] if flags else "--locks"
     ok = True
+    if what == "--memory":
+        raise SystemExit(0 if memory_cases() else 1)
     if what == "--verifier":
         raise SystemExit(0 if verifier_cases() else 1)
     if what == "--brain":

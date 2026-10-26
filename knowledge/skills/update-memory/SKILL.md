@@ -23,6 +23,34 @@ Vault contract: `AGENTS.md § Memory contract`. This skill writes ONLY:
 
 Project-state insights discovered here → report them at the end as "belongs in project_X.md — run /update-project". Never write them yourself.
 
+## Role guard: only an operator pane may write memory
+
+The input to this skill is **the conversation that just happened**, and the durable thing in that
+conversation is usually a correction to how the fleet should work. A correction delivered into one leaf
+pane is cold input for that pane only: its siblings and the brain's next planning cycle never see it, so
+memory written from a leaf fragments the contract it is supposed to record. Only the operator's pane sees
+corrections across all of them.
+
+Detect first, with `Read` (every tier keeps it, including the brain, whose `bash` is denied):
+
+1. `Read` `./.pi-role`, then each parent up to the vault root (8 hops).
+2. Found and non-empty ⇒ gated tier ⇒ **STOP**, write nothing. Print the hand-off instead:
+
+```
+next-command[operator]: cd "$VAULT_DIR" && pi   # unroled pane, then /update-memory
+```
+
+| Role found | What that pane does instead |
+|---|---|
+| none / empty | continue — this is an operator pane |
+| `worker`, `calcs` | put the rule you were corrected on in your `.agent/status/` delta as a `feedback:` line, so the operator captures it where it generalises. `role-gate` denies any write/edit under a `memory/` path component for your tier — a refusal there is this rule, not a bug |
+| `scout`, `verifier`, `integrator` | no write tools by design; state it in your report |
+| `brain` | bash is denied and `memory/` writes are denied; you may quote the rule into `plans/` for the operator to capture |
+| `reporter` (the writer tier) | prose for humans; `memory/` is denied for your tier |
+
+Unroled means **operator**: no `.pi-role` up the tree ⇒ `role-gate` fails open ⇒ full tools. The human's
+own pane, not an agent file — see `USAGE.md § 1`.
+
 ## Memory directory resolution
 
 ```bash

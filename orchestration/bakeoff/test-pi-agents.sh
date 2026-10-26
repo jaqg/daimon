@@ -72,5 +72,25 @@ again=$(bash "${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}" lab --repo
   && ok "P10 lab reuses an existing workspace and reports the ref match" \
   || bad "P10 lab reuse" "${again:0:120}"
 
+# P11 — `operator` is the one launchable role that is SUPPOSED to open ungated: it is defined by the
+# absence of a `.pi-role` (role-gate fails open ⇒ full tools), and it is the tier every
+# `next-command[operator]:` line names. The launcher must call that "by design", not the generic
+# "gate is INACTIVE" warning a leaf pane would deserve.
+rm -f "$R/repo/.pi-role"
+o=$(cd "$R/repo" && bash "$P" operator --dry 2>&1)
+{ echo "$o" | grep -q 'role=operator' && echo "$o" | grep -q 'gate=none' \
+  && echo "$o" | grep -q 'no .pi-role anywhere, which is the POINT' \
+  && echo "$o" | grep -q 'model=opencode-go/'; } \
+  && ok "P11 operator launches ungated, pinned, and says why" || bad "P11 operator launch" "${o:0:140}"
+
+# P12 — and it refuses --claim. Claiming `operator` writes a role name no profile knows: the gate stays
+# off (harmless) but a later `pi-agents worker` in that directory is refused as a mixed tier, which reads
+# like a config bug and is really a stray file from three weeks ago.
+set +e
+o=$(cd "$R/repo" && bash "$P" operator --claim --dry 2>&1); rc=$?
+set -e
+[ $rc -ne 0 ] && grep -q 'needs no --claim' <<<"$o" && [ ! -f "$R/repo/.pi-role" ] \
+  && ok "P12 operator refuses --claim and writes nothing" || bad "P12 operator --claim" "${o:0:140}"
+
 echo "---- pi-agents launcher: $pass passed, $fail failed"
 [ $fail -eq 0 ]

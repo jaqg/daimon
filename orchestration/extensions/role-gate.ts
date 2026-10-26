@@ -72,12 +72,22 @@ const BRAIN_PROFILE: Profile = {
 	intercomSendCap: 400,
 	deny: ["bash", "grep", "find", "ls", "codemode"],
 	bashAllow: [BRAIN_SCRIPT_RE],
+	// Vault memory is reconciled by /update-memory and /update-project, which need bash to run their
+	// applier scripts. The brain keeps write/edit (it owns plans/ and status rollups), so without this it
+	// could hand-edit memory/ and skip the caps those scripts enforce.
+	pathDeny: ["/memory/"],
 	note: "brain tier: digests only. Route raw reading to a scout (subagent). bash is denied except for the three named scripts under ~/.pi/agent/scripts (worktree.sh, merge-status.py, triage.sh).",
 };
 
 const PROFILES: Record<string, Profile> = {
 	// The brain plans. It does not inspect, shell, or swallow raw files.
 	brain: BRAIN_PROFILE,
+	// No `operator` profile ON PURPOSE (2026-10-26). The operator tier is José's own pane, defined by the
+	// absence of a `.pi-role`: `findRole` returns null and nothing is denied. Documented in
+	// `agents/operator.md`, because `merge-status.py` and both vault skills print
+	// `next-command[operator]: …` and a name in machine output that is defined nowhere gets reinvented by
+	// every session that reads it. Adding a permissive profile here would be equivalent but would hide the
+	// fact that the tier is an absence rather than a policy.
 	// Retired tiers (bad habit #4, confirmed by José 2026-10-23): the old sub-brain / `-main` router
 	// panes were either brains or workers. Aliasing them to the BRAIN profile means a leftover pane
 	// gets the strictest gate instead of a dead profile name or no gate at all.
@@ -92,6 +102,9 @@ const PROFILES: Record<string, Profile> = {
 		deny: ["subagent", "codemode"],
 		// "Never merge, never push" is in the agent file, which is a suggestion. Landing is the
 		// integrator's and José's decision, so the leaf tiers lose the verbs entirely.
+		// Durable knowledge is the operator's, written by /update-memory; a leaf that records a rule keeps
+		// it in its own context while its siblings and the next planning cycle never see it.
+		pathDeny: ["/memory/"],
 		bashDeny: [
 			// Read-only ancestry plumbing stays reachable. `\b` matches at a hyphen, so this pattern used to
 			// block `git merge-base` — the exact command a checker needs, and a real verifier worked around it
@@ -109,7 +122,7 @@ const PROFILES: Record<string, Profile> = {
 		deny: ["subagent", "codemode"],
 		// Production code is a worker job with a spec; calcs live in calculations/, scripts/,
 		// canonical tables/, and .agent/scratch/.
-		pathDeny: ["/src/"],
+		pathDeny: ["/src/", "/memory/"],
 		// José is the cluster hands (2-hop). The agent's deliverable is a ready-to-run script.
 		// Same landing ban as the worker: a calculation branch is reviewed, not merged by its author.
 		bashDeny: [
@@ -166,6 +179,10 @@ const PROFILES: Record<string, Profile> = {
 		toolResultCap: 120_000,
 		intercomSendCap: 1_200,
 		deny: [],
+		// The writer tier drafts prose for humans. Project state and durable memory are reconciled by the
+		// operator's /update-project and /update-memory, whose scripts enforce the file caps this tier
+		// would otherwise paraphrase.
+		pathDeny: ["/memory/"],
 		note: "reporter tier: draft section-sized; never re-read the whole .tex cold.",
 	},
 };

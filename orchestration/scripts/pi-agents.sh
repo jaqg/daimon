@@ -144,14 +144,27 @@ while [ "$D" != "/" ]; do
   if [ -f "$D/.pi-role" ]; then FOUND="$(tr -d '[:space:]' < "$D/.pi-role")"; GATADIR="$D"; break; fi
   D="$(dirname "$D")"
 done
+# `operator` is the tier defined by the ABSENCE of a role tag: no .pi-role => role-gate fails open => full
+# tools. Claiming it would write a name the gate does not know, which keeps the gate off (correct) yet
+# blocks every later leaf launch in that directory with a mixed-tier refusal (a nuisance that reads like a
+# config bug). So there is nothing to claim here.
+if [ "$ROLE" = "operator" ] && [ "$CLAIM" = 1 ]; then
+  die "operator needs no --claim — it IS the ungated pane. Running 'pi-agents operator' here is enough.
+        (--claim writes .pi-role=operator, which no profile knows, and would then refuse a later
+         'pi-agents worker' in the same directory as a mixed tier.)"
+fi
 if [ "$CLAIM" = 1 ]; then
   printf '%s\n' "$ROLE" > "$CWD/.pi-role"
   echo "pi-agents: wrote .pi-role=$ROLE in $CWD" >&2
   FOUND="$ROLE"; GATADIR="$CWD"
 fi
 if [ -z "$FOUND" ]; then
-  echo "pi-agents: NOTE no .pi-role above $CWD — the tool gate is INACTIVE (prompt-only role)." >&2
-  echo "           fix: cd to the right dir, or re-run with --claim, or use --wt for leaf roles." >&2
+  if [ "$ROLE" = "operator" ]; then
+    echo "pi-agents: role=operator — no .pi-role anywhere, which is the POINT: the gate is off by design." >&2
+  else
+    echo "pi-agents: NOTE no .pi-role above $CWD — the tool gate is INACTIVE (prompt-only role)." >&2
+    echo "           fix: cd to the right dir, or re-run with --claim, or use --wt for leaf roles." >&2
+  fi
 elif [ "$FOUND" != "$ROLE" ]; then
   die "gate says role=$FOUND ($GATADIR/.pi-role) but you asked for $ROLE — that is a mixed tier.
         Either launch $FOUND, or --claim to overwrite this directory's role, or --wt for a clean leaf."
