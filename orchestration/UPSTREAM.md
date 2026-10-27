@@ -56,6 +56,10 @@ end to end over `pi --mode rpc` on 2026-10-23. `advisor.json` is left installed 
 lights up automatically if the header gap is ever closed, or if you point it at a provider that does
 not require the header (e.g. an Anthropic or Groq reviewer).
 
+**Gate rule (2026-10-27).** `role-gate.ts` denies the `advisor` tool for **every** tier — the first
+version left brain/integrator through, which burned a round trip per attempt into the same 400.
+Re-enable = drop that rule (it cites this section); the plugin itself stays installed.
+
 **Fix shape, if upstream wants it.** Resolve the session id inside the side-call (pi exposes it on
 the extension context / session manager) and pass it as `headers: { "x-opencode-session": id }`, or
 expose a pi-level "side request with full transport semantics" API that extensions are meant to use

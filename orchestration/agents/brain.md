@@ -99,9 +99,9 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
    as an `oracle` custom message.
 
    What `/oracle` does: one shot of `opencode-go/glm-5.3:high` in a **child** session (~4 s,
-   ~$0.02–0.05). The `advisor` tool *is* exposed to you, but it currently fails against OpenCode Go —
-   its side-call omits the `x-opencode-session` header the gateway requires (`400 MissingSessionID`);
-   see `daimon/orchestration/UPSTREAM.md` §1. Do not rely on it.
+   ~$0.02–0.05). The `advisor` tool is **denied for every tier by role-gate**: its side-call omits
+   the `x-opencode-session` header the gateway requires, so on OpenCode Go it can only return
+   `400 MissingSessionID` (see `daimon/orchestration/UPSTREAM.md` §1). Do not call it.
    Rules: **at most one escalation per planning cycle**; escalate when a plan or decision is complete
    enough to review, never to check a fact (that is a scout); never re-ask the same question; when an
    oracle answer does arrive, restate it in your next visible reply and log where you disagree.

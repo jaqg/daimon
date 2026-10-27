@@ -420,20 +420,23 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
-		// The advisor lane is decision support, so it belongs to the tiers that decide. Two reasons a leaf
-		// must not reach for it: (1) escalating instead of executing a spec means the spec is wrong, and the
-		// fix belongs in the plan, not in a second model's opinion; (2) rpiv-advisor sends its request
-		// without x-opencode-session, so on OpenCode Go it can only ever return a 400 (UPSTREAM.md #1) —
-		// every leaf call is a wasted round trip, and this worker proved it by retrying into the doom-loop
-		// guard. /oracle is the lane that actually works; it gates itself the same way (see oracle.ts).
-		if (event.toolName === "advisor" && g.role && !["brain", "integrator"].includes(g.role)) {
+		// Denied for EVERY tier as of 2026-10-27 (vault D15): rpiv-advisor's side-call omits
+		// x-opencode-session, so on OpenCode Go it can only ever return a 400 (UPSTREAM.md #1) —
+		// wasted round trips, and one worker proved the retry shape by looping into the doom-loop
+		// guard. /oracle is the escalation lane that actually works, and it gates itself the same
+		// way (see oracle.ts). Re-enable only if the header gap closes upstream or the target
+		// provider stops requiring the header.
+		if (event.toolName === "advisor" && g.role) {
+			const escalate = ["brain", "integrator"].includes(g.role)
+				? `Escalation is \`/oracle\` (a command only José runs): emit \`NEEDS ORACLE: <the exact question>\` and stop.`
+				: `If the spec is unclear, write \`blocked: <the exact ambiguity>\` in your status delta and continue ` +
+				  `with what you can — that is how the ambiguity reaches the brain, which is where the fix belongs.`;
 			return {
 				block: true,
 				reason:
-					`[${g.role} tier] tool "advisor" is denied: the premium lane is for tiers that decide (brain, integrator), ` +
-					`not tiers that execute. On OpenCode Go it is also broken by a missing session header (UPSTREAM.md #1), so it ` +
-					`cannot answer you at all. If the spec is unclear, write \`blocked: <the exact ambiguity>\` in your status ` +
-					`delta and continue with what you can — that is how the ambiguity reaches the brain, which is where the fix belongs.`,
+					`[${g.role} tier] tool "advisor" is denied for every tier: its side-call omits the x-opencode-session ` +
+					`header the OpenCode Go gateway requires, so it can only return a 400 and cannot answer you at all ` +
+					`(UPSTREAM.md #1). ${escalate}`,
 			};
 		}
 
@@ -524,10 +527,6 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_result", async (event, ctx) => {
 		const g = resolve(ctx.cwd);
 		if (!g) return undefined;
-		// The advisor is the escalation channel: its answer IS the deliverable (a plan, a
-		// correction, or a stop signal). Truncating it defeats the ~$0.04 we just paid for it.
-		// Spam is prevented by the one-call-per-cycle rule in agents/brain.md, not by the cap.
-		if ((event as any).toolName === "advisor") return undefined;
 		const cap = g.profile.toolResultCap;
 		if (charLen(event.content) <= cap) return undefined;
 
