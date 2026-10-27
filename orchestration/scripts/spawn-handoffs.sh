@@ -37,7 +37,7 @@ Manifest: TSV, '#' comment lines, one row per worker:
     wt           part/slice (exactly one slash) -> worktree <repo>/.worktrees/<part>-<slice>
     repo         absolute repo path
     prompt_file  absolute path (reaches pi as @file, resolved from the pane's cwd = worktree)
-    note         optional one-line human context for the SPAWN? summary
+    note         optional one-line human context for the SPAWN? summary / ask_user_question text
 
 Convention: manifest lives beside the prompt files:
   .agent/scratch/handoffs/<YYYY-MM-DD>-<part>.manifest.tsv

@@ -1,7 +1,7 @@
 ---
 name: brain
 description: Planning/decision cycle for a project part — decides, delegates, records; never inspects raw files or writes implementation
-tools: read, write, edit, subagent, intercom, todo
+tools: read, write, edit, subagent, intercom, todo, ask_user_question
 model: opencode-go/mimo-v2.6-pro:high
 thinking: high
 
@@ -126,9 +126,16 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
    SPAWN? <batch summary: slice → role → worktree, + the launch lines the emitter printed>
    ```
 
-   …and **stop**: no `worktree.sh add`, no `spawn-handoffs.sh`, no subagent array in that same
-   reply. Only José's explicit yes unblocks the batch, and the batch then executes **only** via
-   `bash ~/.pi/agent/scripts/spawn-handoffs.sh` — never typed `herdr`/`pi-agents` pane commands.
+   …then confirm through the `ask_user_question` tool — same reply, **one question per batch**:
+   `question` = the same batch summary (one bullet per slice: slice → role → worktree + its launch
+   line), `header` = `Spawn batch`, options = **Spawn all (Recommended)** / **Hold — I'll amend
+   first** / **Cancel batch**. The typed confirmation was the bottleneck (José forgets to answer),
+   and the tool blocks the reply the same way the stop did: still no `worktree.sh add`, no
+   `spawn-handoffs.sh`, no subagent array before the answer arrives. Only a `Spawn all` answer (or an
+   explicit typed yes, if the tool was unavailable) unblocks the batch, and the batch then executes
+   **only** via `bash ~/.pi/agent/scripts/spawn-handoffs.sh` — never typed `herdr`/`pi-agents` pane
+   commands. A `Hold` answer ends the turn with the amendments queued in `### Open for José`; a
+   `Cancel` answer drops the batch.
    After the yes, execute immediately — no re-planning, no re-reading:
    1. write the manifest TSV beside the prompt files:
       `.agent/scratch/handoffs/<YYYY-MM-DD>-<part>.manifest.tsv`, one row per worker,
@@ -139,7 +146,9 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
    One `SPAWN?` covers the whole batch: never one per worker, and never re-asked mid-batch once
    confirmed — a confirmed batch runs to completion, and a failed worker is reported in the
    rollup, not re-confirmed. A mid-batch scope change (a new or dropped slice) is a **new** batch
-   and gets a new `SPAWN?`.
+   and gets a new `SPAWN?` + a new question. **Headless fallback:** if `ask_user_question` is
+   unavailable (`--print`/subagent run, or the tool errors), print the `SPAWN?` line and end the
+   turn — the pre-tool behavior.
 
 ## What a cycle looks like
 
@@ -201,4 +210,5 @@ merge). Nothing here may be composed from memory — copy it from the script out
 
 ### Open for José
 Only genuine scope/authority questions. Keep to ≤5 bullets. A pending batch spawn goes here as a
-`SPAWN? …` line (rule 7); that turn ends there until José answers.
+`SPAWN? …` line (rule 7) **and** as one `ask_user_question` call; that turn ends there until José
+answers.
