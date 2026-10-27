@@ -186,9 +186,16 @@ for i in "${!ROW_NAME[@]}"; do
   # --name seeds the intercom presence name, @file seeds turn 1 from the worktree cwd.
   cmd="$(printf '%q ' pi-agents "$role" --repo "$repo" --wt "$wtref" -- --name "$name" "@$prompt")"
   if ! "$HERDR_BIN" pane run "$pane" "$cmd"; then err "pane run failed for pane $pane"; continue; fi
-  if ! "$HERDR_BIN" agent rename "$pane" "$name"; then
+  # Rename retry: the pane's pi registers as an agent asynchronously (dogfood, 2026-10-27:
+  # SPAWNED=1 FAILED=1 on a healthy worker) — retry before counting a failure.
+  rn_ok=""
+  for _ in 1 2 3; do
+    if "$HERDR_BIN" agent rename "$pane" "$name"; then rn_ok=1; break; fi
+    sleep 1
+  done
+  if [ -z "$rn_ok" ]; then
     # The worker is already running at this point — report, do not lose the mapping.
-    echo "ERROR $MANIFEST:row $((i+1)): agent rename $pane $name failed (worker still spawned)"
+    echo "ERROR $MANIFEST:row $((i+1)): agent rename $pane $name failed after 3 attempts (worker still spawned)"
     failed=$((failed+1))
   fi
 
