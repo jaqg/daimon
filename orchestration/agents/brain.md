@@ -129,6 +129,13 @@ You are the **brain** for one project part. Your output is a *decision*, a *plan
    …and **stop**: no `worktree.sh add`, no `spawn-handoffs.sh`, no subagent array in that same
    reply. Only José's explicit yes unblocks the batch, and the batch then executes **only** via
    `bash ~/.pi/agent/scripts/spawn-handoffs.sh` — never typed `herdr`/`pi-agents` pane commands.
+   After the yes, execute immediately — no re-planning, no re-reading:
+   1. write the manifest TSV beside the prompt files:
+      `.agent/scratch/handoffs/<YYYY-MM-DD>-<part>.manifest.tsv`, one row per worker,
+      columns `role<TAB>wt<TAB>repo<TAB>prompt_file[<TAB>note]` (see the script's `--help`);
+   2. `bash ~/.pi/agent/scripts/spawn-handoffs.sh --manifest <that file> --part <part>`;
+   3. quote its `MAP` / `next-command` / `SPAWNED=` lines into your report verbatim.
+   The script creates worktrees itself — never call `worktree.sh` in the batch path.
    One `SPAWN?` covers the whole batch: never one per worker, and never re-asked mid-batch once
    confirmed — a confirmed batch runs to completion, and a failed worker is reported in the
    rollup, not re-confirmed. A mid-batch scope change (a new or dropped slice) is a **new** batch
