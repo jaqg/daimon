@@ -3,6 +3,7 @@
 # handoff (rule 3d) and runs THIS after José's one confirmation; it never types pane commands (R3).
 # One tab per part (R6): `tab create --label <part>` once per batch, every worker split from that
 # tab's FIRST pane (`.result.root_pane.pane_id` — verified live against herdr 0.9.1, 2026-10-26;
+# the root pane runs nothing, so it is closed after the batch — N workers = N panes, not N+1;
 # note `pane split --current` would be wrong here: the script runs in the brain's pane, old tab).
 # Dual naming (R6): `herdr agent rename <pane> <part>-<slice>` (herdr wait/prompt/get target) and
 # `pi --name <part>-<slice>` forwarded through pi-agents (intercom presence name). Names derive
@@ -203,6 +204,21 @@ for i in "${!ROW_NAME[@]}"; do
   NEXTCMDS+=("next-command[operator]: pi-agents $role --repo $repo --wt $wtref")
   spawned=$((spawned+1))
 done
+
+# ---------------------------------------------------------------- drop the tab's root pane
+# The root pane only existed as the split anchor (R6): every worker was split FROM it and it never
+# ran anything. Close it so a batch of N leaves N panes, not N+1. With 0 spawned the reverse: the
+# tab holds nothing but that empty pane, so take the whole tab.
+if [ "$spawned" -gt 0 ]; then
+  if "$HERDR_BIN" pane close "$TAB_PANE" 2>/dev/null; then
+    echo "CLOSED ROOT_PANE=$TAB_PANE"
+  else
+    echo "note: could not close tab root pane $TAB_PANE — one empty pane left in tab $TAB_ID"
+  fi
+else
+  "$HERDR_BIN" tab close "$TAB_ID" >/dev/null 2>&1 || true
+  echo "CLOSED TAB=$TAB_ID label=$PART (0 spawned)"
+fi
 
 # ---------------------------------------------------------------- printout (§0 step 5)
 for m in ${MAP[@]+"${MAP[@]}"}; do echo "$m"; done

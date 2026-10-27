@@ -36,6 +36,7 @@ case "$1 ${2:-}" in
     n=$(grep -c '^pane split' "$SHIM_LOG")
     printf '{"id":"cli:pane:split","result":{"pane":{"pane_id":"wX:p%d"}}}\n' "$n";;
   "pane run") :;;
+  "pane close") :;;
   "agent rename") :;;
   "tab list") printf '{"result":{"tabs":[{"tab_id":"wX:tOTHER","label":"other"},{"tab_id":"wX:tPART","label":"demo"}]}}\n';;
   "tab close") :;;
@@ -85,6 +86,9 @@ echo "$out" | grep -q 'MAP slice=w1 TAB=wX:tPART PANE=wX:p1 NAME=demo-w1 INTERCO
   && ok "S1 mapping printout: slice/tab/pane/name/intercom/delta per row" \
   || bad "S1 mapping printout — got: $(echo "$out" | grep '^MAP' | head -2)"
 echo "$out" | grep -q '^SPAWNED=3 FAILED=0 ' && ok "S1 SPAWNED=3 FAILED=0" || bad "S1 summary — $(echo "$out" | tail -1)"
+echo "$out" | grep -q '^CLOSED ROOT_PANE=wX:pROOT$' \
+  && ok "S1 tab root pane closed after the batch (N panes for N workers, not N+1)" \
+  || bad "S1 root-pane close line — got: $(echo "$out" | grep CLOSED)"
 echo "$out" | grep -q 'MAP slice=w1 .* NOTE=plan step 3 gate$' \
   && echo "$out" | grep -q 'MAP slice=w2 .* NOTE=$' \
   && ok "S1 optional 5th-column note round-trips into MAP (empty note prints NOTE=)" \
@@ -106,9 +110,13 @@ order_ok \
   'pane split wX:pROOT --direction right --cwd '"$R"'/repo/.worktrees/demo-w3 --no-focus' \
   'pane run wX:p3' \
   'agent rename wX:p3 demo-w3' \
-  && ok "S2 tab create → (split from tab pane → run → rename) × rows, no --current anywhere" \
+  'pane close wX:pROOT' \
+  && ok "S2 tab create → (split from tab pane → run → rename) × rows → close the root pane, no --current anywhere" \
   || bad "S2 call order — log: $(echo "$log" | tr '\n' '|')"
 case "$log" in *--current*) bad "S2 '--current' used — forbidden (script runs in brain's pane)";; *) ok "S2 no --current";; esac
+[ "$(grep -c '^pane close' "$SHIM_LOG")" -eq 1 ] \
+  && ok "S2 root pane closed exactly once per batch" \
+  || bad "S2 pane close count: $(grep -c '^pane close' "$SHIM_LOG")"
 
 # ---------------------------------------------------------------- S3 pane run argv (dual naming, @file)
 run1=$(grep '^pane run wX:p1 ' "$SHIM_LOG")
@@ -200,6 +208,15 @@ set +e; outn=$(cd "$R" && bash "$P" --manifest "$R/m.tsv" 2>&1); rcn2=$?; set -e
   && grep -q '^tab create' "$SHIM_LOG" \
   && ok "S11 missing batch_size: NOTE + no cap, batch still spawns" \
   || bad "S11 missing-key path — rc=$rcn2: $(echo "$outn" | grep -E 'batch-gate|SPAWNED')"
+
+# ---------------------------------------------------------------- S12 0 spawned: the empty tab goes too
+: > "$SHIM_LOG"
+set +e; outz=$(FAIL_ADD_MATCH='--repo' bash "$P" --manifest "$R/m.tsv" 2>&1); rcz=$?; set -e
+[ $rcz -eq 1 ] && grep -q '^tab close wX:tPART$' "$SHIM_LOG" \
+  && echo "$outz" | grep -q '^CLOSED TAB=wX:tPART label=demo (0 spawned)$' \
+  && ! grep -q '^pane close' "$SHIM_LOG" \
+  && ok "S12 all rows fail: empty tab closed (not just its root), exit 1" \
+  || bad "S12 zero-spawned cleanup — rc=$rcz log: $(cat "$SHIM_LOG") out: $(echo "$outz" | tail -2)"
 
 echo "test-spawn-handoffs: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
