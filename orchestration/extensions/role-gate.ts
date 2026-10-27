@@ -5,7 +5,7 @@
  * Design rationale: the bad-habits note in the operator's private vault memory (not published).
  *
  * A "role" is declared by a `.pi-role` file containing a single word
- * (brain | worker | calcs | scout | verifier | integrator | reporter). Pi searches upward from
+ * (brain | worker | calcs | scout | verifier | integrator | writer). Pi searches upward from
  * cwd, so a role workspace applies to every session launched inside it.
  *
  * Why a gate instead of a rule in Markdown: a rule is a suggestion, an
@@ -178,7 +178,7 @@ const PROFILES: Record<string, Profile> = {
 		bashDeny: [/\brm\s+-[rf]/, /\bgit\s+(push|rebase|reset\s+--hard)\b|\bgit\s+merge(?!-(?:base|tree))\b/, /\b(make|cmake|meson|cargo\s+build|npm\s+run\s+build)\b/],
 		note: "scout tier: read anything, return a digest <= 3K tokens. No builds, no deletes; lit-* scripts write queries/, lit-reviews/ via --output.",
 	},
-	reporter: {
+	writer: {
 		toolResultCap: 120_000,
 		intercomSendCap: 1_200,
 		deny: [],
@@ -186,7 +186,7 @@ const PROFILES: Record<string, Profile> = {
 		// operator's /update-project and /update-memory, whose scripts enforce the file caps this tier
 		// would otherwise paraphrase.
 		pathDeny: ["/memory/"],
-		note: "reporter tier: draft section-sized; never re-read the whole .tex cold.",
+		note: "writer tier: draft section-sized; never re-read the whole .tex cold.",
 	},
 };
 

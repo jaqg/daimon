@@ -51,7 +51,7 @@ Same domain layout, different folders:
 
 Conventions: agents are spawned manually as long-lived sessions; a prompt template is the
 preferred entry point for spawning (it points at the agent definition so the persona lives
-in one file). Current pair: `writing/agents/report-writer.md` + `/report-writer` slash
+in one file). Current pair: `orchestration/agents/writer.md` + `/writer` slash
 command, driven by the `sci-doc` skill.
 
 ## Skill anatomy

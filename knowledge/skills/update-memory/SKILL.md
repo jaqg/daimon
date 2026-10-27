@@ -46,7 +46,7 @@ next-command[operator]: cd "$VAULT_DIR" && pi   # unroled pane, then /update-mem
 | `worker`, `calcs` | put the rule you were corrected on in your `.agent/status/` delta as a `feedback:` line, so the operator captures it where it generalises. `role-gate` denies any write/edit under a `memory/` path component for your tier — a refusal there is this rule, not a bug |
 | `scout`, `verifier`, `integrator` | no write tools by design; state it in your report |
 | `brain` | bash is denied and `memory/` writes are denied; you may quote the rule into `plans/` for the operator to capture |
-| `reporter` (the writer tier) | prose for humans; `memory/` is denied for your tier |
+| `writer` (the writer tier) | prose for humans; `memory/` is denied for your tier |
 
 Unroled means **operator**: no `.pi-role` up the tree ⇒ `role-gate` fails open ⇒ full tools. The human's
 own pane, not an agent file — see `USAGE.md § 1`.

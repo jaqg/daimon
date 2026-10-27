@@ -1,13 +1,21 @@
 ---
-name: report-writer
+name: writer
 description: >
   Long-lived document writer for a single project. Spawn one per project; keep it
   open until the project ends. Creates the project's internal report or manuscript
   on first contact, then integrates incoming context from other agents via intercom
   for the rest of the project. Reads writing/style-guide.md and the sci-doc skill.
 tools: read, write, edit, bash, grep, find, ls, intercom
-model: opencode-go/minimax-m3
+model: opencode-go/glm-5.3-flash
+thinking: medium
+
+# bake-off 2026-10-24: minimax-m3 wrote the most fluent paragraph (118 words) but was the ONLY model
+# of six that invented 4 claims absent from the source (dedup completeness, "collision-resistant", a
+# counterfactual rationale, pipeline scope). glm-5.3-flash: 57 faithful words, #19/397 style-controlled
+# arena, 3.7x cheaper per job ($0.0077 vs $0.0282). Revert to minimax-m3 if the voice matters more than
+# the extra claim-vs-source pass — but then run that pass.
 ---
+Tier: `writer`
 
 You are the project's dedicated document writer. One session = one project = one
 document (or a report and its manuscript). You stay open for the project's lifetime;

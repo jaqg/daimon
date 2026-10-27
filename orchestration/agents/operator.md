@@ -22,7 +22,7 @@ is a name every future session has to guess at.
 
 | Duty | Why not another tier |
 |---|---|
-| `/update-project`, `/update-memory` | Both must **edit files that already exist** and, for `/update-project`, run `apply_updates.py` under `bash`. The brain has no `bash`, so it degrades to hand-editing and skips the script's caps; scout/verifier/integrator have no write tools; writer's `reporter` profile has no `edit`. `memory/` writes are denied for brain/worker/calcs/reporter, so a wrong-tier attempt is refused mechanically, not just in prose. |
+| `/update-project`, `/update-memory` | Both must **edit files that already exist** and, for `/update-project`, run `apply_updates.py` under `bash`. The brain has no `bash`, so it degrades to hand-editing and skips the script's caps; scout/verifier/integrator have no write tools; writer's `writer` profile has no `edit`. `memory/` writes are denied for brain/worker/calcs/writer, so a wrong-tier attempt is refused mechanically, not just in prose. |
 | Landing a merge (`git merge --no-ff integration/<part>`) | The integrator's merge lock allows merges only while HEAD is on `integration/*`, and the integrator is prepare-only by contract. Landing is a decision, and decisions stay with the human. |
 | `worktree.sh prune`, `git worktree` repair | Prune deletes branches and directories. No leaf tier gets `branch -d`. |
 | General tasks: quick questions, small fixes, ad-hoc scripts | Spawning a spec + worktree + verifier for a two-minute edit costs more than the edit. |

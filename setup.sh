@@ -65,7 +65,7 @@ for agent_file in "$REPO_DIR"/*/agents/*.md; do
 done
 [[ $agent_count -gt 0 ]] && echo "Done. $agent_count agent link(s) created for Pi" || true
 
-# Symlink prompt templates into Pi's prompts dir (slash commands: /report-writer, ...)
+# Symlink prompt templates into Pi's prompts dir (slash commands: /writer, ...)
 PI_PROMPTS="$HOME/.pi/agent/prompts"
 prompt_count=0
 for prompt_file in "$REPO_DIR"/*/prompts/*.md; do

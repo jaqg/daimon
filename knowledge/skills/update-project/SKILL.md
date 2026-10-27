@@ -62,7 +62,7 @@ brain pane where `bash` does not exist:
 | `worker`, `calcs` | write `current:` (≤4 date-stamped bullets) and `next:` (≤3) lines in your `.agent/status/` delta — Step 4 reads those. Never edit `history.md`, `results-log.md`, or anything under `memory/`: `role-gate` denies `memory/` writes for your tier, so a refusal there means this table, not a bug |
 | `scout`, `verifier`, `integrator` | you have no write tools by design; put the state change in your report/delta and let an operator apply it |
 | `brain` | you may draft candidate CURRENT bullets into `10-Projects/<X>/plans/`, but `bash` is denied so `apply_updates.py` cannot run here. Emit the hand-off line below |
-| `reporter` (the writer tier) | prose for humans only; project state is not yours to reconcile |
+| `writer` (the writer tier) | prose for humans only; project state is not yours to reconcile |
 
 Print the hand-off verbatim, so nobody has to remember the syntax:
 

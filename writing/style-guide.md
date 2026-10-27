@@ -1,6 +1,6 @@
 # Style guide — project documents
 
-Authoritative voice rules for `sci-doc` and the report-writer agent. Generic
+Authoritative voice rules for `sci-doc` and the writer agent. Generic
 scientific-writing advice from vendored skills yields to this file.
 
 Refine as you notice annoyances. Keep it under ~120 lines — every rule here is
