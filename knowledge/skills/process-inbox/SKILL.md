@@ -107,3 +107,71 @@ End the run with a compact summary:
 - Anything skipped and why
 
 If the inbox is empty, say so briefly.
+
+---
+
+## Event ingest (single email)
+
+Input mode B: one conference email passed as a **file path** or as **pasted content** — no inbox scan. If the content is not event-like (newsletter, generic mail, personal note), do **zero writes** and tell the user to run `/process-inbox` normally.
+
+Pipeline (scripts own control flow; exactly one Claude fill pass, plus an optional second gap-only pass):
+
+```
+raw email → event_stage.py → ONE Claude pass (fill schema) → gaps + candidate link?
+    yes → event_enrich.py → 2nd Claude pass (missing fields ONLY)
+        → event_write.py (upsert + summary + re-sort)
+    no  → event_write.py
+```
+
+### B1. Stage (script)
+
+```bash
+# $SKILL_DIR = directory of this SKILL.md (symlink-verify: readlink -f "$SKILL_MD")
+SKILL_DIR="$(cd "$(dirname "$SKILL_MD")" && pwd)"
+CONFIG="$SKILL_DIR/../../../config/config.local"
+[ -f "$CONFIG" ] && source "$CONFIG"
+
+# file input:
+python3 "$SKILL_DIR/scripts/event_stage.py" --input "/path/to/email.md"
+# pasted content:
+printf '%s\n' "$PASTED_EMAIL" | python3 "$SKILL_DIR/scripts/event_stage.py" --stdin
+```
+
+Output: the extraction schema skeleton (all content fields null) plus `source_email`, `candidates` (every URL with its anchor text, ISO date candidates pre-filtered from the body), and `missing_fields` = nulls ∩ {cost, registration_deadline, abstract_deadline, dates, location}.
+
+### B2. Fill the schema (ONE Claude pass)
+
+Fill every null field **from the email only** — never invent values. Use `candidates` for `urls` (homepage / registration / abstracts / other) and dates. Assign `relevance` High/Medium/Low + a one-sentence `relevance_reason` with the same rubric as mode A: read `memory/research_interests.md`; if missing, use `[skill-dir]/research_interests.template.md`, warn the user, and infer from AGENTS.md context. Leave fields the email does not state as `null`. Save the JSON to a temp file, then recompute gaps:
+
+```bash
+python3 "$SKILL_DIR/scripts/event_stage.py" --refresh-missing "$SCHEMA" > "$SCHEMA.tmp" && mv "$SCHEMA.tmp" "$SCHEMA"
+```
+
+### B3. Enrich gaps (only if `missing_fields` non-empty AND a candidate link exists)
+
+```bash
+python3 "$SKILL_DIR/scripts/event_enrich.py" --schema "$SCHEMA"
+```
+
+Fetches ≤3 pages with urllib (UA `daimon research tool`, 0.5 s between requests, 10 s timeout), picking links whose anchor or URL mentions registration/fee/cost/prices/travel-grant. Emits a **gap-only JSON payload** (`missing_fields`, `links`, `pages[].lines` pre-filtered to gap-relevant text); it writes nothing itself. Dead links become `ok: false` entries — fail-soft, never a crash; with no network the payload just carries errors and the `—` cells stand.
+
+**Second Claude pass (only fields in `missing_fields`)**: fill those from `pages[].lines`. Never touch a field the email already supplied — email-derived values are never overwritten. Re-run `event_stage.py --refresh-missing` after filling.
+
+### B4. Write (script)
+
+```bash
+python3 "$SKILL_DIR/scripts/event_write.py" --schema "$SCHEMA" --events "$VAULT_DIR/40-Meta/events.md"
+```
+
+Upserts the table row (dedupe on normalised `event_name`), appends or updates the `### ...` block under `## Event Summaries`, and re-sorts the whole table: ascending by earliest upcoming registration deadline; no-deadline and past-only rows last (stable). `—` for missing fields. Duplicate pass → `action=no_change`, zero diff. `event_name: null` → `action=refused` with a "not an event" message and **no writes**.
+
+### B5. Log and report
+
+On a successful write, append the action to `40-Meta/ai-changes.md` and report what was written (row + summary) like mode A. On refusal: no log entry, just the message.
+
+### Deterministic checks (script path)
+
+```bash
+# exit 0 = all fixtures green; zero network, synthetic fixtures only
+bash "$SKILL_DIR/evals/run_evals.sh"
+```
