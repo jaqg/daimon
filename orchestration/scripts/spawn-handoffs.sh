@@ -27,6 +27,28 @@ set -euo pipefail
 
 die() { echo "spawn-handoffs: $*" >&2; exit 2; }
 
+usage() { cat <<'EOF'
+usage: spawn-handoffs.sh --manifest FILE [--part P]    spawn the batch
+       spawn-handoffs.sh close --part P                close the part's tab
+
+Manifest: TSV, '#' comment lines, one row per worker:
+  role<TAB>wt<TAB>repo<TAB>prompt_file[<TAB>note]
+    role         worker|calcs|scout|verifier|integrator
+    wt           part/slice (exactly one slash) -> worktree <repo>/.worktrees/<part>-<slice>
+    repo         absolute repo path
+    prompt_file  absolute path (reaches pi as @file, resolved from the pane's cwd = worktree)
+    note         optional one-line human context for the SPAWN? summary
+
+Convention: manifest lives beside the prompt files:
+  .agent/scratch/handoffs/<YYYY-MM-DD>-<part>.manifest.tsv
+
+Example:
+  bash ~/.pi/agent/scripts/spawn-handoffs.sh \
+    --manifest .agent/scratch/handoffs/2026-10-27-spawn-handoffs.smoke.manifest.tsv \
+    --part spawn-handoffs
+EOF
+}
+
 HERDR_BIN="${HERDR_BIN:-herdr}"
 WT_SCRIPT="${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}"
 NAME_RE='^[a-z][a-z0-9_-]{0,31}$'
@@ -38,7 +60,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --manifest) MANIFEST="${2:?}"; shift 2;;
     --part)     PART="${2:?}"; shift 2;;
-    *) die "unknown arg $1 (see header: [--manifest FILE] [--part P] | close --part P)";;
+    --help|-h)  usage; exit 0;;
+    *) usage >&2; die "unknown arg $1";;
   esac
 done
 command -v jq >/dev/null || die "jq not found — the herdr JSON envelope is parsed with jq"
@@ -59,7 +82,7 @@ if [ "$CMD" = close ]; then
 fi
 
 # ---------------------------------------------------------------- parse + validate the manifest
-[ -n "$MANIFEST" ] || die "--manifest required"
+[ -n "$MANIFEST" ] || { usage >&2; die "--manifest required"; }
 [ -f "$MANIFEST" ] || die "no such manifest: $MANIFEST"
 [ -f "$WT_SCRIPT" ] || [ -x "$WT_SCRIPT" ] || die "missing $WT_SCRIPT"
 
