@@ -278,7 +278,15 @@ case "$CMD" in
       fi
       [[ -z "$unmerged" ]] || refuse "$BR has $(echo "$unmerged" | wc -l) commit(s) not in ${INTEG_BRANCH:-HEAD} — merge or delete the branch by hand"
     fi
-    git -C "$REPO" worktree remove "$WT"
+    # --force must REACH git: the flag parser has always accepted it here, but the invocation below
+    # dropped it, so `remove --force` died with "use --force to delete it" on the very worktree it
+    # was told to delete. Without --force the pre-checks above already refused, and git's own refusal
+    # (modified/untracked files) stays as the second gate.
+    if [[ $FORCE -eq 1 ]]; then
+      git -C "$REPO" worktree remove --force "$WT"
+    else
+      git -C "$REPO" worktree remove "$WT"
+    fi
     echo "remove: dropped $WT (branch $BR kept; deltas kept as .md.processed until the next prune)"
     ;;
 
