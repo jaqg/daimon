@@ -1,0 +1,19 @@
+{
+  "event_name": null,
+  "series": null,
+  "dates": null,
+  "location": null,
+  "abstract_deadline": null,
+  "registration_deadline": null,
+  "cost": null,
+  "urls": {"homepage": null, "registration": null, "abstracts": null, "other": []},
+  "relevance": null,
+  "relevance_reason": null,
+  "source_email": {
+    "date": "2026-10-22",
+    "from": "newsletter@example.org",
+    "subject": "Monthly lab newsletter — October"
+  },
+  "missing_fields": ["cost", "registration_deadline", "abstract_deadline", "dates", "location"],
+  "candidates": {"urls": [], "dates": ["2026-10-29"]}
+}

@@ -1,0 +1,30 @@
+{
+  "event_name": "International Workshop on Synthetic Example Systems",
+  "series": "SynthConf 2027",
+  "dates": "2027-06-14–2027-06-18",
+  "location": "Sampleville, Exampleland",
+  "abstract_deadline": "2027-02-02",
+  "registration_deadline": "2027-04-15",
+  "cost": null,
+  "urls": {
+    "homepage": "https://synthconf.example.org",
+    "registration": "https://synthconf.example.org/register",
+    "abstracts": null,
+    "other": []
+  },
+  "relevance": "High",
+  "relevance_reason": "Directly covers synthetic-data methods for model validation in computational chemistry.",
+  "source_email": {
+    "date": "2026-10-21",
+    "from": "office@synthconf.example.org",
+    "subject": "SynthConf 2027 — deadlines and registration"
+  },
+  "missing_fields": ["cost"],
+  "candidates": {
+    "urls": [
+      {"url": "https://synthconf.example.org/register", "anchor": "https://synthconf.example.org/register"},
+      {"url": "https://synthconf.example.org", "anchor": "https://synthconf.example.org"}
+    ],
+    "dates": ["2027-02-02", "2027-04-15", "2027-06-14", "2027-06-18"]
+  }
+}
