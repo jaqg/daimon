@@ -179,8 +179,9 @@ cat > "$UPDATES_FILE" << 'ENDJSON'
 <JSON from Step 4>
 ENDJSON
 
-# REPO = first path from $PROJECT_DIR/status/repos.txt ("repo: <path>"), if any
-REPO="$(sed -n 's/^.*[[:space:]]\(~\?\/[[:print:]]*\)[[:space:]]*$/\1/p' "$PROJECT_DIR/status/repos.txt" 2>/dev/null | head -1)"
+# REPO = first "repo: <path>" entry from $PROJECT_DIR/status/repos.txt, if any (comment lines start
+# with #; the old mid-line-tilde regex matched comment text and grabbed junk)
+REPO="$(sed -n 's/^repo:[[:space:]]*//p' "$PROJECT_DIR/status/repos.txt" 2>/dev/null | head -1)"
 
 python3 "$APPLY_SCRIPT" \
   --project-dir "$PROJECT_DIR" \
