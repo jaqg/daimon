@@ -61,6 +61,28 @@ def read_paths(repo: Path) -> dict:
     return out
 
 
+def status_dir_of(paths: dict) -> Path:
+    """Where the rollup goes, derived from the project dir EXACTLY ONCE.
+
+    Live bug, measured twice 2026-10-28 in IQARIS-extension: a legacy .agent-paths held the relative
+    `status_dir: 10-Projects/X/status`, and a brain running from `<vault>/10-Projects/X` got the
+    rollup at `10-Projects/X/10-Projects/X/status/<part>.md` — the relative value resolved against a
+    cwd that already sat inside the project. An absolute status_dir is trusted as-is; a relative one
+    is joined onto vault_project, stripping the `10-Projects/<X>/` or `<X>/` prefix the legacy shape
+    carries, so the project path appears exactly once no matter which of the two shapes the file has.
+    """
+    sd = Path(paths["status_dir"]).expanduser()
+    if sd.is_absolute():
+        return sd
+    proj = Path(paths["vault_project"]).expanduser()
+    rel = sd
+    if rel.parts[:2] == ("10-Projects", proj.name):
+        rel = Path(*rel.parts[2:])
+    elif rel.parts[:1] == (proj.name,):
+        rel = Path(*rel.parts[1:])
+    return proj / rel
+
+
 def branch_of(repo: Path, part: str) -> list[str]:
     """Branches that belong to this part, straight from git (no side ledger to drift)."""
     try:
@@ -284,10 +306,11 @@ def main() -> None:
 
     repo = Path(a.repo).resolve()
     paths = read_paths(repo)
-    status_dir = Path(paths["status_dir"]).expanduser()
+    status_dir = status_dir_of(paths)
     if not status_dir.is_dir():
-        die(4, f"status_dir {status_dir} does not exist (create it or fix .agent-paths; a relative path "
-               f"resolved against cwd=$PWD — `worktree.sh init --vault <abs vault path>` pins it absolute)")
+        die(4, f"status_dir {status_dir} does not exist (create it or fix .agent-paths; a relative "
+               f"status_dir is derived from vault_project — `worktree.sh init --vault <abs vault path>` "
+               f"pins both absolute)")
     src = repo / ".agent" / "status"
     if not src.is_dir():
         print(f"merge-status: no {src} — no queue yet. `worktree.sh add` symlinks it; until then nobody can report.")
