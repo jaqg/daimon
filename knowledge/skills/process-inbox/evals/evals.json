@@ -62,5 +62,65 @@
     "expected_behavior": "bader1990-atoms-in-molecules.md (type=Paper) → propose move to 20-Sources/papers/ via bash mv; log to ai-changes.md. electron-density-topology.md (type=Concept, standalone idea) → draft Galaxy skeleton in response and notify user; do NOT write to 30-Galaxy/ without user approval. Report lists both actions. ai-changes.md updated.",
     "must_contain": ["20-Sources/papers", "30-Galaxy", "electron-density-topology", "ai-changes.md", "approval"],
     "must_not_contain": ["wrote to 30-Galaxy", "created 30-Galaxy/electron-density-topology.md"]
-  }
+  },
+{
+  "id": "event_ingest_full_info",
+  "description": "Mode B: single full-info conference email → schema fill, events.md upsert, no enrichment fetch",
+  "input_mode": "B — single email passed as file path or pasted content",
+  "email": "---\ntype: email\nemail-type: conference\ndate: 2026-10-20\nfrom: programme@synthconf.example.org\nsubject: SynthConf 2027 — call for participation\n---\n\nThe International Workshop on Synthetic Example Systems (SynthConf 2027) will take place 2027-06-14 to 2027-06-18 in Sampleville, Exampleland.\nAbstract submission deadline: 2027-02-02\nRegistration deadline: 2027-04-15\nCost: EUR 450 (standard), EUR 250 (student).\nHomepage: https://synthconf.example.org\nRegistration: https://synthconf.example.org/register\nAbstract submission: https://synthconf.example.org/abstracts",
+  "expected_behavior": "event_stage.py emits schema skeleton + candidates (URLs with anchors, ISO dates) + missing_fields. ONE Claude pass fills all fields from the email; relevance via memory/research_interests.md rubric. missing_fields ends empty → event_enrich.py returns status=no_gaps and NOTHING is fetched. event_write.py upserts the row (dedupe on normalised event_name), appends the ### block under ## Event Summaries, re-sorts whole table (earliest upcoming registration deadline first).",
+  "must_contain": [
+    "SynthConf 2027",
+    "2027-04-15",
+    "EUR 450",
+    "Sampleville",
+    "no_gaps",
+    "Event Summaries"
+  ],
+  "must_not_contain": [
+    "event_enrich.py --schema"
+  ]
+},
+{
+  "id": "event_ingest_missing_cost",
+  "description": "Mode B: email missing cost + registration link → enrichment fetches ≤3 pages and fills ONLY the missing field",
+  "input_mode": "B — single email, cost absent, registration URL present",
+  "email": "---\ntype: email\nemail-type: conference\ndate: 2026-10-21\nfrom: office@synthconf.example.org\nsubject: SynthConf 2027 — deadlines and registration\n---\n\nSynthConf 2027 — International Workshop on Synthetic Example Systems, 2027-06-14 to 2027-06-18, Sampleville, Exampleland.\nAbstract submission deadline: 2027-02-02\nRegistration deadline: 2027-04-15\nRegistration: https://synthconf.example.org/register\nHomepage: https://synthconf.example.org",
+  "expected_behavior": "Schema has cost=null → missing_fields=[cost] and a candidate link exists → event_enrich.py runs (UA 'daimon research tool', ≤3 pages, 0.5 s delay, 10 s timeout, fail-soft). Second Claude pass fills ONLY missing_fields from the payload — email-derived values (dates, deadlines, location) are never overwritten. event_write.py then writes cost into the row; enrichment candidate lines are pre-filtered to gap-relevant text only.",
+  "must_contain": [
+    "missing_fields",
+    "cost",
+    "event_enrich.py"
+  ],
+  "must_not_contain": [
+    "registration_deadline\": null"
+  ]
+},
+{
+  "id": "event_ingest_duplicate_pass",
+  "description": "Mode B: same email processed twice → zero diff on events.md",
+  "input_mode": "B — duplicate pass over an already-ingested email",
+  "email": "(same as event_ingest_full_info, second run)",
+  "expected_behavior": "event_write.py dedupes on normalised event_name: second pass finds the existing row and block, produces byte-identical output (action=no_change), re-sort is stable — zero diff on 40-Meta/events.md. No duplicate summary block is appended.",
+  "must_contain": [
+    "no_change"
+  ],
+  "must_not_contain": [
+    "row_created"
+  ]
+},
+{
+  "id": "event_ingest_non_event",
+  "description": "Mode B: non-event email → zero writes + message pointing to /process-inbox",
+  "input_mode": "B — single non-conference email (newsletter)",
+  "email": "---\ntype: email\ndate: 2026-10-22\nfrom: newsletter@example.org\nsubject: Monthly lab newsletter — October\n---\n\nReading group meets 2026-10-29 at 15:00 in room 2.4. The coffee machine on the third floor is out of service.",
+  "expected_behavior": "One Claude pass judges non-event → event_name stays null. event_write.py refuses (action=refused, 'not an event' message), writes NOTHING, events.md byte-identical; user is told to run /process-inbox for a normal scan. No ai-changes.md entry, no file moves.",
+  "must_contain": [
+    "not an event",
+    "/process-inbox"
+  ],
+  "must_not_contain": [
+    "row_created"
+  ]
+}
 ]
