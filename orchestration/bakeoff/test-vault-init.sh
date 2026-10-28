@@ -212,4 +212,16 @@ lines="$(wc -l < "$VAULT_INIT")"
 grep -Fqx 'set -euo pipefail' "$VAULT_INIT" || fail 'A16 strict shell mode missing'
 pass A16 'script stays within 150 lines and enables strict shell mode'
 
-echo 'PASS all A1-A16'
+# A17 exit 2 (die), A18: --vault may be relative; init resolves it against cwd then each ancestor and stores the
+# ABSOLUTE path. A wrong cwd must die instead of planting vault scaffolding inside the repo
+# (live bug 2026-10-28: init run from the repo root created .gitkeep dirs in the repo).
+mkdir -p "$TMP/wrongcwd"
+out="$(expect_code 2 env -C "$TMP/wrongcwd" "$WORKTREE" init --repo "$TMP/repo" --vault 10-Projects/P --test-cmd true)"
+[[ "$out" == *"matches no directory"* ]] || fail "A17 wrong-cwd init message: $out"
+[[ ! -e "$TMP/wrongcwd/10-Projects" ]] || fail 'A17 wrong-cwd init created directories'
+pass A17 'relative --vault from the wrong cwd dies without creating anything'
+out="$(expect_code 0 env -C "$VAULT" "$WORKTREE" init --repo "$TMP/repo" --vault 10-Projects/P --part demo --test-cmd true)"
+grep -q "^status_dir: $VAULT/10-Projects/P/status$" "$TMP/repo/.agent-paths" || fail 'A18 status_dir not absolute'
+pass A18 'relative --vault from the vault root is stored absolute'
+
+echo 'PASS all A1-A18'

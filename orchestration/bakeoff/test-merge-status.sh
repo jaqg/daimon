@@ -7,7 +7,7 @@
 # own worktree because `.agent/status` is per-worktree, and /merge-status asked the brain to run
 # `git branch --list`, which its own tier denies. Every case here is deterministic: no model, no network.
 #
-#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M25
+#   bash orchestration/bakeoff/test-merge-status.sh          # M1..M29
 set -euo pipefail
 
 S="${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}"
@@ -191,6 +191,38 @@ python3 "$M" --repo "$R" 2>&1 | grep -q 'agents: env' && ok "M9 that delta is ro
 # M10 — the exact delta path is printed, so no leaf re-derives the convention by hand.
 bash "$S" add --repo "$R" --part structure --agent desc --role worker 2>&1 | grep -q "^DELTA=$R/.agent/status/$DATE-structure.desc.md$" \
   && ok "M10 worktree.sh add prints DELTA= with the dot convention" || bad "M10 worktree.sh add prints DELTA= with the dot convention"
+
+# ---- M28/M29: superseded PROCESSED twins (the live 2026-10-28 defects)
+# M28 — a stale .processed twin must not resurrect into an empty queue: two deliveries of the same
+# (part, agent) on different dates, both consumed → only the newest counts.
+rm -f "$SRC"/*.md "$SRC"/*.md.processed
+YD=$(date -d yesterday +%F 2>/dev/null || date -v-1d +%F)
+printf 'DONE: old delivery\nBLOCKED(demo): bakeoff/run.sh = exit 127 (file does not exist)\n' > "$SRC/$YD-stale.demo.md.processed"
+printf 'DONE: new delivery, blockers resolved\nBLOCKED(demo): none.\n' > "$SRC/$DATE-stale.demo.md.processed"
+set +e; out=$(python3 "$M" --repo "$R" --part stale --force 2>&1); rc=$?; set -e
+chk $rc "M28 rollup rebuilds with two superseded .processed twins"
+grep -q 'new delivery, blockers resolved' <<<"$out" && ! grep -q 'exit 127' <<<"$out" \
+  && ok "M28 newest processed twin wins; the stale BLOCKED is gone" \
+  || bad "M28 stale twin resurfaced: $(grep -E '^- ' <<<"$out" | tr '\n' '|')"
+grep -q '^tally: DONE 1 · BLOCKED 0' <<<"$out" \
+  && ok "M28 tally counts neither the stale blocker nor the 'none.' line" \
+  || bad "M28 tally — $(grep '^tally:' <<<"$out")"
+! grep -q 'amend the stale spec' <<<"$out" \
+  && ok "M28 next-command demands no amendment for zero open blockers" \
+  || bad "M28 amend noise: $(grep 'next-command' <<<"$out" | head -1)"
+
+# M29 — "BLOCKED(x): none. Note: …" stays VISIBLE (the note is context the reader wants) but is
+# not owed work: it must not reach the tally or the next-command.
+rm -f "$SRC"/*.md "$SRC"/*.md.processed
+printf 'DONE: core steps landed\nBLOCKED(core): none. Note: handoff cited a missing file — used the right one\n' > "$SRC/$DATE-nb.core.md"
+set +e; out=$(python3 "$M" --repo "$R" --part nb --force 2>&1); rc=$?; set -e
+chk $rc "M29 rollup runs"
+grep -q 'BLOCKED(core): none. Note: handoff cited a missing file' <<<"$out" \
+  && ok "M29 the none-note is still surfaced" || bad "M29 none-note vanished: $(grep BLOCKED <<<"$out")"
+grep -q '^tally: DONE 1 · BLOCKED 0' <<<"$out" \
+  && ok "M29 the none-note counts zero blockers" || bad "M29 tally — $(grep '^tally:' <<<"$out")"
+! grep -q 'amend the nb spec' <<<"$out" \
+  && ok "M29 no amendment demanded" || bad "M29 amend noise"
 
 echo "---- merge-status contract: $pass passed, $fail failed"
 [ $fail -eq 0 ]

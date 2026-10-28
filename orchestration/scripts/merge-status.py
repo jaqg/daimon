@@ -92,8 +92,16 @@ def digest(lines: list[str], cap: int = 96) -> dict:
         for kw in KWS:
             if low.startswith(kw) and ( ":" in body or " " in body[kw : kw + 2]):
                 text = body.split(":", 1)[1].strip() if ":" in body else body[len(kw):].strip(" ·-")
-                if re.fullmatch(r"none|nothing|n/?a|no|–|-+|\.", text, re.I):
+                if re.fullmatch(r"(?:none|nothing|n/?a|no|–|\-+|\.)[.:,\s—–\-]*", text, re.I):
                     break  # "blocked: nothing" is a non-finding; do not surface or count it
+                if re.match(r"^(?:none|nothing|n/?a)(?:[.:,]|\s+[—–\-])", text, re.I):
+                    # "blocked: none. Note: …" — a CLOSED blocker with context for the reader (the
+                    # live case that asked the brain to "amend the spec — 1 BLOCKED" for zero
+                    # blockers, 2026-10-28): keep it visible in the rollup, but it is not owed work,
+                    # so it must not reach the tally or the next-command. "none of the tests pass"
+                    # (space then a word) still counts as open.
+                    found.setdefault(kw, (text[: cap - 1] + "…") if len(text) > cap else text)
+                    break
                 counts[kw] = counts.get(kw, 0) + 1
                 found.setdefault(kw, (text[: cap - 1] + "…") if len(text) > cap else text)
                 break
@@ -244,8 +252,24 @@ def gather_deltas(src: Path) -> tuple[list[Path], list[Path]]:
         m = DELTA_RE.match(p.name)
         if m:
             live.add((m.group("part"), m.group("agent")))
-    proc = [p for p in sorted(src.glob("*.md.processed"))
-            if (lambda m: not m or (m.group("part"), m.group("agent")) not in live)(DELTA_RE.match(p.name))]
+    proc = []
+    # The same dedup applies WITHIN the processed set: a re-delivered slice leaves two .processed
+    # files (one per date), and the older one used to resurrect its BLOCKED/DEBT lines into an empty
+    # queue — the live "5 BLOCKED" on spawn-handoffs, 2026-10-28. Newest wins: date in the name,
+    # then mtime for a same-day tie.
+    newest: dict[tuple[str, str], Path] = {}
+    for p in sorted(src.glob("*.md.processed")):
+        m = DELTA_RE.match(p.name)
+        if m and (m.group("part"), m.group("agent")) in live:
+            continue
+        if not m:
+            proc.append(p)  # unmatched names die loudly in parse_delta; keep them here
+            continue
+        key = (m.group("part"), m.group("agent"))
+        cur = newest.get(key)
+        if cur is None or (p.name, p.stat().st_mtime) >= (cur.name, cur.stat().st_mtime):
+            newest[key] = p
+    proc = proc + sorted(newest.values())
     return unproc, proc
 
 
@@ -262,7 +286,8 @@ def main() -> None:
     paths = read_paths(repo)
     status_dir = Path(paths["status_dir"]).expanduser()
     if not status_dir.is_dir():
-        die(4, f"status_dir {status_dir} does not exist (create it or fix .agent-paths)")
+        die(4, f"status_dir {status_dir} does not exist (create it or fix .agent-paths; a relative path "
+               f"resolved against cwd=$PWD — `worktree.sh init --vault <abs vault path>` pins it absolute)")
     src = repo / ".agent" / "status"
     if not src.is_dir():
         print(f"merge-status: no {src} — no queue yet. `worktree.sh add` symlinks it; until then nobody can report.")
@@ -296,7 +321,8 @@ def main() -> None:
             print(l)
         # Not part of the rollup body: the rollup is a durable artifact, these are live instructions for
         # the terminal, and they would go stale the moment another branch lands.
-        blocked = sum(1 for _, _, d in ds if "blocked" in d["found"])
+        # counts, not found: a "blocked: none. Note: …" line is surfaced in the rollup but is not owed work
+        blocked = sum(d["counts"].get("blocked", 0) for _, _, d in ds)
         if contract_integ and contract_integ != integ:
             print(f"note[drift]: .agent-paths integration_branch={contract_integ} is not this part's "
                   f"branch ({integ}); re-run worktree.sh init --repo {repo} --part {part}")

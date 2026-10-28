@@ -84,6 +84,24 @@ case "$CMD" in
   init)
     [[ -n "$VAULT" ]] || VAULT="$(old_val vault_project)"
     [[ -n "$VAULT" ]] || die "init needs --vault <10-Projects/X> (or an existing .agent-paths to inherit)"
+    # status_dir/ai_out/plans are VAULT paths, but every consumer resolves a relative path against its
+    # own cwd — init run from the repo root planted .gitkeep scaffolding inside the repo (live bug
+    # 2026-10-28). Pin them ABSOLUTE here, like every other key in the file: an absolute --vault is
+    # trusted; a relative one is resolved to the nearest directory that actually holds it (cwd first,
+    # then each ancestor — a brain runs init from <vault>/10-Projects/X, not from the vault root).
+    if [[ "$VAULT" != /* ]]; then
+      _hit=""
+      [[ -d "$PWD/$VAULT" ]] && _hit="$PWD/$VAULT"
+      if [[ -z "$_hit" ]]; then
+        _up="$PWD"
+        while [[ "$_up" != / ]]; do
+          _up="$(dirname "$_up")"
+          if [[ -d "$_up/$VAULT" ]]; then _hit="$_up/$VAULT"; break; fi
+        done
+      fi
+      [[ -n "$_hit" ]] || die "init: --vault $VAULT matches no directory under $PWD or any ancestor — pass a path that exists, or --vault /abs/path"
+      VAULT="$(cd "$_hit" && pwd -P)"
+    fi
     STATUS_DIR="$VAULT/status"; AI_OUT="$VAULT/ai-out"; PLANS_DIR="$VAULT/plans"
     # plans/ is where /brain writes the plan and where /merge-status reads specs from; it was the one
     # element of the contract that nothing created, so 7/7 vault projects lacked it (2026-10-25).

@@ -4,7 +4,11 @@ One file per repo, at the repo root, **gitignored** (`worktree.sh init` adds it 
 `.git/info/exclude`, so it never shows up in a diff or a commit). The brain writes it once per
 part via `worktree.sh init`; agents only read it. Values are never invented by an agent — that is
 the whole point: the integrator is forbidden from guessing where to merge, so the branch name has
-to come from somewhere mechanical.
+to come from somewhere mechanical. Every path is stored **absolute**: `--vault` may be given
+relative (`10-Projects/X`), which `init` resolves against the current directory and then each
+ancestor (a brain runs from `<vault>/10-Projects/X`, not the vault root) — a value that matches
+nothing dies loudly instead of creating directories in the wrong tree (bug of 2026-10-28: init run
+from the repo root planted `.gitkeep` scaffolding inside the repo).
 
 ```
 repo: $HOME/Documents/Universidad/aac-DOCTORADO/the-dataset-project
