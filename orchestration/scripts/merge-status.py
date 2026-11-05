@@ -112,7 +112,9 @@ def digest(lines: list[str], cap: int = 96) -> dict:
         body = re.sub(r"^[-*#\s]*(?:###\s*)?", "", l)
         low = body.lower()
         for kw in KWS:
-            if low.startswith(kw) and ( ":" in body or " " in body[kw : kw + 2]):
+            # kw is a str — slicing with it (body[kw : kw + 2]) raises TypeError on any
+            # keyword-starting line without a colon; the boundary test needs its length.
+            if low.startswith(kw) and ( ":" in body or " " in body[len(kw) : len(kw) + 2]):
                 text = body.split(":", 1)[1].strip() if ":" in body else body[len(kw):].strip(" ·-")
                 if re.fullmatch(r"(?:none|nothing|n/?a|no|–|\-+|\.)[.:,\s—–\-]*", text, re.I):
                     break  # "blocked: nothing" is a non-finding; do not surface or count it
