@@ -1,0 +1,84 @@
+{
+  "skill_name": "yt-research",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "research youtube on computational screening of single-atom catalysts, i want the parts where they discuss stability",
+      "expected_output": "search-*.json from yt_search.py, 1-3 picked videos shown with reason, transcripts fetched, locate windows, report-*.md with a timestamped-parts table using clickable youtu.be?t= links",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e0_scripts",
+          "name": "all three stages run as scripts (search/transcript/locate), no inline python",
+          "check": "uses_script"
+        },
+        {
+          "id": "e0_json_valid",
+          "name": "search + locate outputs are valid JSON files in workspace",
+          "check": "json_files_valid"
+        },
+        {
+          "id": "e0_links_match_windows",
+          "name": "every report timestamp equals some window start_s (no invented timestamps)",
+          "check": "links_trace_to_windows"
+        },
+        {
+          "id": "e0_source_stated",
+          "name": "report states search source (google_api or yt_dlp) and any fallbacks",
+          "check": "coverage_present"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "https://www.youtube.com/watch?v=XXXXXXX where does it explain the free energy diagram? give me timestamps",
+      "expected_output": "transcript fetched for the given ID, locate run with keywords like 'free energy diagram', table of relevant parts with MM:SS + clickable links, irrelevant windows dropped by judgment",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e1_video_id",
+          "name": "video ID extracted correctly from URL",
+          "check": "video_id_extracted"
+        },
+        {
+          "id": "e1_segments_timed",
+          "name": "transcript segments carry start_s/end_s (monotonic)",
+          "check": "segments_have_times"
+        },
+        {
+          "id": "e1_links_trace",
+          "name": "each reported link's t= equals its window start_s",
+          "check": "links_trace_to_windows"
+        },
+        {
+          "id": "e1_judgment",
+          "name": "irrelevant keyword windows filtered out with stated reasons",
+          "check": "windows_reranked_by_judgment"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "find 5 recent youtube videos (last 6 months, must have captions) about battery electrolyte degradation and tell me which is most relevant for a beginner",
+      "expected_output": "yt_search.py run with --months 6 --require-captions --max-results 5, captions_filter_applied true (or fallback disclosed), relevance ranking for a beginner audience with justification",
+      "files": [],
+      "assertions": [
+        {
+          "id": "e2_filters",
+          "name": "search ran with months + captions filters",
+          "check": "search_filters_used"
+        },
+        {
+          "id": "e2_fallback_disclosed",
+          "name": "if source is yt_dlp, api_error reason is disclosed to user",
+          "check": "fallback_disclosed"
+        },
+        {
+          "id": "e2_beginner_pick",
+          "name": "one video picked as beginner-appropriate with explicit reasoning",
+          "check": "explicit_pick_with_reason"
+        }
+      ]
+    }
+  ]
+}

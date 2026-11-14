@@ -26,7 +26,8 @@ daimon/
 │   │   ├── lit-watch/     # weekly new-paper monitor → vault digest
 │   │   ├── lit-review/    # full pipeline: search → PRISMA → NLM → report
 │   │   ├── lit-vault/     # papers.json → per-paper vault notes (20-Sources/papers/)
-│   │   └── lit-annotate/  # fill Key points skeleton in vault notes after reading
+│   │   ├── lit-annotate/  # fill Key points skeleton in vault notes after reading
+│   │   └── yt-research/   # YouTube topic/URL research via timed transcripts
 │   ├── scripts/
 │   │   └── papers_io.py   # shared papers.json read/write/merge
 │   └── schemas/
@@ -55,6 +56,7 @@ daimon/
 | literature | [`lit-review`](literature/skills/lit-review/) | Full pipeline: search → PRISMA screening → NotebookLM (batched) → report + .bib |
 | literature | [`lit-vault`](literature/skills/lit-vault/) | papers.json → per-paper Obsidian vault notes; full-text fetch (arXiv/Unpaywall); project-situated summaries; Galaxy link suggestions |
 | literature | [`lit-annotate`](literature/skills/lit-annotate/) | Fill Key points skeleton in vault notes after reading; accepts user notes, PDF, or URL; project-context framing; approval-gated |
+| literature | [`yt-research`](literature/skills/yt-research/) | YouTube by topic or video: search (Google API → yt-dlp fallback) → timed transcript (youtube-transcript-api → yt-dlp captions) → keyword-window locate → report with clickable timestamps |
 | vault | [`galaxy`](vault/skills/galaxy/) | Draft 30-Galaxy/ concept note skeletons from confirmed [[links]] in paper notes; approval-gated write |
 | vault | [`process-inbox`](vault/skills/process-inbox/) | Routes 00-Inbox/ notes and emails — conferences, tutor emails, source notes, Galaxy skeletons |
 | vault | [`update-memory`](vault/skills/update-memory/) | End-of-session memory capture — writes/updates project memory files |
@@ -78,7 +80,6 @@ Skills for Obsidian vault workflows. Pending migration to this repo.
 | Skill | Source | Target domain | Status |
 |-------|--------|---------------|--------|
 | `sci-lit-pipeline` | user-authored | `literature/skills/` | superseded by `lit-search` + `lit-review`; pending migration |
-| `youtube-research-pipeline` | user-authored | `literature/skills/` | BROKEN — missing `youtube-search` dep |
 | `claude-md-improver` | `claude-md-management` plugin | — | plugin-provided, no migration |
 
 ## Config

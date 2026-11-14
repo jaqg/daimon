@@ -1,0 +1,22 @@
+{
+  "video_id": "dQw4w9WgXcQ",
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "language": "en",
+  "source": "fixture",
+  "duration_s": 132.0,
+  "segment_count": 12,
+  "segments": [
+    {"start_s": 0.0, "end_s": 10.0, "text": "Welcome back to the channel, today we start with a general introduction."},
+    {"start_s": 10.0, "end_s": 20.0, "text": "Before we begin, make sure to subscribe and like the video."},
+    {"start_s": 20.0, "end_s": 35.0, "text": "The density functional theory calculation starts with the exchange-correlation functional choice."},
+    {"start_s": 35.0, "end_s": 50.0, "text": "Here we compare the PBE functional against hybrid functionals for the adsorption energy."},
+    {"start_s": 50.0, "end_s": 58.0, "text": "Now a quick word from our sponsor."},
+    {"start_s": 58.0, "end_s": 66.0, "text": "Nothing relevant here at all, just filler chatter."},
+    {"start_s": 66.0, "end_s": 82.0, "text": "Back to the adsorption energy: the hybrid functional lowers the barrier by 0.2 eV."},
+    {"start_s": 82.0, "end_s": 95.0, "text": "We also tested the basis set superposition error correction."},
+    {"start_s": 95.0, "end_s": 105.0, "text": "Let us summarize the density functional theory results so far."},
+    {"start_s": 105.0, "end_s": 115.0, "text": "In the next video we will cover molecular dynamics."},
+    {"start_s": 115.0, "end_s": 125.0, "text": "Thanks for watching, see you in the next one."},
+    {"start_s": 125.0, "end_s": 132.0, "text": "Links are in the description below."}
+  ]
+}

@@ -144,9 +144,18 @@ Shared logic across skills in the same domain belongs in `<domain>/scripts/` (e.
 
 **`vault/skills/process-inbox`** — requires `memory/research_interests.md` in the vault's agent project memory dir. A template lives at `vault/skills/process-inbox/research_interests.template.md`.
 
+**`literature/skills/yt-research`** — YouTube research by topic or by video URL, with timestamps.
+Optional machine deps: `uv tool install yt-dlp` +
+`pip install --user --break-system-packages youtube-transcript-api` (plain `pip install --user`
+fails on PEP 668 externally-managed Pythons; each transcript/search stage falls back
+to the other tool automatically) and optional `YOUTUBE_API_KEY` in `config/config.local` for
+Google-API topic search (yt-dlp search fallback when unset/quota-exhausted). Timestamps are
+generated only by `scripts/yt_locate.py` — reports must use its `link` values, never hand-computed
+times. Offline test: `python3 scripts/selftest.py`. Rebuilt replacement for the lost
+`youtube-research-pipeline` (never migrated, no longer exists).
+
 **Skills pending migration** (currently in `~/.claude/skills/` only, not yet in this repo):
 - `sci-lit-pipeline` → `literature/skills/`
-- `youtube-research-pipeline` → `literature/skills/` (BROKEN: missing `youtube-search` dependency)
 
 ## Skill eval workspaces
 

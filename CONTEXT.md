@@ -41,7 +41,7 @@ A general-purpose skill not tied to any research domain. Conversion, processing,
 _Avoid_: helper, miscellaneous, toolbox
 
 **integration**:
-A skill wrapping an external service (API, CLI, platform) not installable as a pip package or Claude Code plugin. Lives under `integrations/`. Examples: NotebookLM, YouTube research pipeline.
+A skill wrapping an external service (API, CLI, platform) not installable as a pip package or Claude Code plugin. Lives under `integrations/`. Example: NotebookLM.
 _Avoid_: connector, wrapper, bridge
 
 **placeholder domain**:

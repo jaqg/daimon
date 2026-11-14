@@ -33,6 +33,9 @@ WOS_SESSION_ID=             # WoS session token fallback (no API key needed); ex
                             # Auto-activates wos_session source in lit-search when set. Re-extract when searches return 0 results (expires with browser session).
 SCOPUS_API_KEY=             # Scopus — requires institutional subscription (request API access via your university library)
 NCBI_API_KEY=               # PubMed higher rate limits (free from NCBI)
+YOUTUBE_API_KEY=            # YouTube Data API v3 for yt-research topic search (free, 10k units/day = 100 searches;
+                            # create at console.cloud.google.com → enable "YouTube Data API v3" → Credentials → API key.
+                            # yt-research falls back to yt-dlp search when unset or quota-exhausted. NEVER commit the real key.)
 ZOTERO_API_URL=http://localhost:23119   # Zotero local API (Better BibTeX required)
 
 # Full-text fetch — publisher TDM APIs (both require institutional network/VPN at runtime)
