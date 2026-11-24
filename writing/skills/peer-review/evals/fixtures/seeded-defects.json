@@ -1,0 +1,48 @@
+{
+  "seeded-a.tex": [
+    {
+      "defect_id": "sa-01",
+      "type": "missing_scf_criterion",
+      "section": "Methods",
+      "para_anchor": "a plane-wave cutoff of 520 eV",
+      "detect_keywords": ["SCF", "convergence threshold", "convergence criterion"]
+    },
+    {
+      "defect_id": "sa-02",
+      "type": "abstract_overclaim",
+      "section": "Abstract",
+      "para_anchor": "the lowest thermal conductivity ever reported for any",
+      "detect_keywords": ["overclaim", "overstate", "not supported by", "unsupported"]
+    },
+    {
+      "defect_id": "sa-03",
+      "type": "new_claim_in_conclusions",
+      "section": "Conclusions",
+      "para_anchor": "coherent tunneling of phonons across the silicate layers",
+      "detect_keywords": ["new claim", "not discussed", "first introduced", "not presented earlier"]
+    }
+  ],
+  "seeded-b.tex": [
+    {
+      "defect_id": "sb-01",
+      "type": "section_inversion",
+      "section": "Discussion",
+      "para_anchor": "The six-atom cluster binds the methoxy intermediate more weakly than the larger clusters",
+      "detect_keywords": ["inversion", "before Results", "section order", "out of order"]
+    },
+    {
+      "defect_id": "sb-02",
+      "type": "absent_data_availability",
+      "section": "Data Availability",
+      "para_anchor": "The barrier trend saturates for clusters larger than eight atoms",
+      "detect_keywords": ["data availability", "availability statement", "data are available", "deposited"]
+    },
+    {
+      "defect_id": "sb-03",
+      "type": "missing_scf_criterion",
+      "section": "Methods",
+      "para_anchor": "a plane-wave cutoff of 480 eV",
+      "detect_keywords": ["SCF", "convergence threshold", "convergence criterion"]
+    }
+  ]
+}

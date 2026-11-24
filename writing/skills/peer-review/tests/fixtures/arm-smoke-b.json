@@ -1,0 +1,80 @@
+{
+  "records": [
+    {
+      "fixture": "seeded-a.tex",
+      "comments": [
+        {
+          "id": "b-a-03",
+          "para_idx": 7,
+          "section": "Conclusions",
+          "severity": "major",
+          "lens": "1f",
+          "comment": "A new claim about coherent tunneling appears in Conclusions but was not discussed earlier in the manuscript.",
+          "suggestion": "Move the tunneling mechanism to Results with supporting analysis, or remove it.",
+          "evidence": "coherent tunneling of phonons across the silicate layers",
+          "rank": 3
+        },
+        {
+          "id": "b-a-01",
+          "para_idx": 3,
+          "section": "Methods",
+          "severity": "major",
+          "lens": "4",
+          "comment": "The SCF convergence criterion is missing from the Methods description of the electronic structure calculations.",
+          "suggestion": "State the SCF convergence threshold used for all calculations.",
+          "evidence": "a plane-wave cutoff of 520 eV",
+          "rank": 1
+        },
+        {
+          "id": "b-a-02",
+          "para_idx": 0,
+          "section": "Abstract",
+          "severity": "major",
+          "lens": "1e",
+          "comment": "The abstract overclaims the material performance: the headline statement is not supported by the results reported later.",
+          "suggestion": "Replace the superlative with the computed 1.4 to 1.9 W m-1 K-1 range.",
+          "evidence": "the lowest thermal conductivity ever reported for any",
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "fixture": "seeded-b.tex",
+      "comments": [
+        {
+          "id": "b-b-01",
+          "para_idx": 5,
+          "section": "Discussion",
+          "severity": "major",
+          "lens": "1c",
+          "comment": "Section order inversion: the Discussion section appears before Results, so the interpretation precedes the data it refers to.",
+          "suggestion": "Swap the two sections so Results precedes Discussion.",
+          "evidence": "The six-atom cluster binds the methoxy intermediate more weakly than the larger clusters",
+          "rank": 1
+        },
+        {
+          "id": "b-b-02",
+          "para_idx": 9,
+          "section": "Conclusions",
+          "severity": "minor",
+          "lens": "7",
+          "comment": "The manuscript has no data availability statement anywhere; deposition of structures and energies is not declared.",
+          "suggestion": "Add a data availability section naming the repository for coordinates and energies.",
+          "evidence": "The barrier trend saturates for clusters larger than eight atoms",
+          "rank": 2
+        },
+        {
+          "id": "b-b-03",
+          "para_idx": 3,
+          "section": "Methods",
+          "severity": "major",
+          "lens": "4",
+          "comment": "The SCF convergence threshold is absent from the computational setup; only the cutoff and k-point mesh are given.",
+          "suggestion": "Report the SCF convergence threshold together with the force tolerance.",
+          "evidence": "A plane-wave cutoff of 480 eV",
+          "rank": 3
+        }
+      ]
+    }
+  ]
+}

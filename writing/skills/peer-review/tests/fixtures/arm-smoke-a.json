@@ -1,0 +1,44 @@
+{
+  "records": [
+    {
+      "fixture": "seeded-a.tex",
+      "comments": [
+        {
+          "id": "a-01",
+          "para_idx": 3,
+          "section": "Methods",
+          "severity": "major",
+          "lens": "4",
+          "comment": "The SCF convergence criterion for the electronic structure calculations is not stated; only the plane-wave cutoff is given.",
+          "suggestion": "State the SCF convergence threshold used for all calculations.",
+          "evidence": "a plane-wave cutoff of 520 eV"
+        },
+        {
+          "id": "a-02",
+          "para_idx": 0,
+          "section": "Abstract",
+          "severity": "major",
+          "lens": "1e",
+          "comment": "The abstract overclaims: the headline thermal conductivity claim is not supported by the modest shifts reported in Results.",
+          "suggestion": "Replace the superlative with the computed 1.4 to 1.9 W m-1 K-1 range.",
+          "evidence": "the lowest thermal conductivity ever reported for any"
+        }
+      ]
+    },
+    {
+      "fixture": "seeded-b.tex",
+      "comments": [
+        {
+          "id": "b-01",
+          "para_idx": 3,
+          "section": "Methods",
+          "severity": "major",
+          "lens": "4",
+          "comment": "No SCF convergence threshold is reported alongside the plane-wave cutoff in Methods.",
+          "suggestion": "Report the SCF convergence threshold and the force tolerance.",
+          "evidence": "A plane-wave cutoff of 480 eV"
+        }
+      ]
+    }
+  ]
+}
