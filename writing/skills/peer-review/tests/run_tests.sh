@@ -16,6 +16,8 @@
 # point the suite at another worktree's scripts (e.g. the parallel scripts slice).
 #
 # Usage: bash writing/skills/peer-review/tests/run_tests.sh
+# Regen byte goldens from a conformant scripts tree (integration-time only):
+#   REGEN_GOLDENS=1 PEER_REVIEW_SCRIPTS_DIR=<scripts-tree> bash tests/run_tests.sh
 set -uo pipefail
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -235,7 +237,10 @@ if [ -f "$GOLDENS/inject-legacy-array.diff" ]; then
   if python3 "$SCRIPTS/inject_reviews.py" --file "$FIXTURES/minimal.tex" \
        --reviews "$(cat "$TMP/legacy-reviews.json")" --paragraphs "$(cat "$TMP/minimal-paras.json")" \
        --dry-run > "$TMP/legacy.diff" 2>"$TMP/legacy.err"; then
-    if cmp -s "$TMP/legacy.diff" "$GOLDENS/inject-legacy-array.diff"; then
+    if [ "${REGEN_GOLDENS:-0}" = 1 ]; then
+      cp "$TMP/legacy.diff" "$GOLDENS/inject-legacy-array.diff"
+      ok "C8 regen: inject-legacy-array.diff"
+    elif cmp -s "$TMP/legacy.diff" "$GOLDENS/inject-legacy-array.diff"; then
       ok "C8 legacy bare array renders byte-identical to v1 (dry-run golden)"
     else
       bad "C8 legacy bare array dry-run differs from golden" \
@@ -325,6 +330,19 @@ if errs:
 PY
     then ok "C8 C4 object rendering (editor block, % pr:<id>, rank order, reviewcolor patch)"
     else bad "C8 C4 object rendering"; fi
+    # byte golden of the C4 dry-run diff (regen with REGEN_GOLDENS=1 against a
+    # conformant scripts tree)
+    if [ "${REGEN_GOLDENS:-0}" = 1 ]; then
+      cp "$TMP/c4.diff" "$GOLDENS/inject-c4-editor.diff"
+      ok "C8 regen: inject-c4-editor.diff"
+    elif cmp -s "$TMP/c4.diff" "$GOLDENS/inject-c4-editor.diff"; then
+      ok "C8 C4 dry-run golden (editor block, % pr:<id> markers, rank order)"
+    elif [ ! -f "$GOLDENS/inject-c4-editor.diff" ]; then
+      bad "C8 C4 golden missing" "regen with REGEN_GOLDENS=1 against a conformant scripts tree"
+    else
+      bad "C8 C4 dry-run differs from golden" \
+          "$(diff "$GOLDENS/inject-c4-editor.diff" "$TMP/c4.diff" | head -5 | tr '\n' ' ')"
+    fi
     # dry-run diff must apply cleanly
     mkdir "$TMP/apply-c4" && cp "$FIXTURES/minimal.tex" "$TMP/apply-c4/minimal.tex"
     if patch --batch -p1 -d "$TMP/apply-c4" < "$TMP/c4.diff" >/dev/null 2>&1 \
@@ -380,6 +398,8 @@ PY
     bad "C8 C4 legacy inject --dry-run errored" "$(head -c 300 "$TMP/c4-legacy.err")"
   fi
 else
+  [ -f "$GOLDENS/inject-c4-editor.diff" ] || \
+    pend "C8 C4 golden missing (regen once scripts land)" "$GOLDENS/inject-c4-editor.diff"
   pend "C8 C4 object rendering" "inject_reviews.py has no revieweditor support yet (scripts slice not integrated)"
 fi
 
