@@ -136,10 +136,11 @@ Output: JSON array of paragraphs:
 The script follows `\input{}`/`\include{}` includes, strips LaTeX markup to plain text,
 and assigns a global `para_idx` used later for injection targeting.
 
-`--claims` additionally outputs a `claims` array of heuristic candidates (regexes: "we
-show/demonstrate/report/find", number+unit, significance terms) alongside the paragraph list.
-Save it for Step 4b and r2's claim–evidence check — candidates only, the model still judges
-which claims are real.
+`--claims` wraps the output as `{"paragraphs": <C1 array>, "claims": [...]}` where `claims` is
+an array of heuristic candidates `{id, section, para_idx, text, type}` (regexes: "we
+show/demonstrate/report/find", number+unit, significance terms) — save it for Step 4b and r2's
+claim–evidence check. Without the flag, output stays the bare paragraph array (unchanged).
+Candidates only — the model still judges which claims are real.
 
 Save the full JSON output for Steps 3b, 4b, 5 and 5e.
 
@@ -211,7 +212,8 @@ Build the anchor every reviewer shares: section map, claim list, and the 3 stron
 objections. (The v1 pre-step that identified objections inside the single review call moved here.)
 
 Perform this call now using `$STRUCT_JSON`, the paragraph JSON from Step 3, and — when `--claims`
-was passed — the `claims` candidate array. Output exactly this JSON object and nothing else:
+was passed — the wrapper's `claims` candidate array (`{"paragraphs": …, "claims": …}` output).
+Output exactly this JSON object and nothing else:
 
 ```json
 {
@@ -615,8 +617,9 @@ scan — skip Steps 2–6.
 python3 "$CHECK_SCRIPT" --file <root.tex> --check-resolved --reviews '<C4.json>'
 ```
 
-`--reviews` is optional: given C4, each comment is matched by its `evidence` quote; when omitted,
-the scanner falls back to the longest quoted span or number inside the injected comment text.
+`--reviews` is optional: given C4, each comment is matched by its `evidence` quote anchored via
+`% pr:<id>`; when omitted, the scanner falls back to the longest quoted span or number inside the
+injected comment text (found anywhere → `unresolved`, absent → `resolved`).
 
 Output — one entry per injected comment:
 
@@ -624,9 +627,10 @@ Output — one entry per injected comment:
 [{"id": "s-01", "status": "unresolved", "matched_quote": "convergence criterion for the SCF calculation"}]
 ```
 
-- `resolved` — the quoted text/number the comment anchored on no longer appears in the current paragraph.
-- `unresolved` — still present verbatim.
-- `uncertain` — partial or ambiguous match (paraphrase, common number); read the paragraph before deciding.
+- `unresolved` — anchor known and the quote is present in its anchored paragraph (still there).
+- `resolved` — the quote is not found anywhere in the current document.
+- `uncertain` — no usable quote, or the quote appears only in a DIFFERENT paragraph (paraphrase
+  or relocation); read both paragraphs before deciding.
 
 Show the user the per-comment table. `unresolved` + `uncertain` comments scope the next round:
 re-run the pipeline (Steps 4b–5e) on the revised file targeting those; `resolved` comments need
