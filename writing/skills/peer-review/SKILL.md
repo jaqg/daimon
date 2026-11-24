@@ -7,7 +7,8 @@ description: >
   "add reviewer comments to my .tex file", "review my LaTeX paper", "give me reviewer feedback on my manuscript",
   or wants journal-style critique of a .tex document.
   Produces two custom LaTeX environments injected after each relevant paragraph: `review` (reviewer criticism)
-  and `addition-suggestion` (suggested improvement), both rendered in Claude orange.
+  and `addition-suggestion` (suggested improvement), both rendered in `reviewcolor`, plus
+  `revieweditor` for the synthesis editor block (Step 6).
   Use --expert to load vault project context for field-specific review.
   Always invoke this skill when the user asks for manuscript review and a .tex file is involved.
 tools: Read, Write, Edit, Bash, Glob, Grep
@@ -23,6 +24,8 @@ source as colored environments — no terminal output. Each flagged paragraph ge
 
 ```
 /peer-review --file <root.tex> [--expert] [--project <id>] [--no-suggest] [--dry-run]
+            [--structural-only] [--journal <name>] [--preprint] [--blind]
+            [--claims] [--check-resolved] [--passes N]
 ```
 
 | Flag | Default | Meaning |
@@ -33,6 +36,29 @@ source as colored environments — no terminal output. Each flagged paragraph ge
 | `--no-suggest` | off | Inject only `review` blocks; skip `addition-suggestion` |
 | `--dry-run` | off | Print unified diff to stdout; do not write any files |
 | `--structural-only` | off | Run lens 1 only (manuscript structure); skip lenses 2–8 |
+| `--journal <name>` | off | Journal calibration: `reporting_standards.md` "Journal-Specific Standards" + `references/journals/<name>.md` if it exists; format/fit violations → `severity: "major"` |
+| `--preprint` | off | Preprint calibration: no format constraints (skip journal-format items in Lens 7), Lens 1d stays signal-only, novelty comments keep the AI-unreliable caveat |
+| `--blind` | off | Fresh external-reviewer simulation: skip all Step 4 context levels; condensed references still load (see Step 4) |
+| `--claims` | off | Extract heuristic claim candidates (`extract_manuscript.py --claims`); pre-filters Step 4b and r2's claim–evidence check |
+| `--check-resolved` | off | R&R mode: scan injected review blocks vs current paragraph text, print per-comment status (see "R&R round") |
+| `--passes N` | 3 | Reviewer passes; `--passes 1` = one call, all lenses, no synopsis/synthesis (v1-equivalent eval arm) |
+
+## Calibration (`--journal` / `--preprint` / `--blind`)
+
+Target-journal calibration precedence: **CLI flag > `manuscript-context.md` "Target journal"
+(Step 4 Level 1) > default** (generic high-impact: Nature/JACS/PNAS-level review).
+
+- **`--journal <name>`**: load `references/reporting_standards.md` → "Journal-Specific Standards"
+  section, plus `$SKILL_DIR/references/journals/<name>.md` when it exists (missing file: standards
+  section only, no error). Under `--journal`, format/fit violations (length limits, required
+  sections, article-type mismatch) are `severity: "major"`. Loads regardless of `--expert`.
+- **`--preprint`**: no format constraints — skip journal-format items in Lens 7; Lens 1d fraction
+  checks are signals only (never a format violation); novelty comments still carry the mandatory
+  AI-unreliable caveat.
+- **`--blind`**: overrides `--expert` if both are passed; skips all Step 4 context levels
+  (manuscript-context, project knowledge, memory). References condensation STAYS — a real external
+  reviewer knows the public literature. With `--blind` there is no manuscript-context level, so
+  precedence collapses to CLI flag > default.
 
 ## Required config keys (from `config/config.local`)
 
@@ -49,6 +75,7 @@ CONFIG_LOCAL="$DAIMON_ROOT/config/config.local"
 EXTRACT_SCRIPT="$SKILL_DIR/scripts/extract_manuscript.py"
 CHECK_SCRIPT="$SKILL_DIR/scripts/check_review_envs.py"
 STRUCT_SCRIPT="$SKILL_DIR/scripts/check_structure.py"
+CHECK_REVIEWS_SCRIPT="$SKILL_DIR/scripts/check_reviews.py"
 INJECT_SCRIPT="$SKILL_DIR/scripts/inject_reviews.py"
 ```
 
@@ -67,23 +94,30 @@ Output JSON:
   "suggestion_defined": false,
   "insert_line": 14,
   "xcolor_defined": false,
-  "claudeorange_defined": false,
-  "patch": "% peer-review annotations\n\\usepackage{xcolor}\n\\definecolor{claudeorange}{HTML}{D97757}\n\\newenvironment{review}{\\par\\noindent\\color{claudeorange}\\textbf{Reviewer: }}{\\par}\n\\newenvironment{addition-suggestion}{\\par\\noindent\\color{claudeorange}\\itshape\\textbf{Suggested addition: }}{\\par}"
+  "reviewcolor_defined": false,
+  "revieweditor_defined": false,
+  "macro": "reviewcolor",
+  "patch": "% peer-review annotations — inserted by /peer-review skill\n\\usepackage{xcolor}\n\\definecolor{reviewcolor}{HTML}{D97757}\n\\newenvironment{review}{\\par\\noindent\\color{reviewcolor}\\textbf{Reviewer: }}{\\par}\n\\newenvironment{addition-suggestion}{\\par\\noindent\\color{reviewcolor}\\itshape\\textbf{Suggested addition: }}{\\par}\n\\newenvironment{revieweditor}{\\par\\noindent\\color{reviewcolor}\\textbf{Editor summary: }}{\\par}"
 }
 ```
+
+**Legacy-compat note (intentional; the only place that legacy name appears):** manuscripts patched
+by skill v1 define `claudeorange` instead of `reviewcolor`; `macro` reports whichever name is found,
+the patch adds only what is missing, and injected blocks reuse the existing environments unchanged
+(zero migration).
 
 **Save this JSON as `$ENV_JSON`** — do NOT patch the file yet. The preamble patch will be
 applied atomically together with the review injections in Step 6. This avoids a line-number
 shift bug where patching first would invalidate the `line_end` values from Step 3.
 
-If `review_defined` and `suggestion_defined` are both true: no patch needed, set `ENV_JSON=null`.
+If `patch` is empty (everything already defined): no patch needed, set `ENV_JSON=null`.
 
 Otherwise: show the user the `patch` lines and confirm they understand what will be added.
 
 ## Step 3 — Extract manuscript
 
 ```bash
-python3 "$EXTRACT_SCRIPT" --file <root.tex>
+python3 "$EXTRACT_SCRIPT" --file <root.tex> [--claims]
 ```
 
 Output: JSON array of paragraphs:
@@ -101,7 +135,13 @@ Output: JSON array of paragraphs:
 
 The script follows `\input{}`/`\include{}` includes, strips LaTeX markup to plain text,
 and assigns a global `para_idx` used later for injection targeting.
-Save the full JSON output for Step 3b and Step 5.
+
+`--claims` additionally outputs a `claims` array of heuristic candidates (regexes: "we
+show/demonstrate/report/find", number+unit, significance terms) alongside the paragraph list.
+Save it for Step 4b and r2's claim–evidence check — candidates only, the model still judges
+which claims are real.
+
+Save the full JSON output for Steps 3b, 4b, 5 and 5e.
 
 ## Step 3b — Structural check
 
@@ -128,6 +168,10 @@ when assessing whether a Methods or Results section exists structurally.
 
 ## Step 4 — Load expert context (only with `--expert`)
 
+**`--blind` skips Levels 1–3 entirely** (no manuscript-context, project knowledge, or memory —
+simulate a fresh external reviewer). Only the "Reference files (always load)" block below runs:
+references condensation stays (a real reviewer knows the public literature).
+
 Derive the vault project directory:
 ```bash
 PROJECT_DIR="$VAULT_DIR/10-Projects/<project-id>"
@@ -152,7 +196,7 @@ Always read:
 - `$MEMORY_DIR/research_interests.md` — field-level reporting standards + relevance rubric
 - `$MEMORY_DIR/project_<id>.md` — project goals, Review context section
 
-### Reference files (always load)
+### Reference files (always load — even with `--blind`)
 ```bash
 COMMON_ISSUES="$SKILL_DIR/references/common_issues.md"
 REP_STANDARDS="$SKILL_DIR/references/reporting_standards.md"
@@ -161,23 +205,63 @@ REP_STANDARDS="$SKILL_DIR/references/reporting_standards.md"
 Condense both references to headers + first bullet per section (~1500 chars total) and prepend
 as a `## Reference: Common Issues` and `## Reference: Reporting Standards` block in your context.
 
-## Step 5 — Review pass (single Claude call)
+## Step 4b — Synopsis (shared anchor, 1 call)
 
-You are the Claude doing the review. Perform this step now using the paragraph JSON from Step 3
-and expert context from Step 4 (if present).
+Build the anchor every reviewer shares: section map, claim list, and the 3 strongest hostile
+objections. (The v1 pre-step that identified objections inside the single review call moved here.)
 
-**Pre-review: identify the 3 strongest objections first.** Before writing any comment, ask:
-"What are the three most damaging objections a hostile but fair reviewer could raise against
-this manuscript — the kind that would cause rejection at the target journal?" Anchor at least
-2 of your comments on those objections. This adversarial framing surfaces real weaknesses that
-a charitable read would miss.
+Perform this call now using `$STRUCT_JSON`, the paragraph JSON from Step 3, and — when `--claims`
+was passed — the `claims` candidate array. Output exactly this JSON object and nothing else:
 
-**`--structural-only` mode:** run lens 1 only. Output structural comments as a normal review
-JSON array and inject them. Skip lenses 2–8 entirely.
+```json
+{
+  "sections": [{"section": "", "role": "", "para_range": [0, 0], "purpose": ""}],
+  "claims": [{"id": "c1", "section": "", "para_idx": 0, "text": "", "type": "quantitative"}],
+  "top_objections": ["", "", ""]
+}
+```
 
-Read all paragraphs and conduct a rigorous peer review following these 8 lenses in order:
+Requirements:
+- `sections`: one entry per section with paragraph content; `role` = IMRaD canonical role (the
+  Lens 1a mapping below), `para_range` = `[first_para_idx, last_para_idx]`, `purpose` = one line.
+- `claims`: every factual/quantitative/novelty/significance claim worth checking; `type` ∈
+  `quantitative | factual | novelty | significance`; ids `c1, c2, …`. With `--claims`, start from
+  the script candidates and prune false positives; without it, derive candidates while reading
+  using the same heuristics.
+- `top_objections`: exactly 3, ordered most damaging first — the kind that would cause rejection
+  at the target journal. Positional ids: 1st = `obj1`, 2nd = `obj2`, 3rd = `obj3`; reviewers
+  reference them through `addresses` in Step 5.
+
+Save as `$SYNOPSIS_JSON`. Every reviewer pass (Step 5) receives it, and **each reviewer must
+anchor at least 2 comments on these objections** — that adversarial framing surfaces weaknesses
+a charitable read misses.
+
+## Step 5 — Reviewer passes (3 sequential in-pane calls)
+
+Sequential, in-pane: run r1 → r2 → r3 one at a time in this conversation. No subagent spawning,
+no parallelism — this skill stays a single-pane workflow.
+
+Every pass receives: the FULL paragraph JSON (C1) — the document is never split, only the lens
+focus —; the condensed references from Step 4 (also under `--blind`); `$SYNOPSIS_JSON` (C2);
+`$STRUCT_JSON`; and the expert context from Step 4 when present.
+
+**Lens redistribution map** — split the lens, not the document. Everything not primary is
+secondary: flag it only if critical, never pad:
+
+| Pass | Primary lenses | Focus |
+|------|----------------|-------|
+| **r1** | Lens 4, Lens 5, comp-chem checks (`common_issues.md` §23–25 + `reporting_standards.md` comp-chem) | methods & reproducibility: controls, protocols, sample sizes, data/code availability, convergence/force-field/version reporting |
+| **r2** | Lens 2, Lens 1e, Lens 1f, Lens 3 | claims & novelty & statistics: whole-paper claim–evidence, statistics–claims consistency, abstract fidelity, no-new-claims-in-Conclusions |
+| **r3** | Lens 1a–1d, Lens 6, Lens 7, Lens 8 | structure & editorial: section map/presence/order/balance, figures, disclosures, writing quality |
+
+Each pass executes the **shared reviewer prompt** at the end of this step with its own
+`reviewer` / `primary_lenses` substituted. The full lens reference follows.
 
 ### Lens 1 — Manuscript structure & editorial fitness
+
+Split across passes: **r3 owns 1a–1d** (map, presence, order, balance); **r2 owns 1e–1f**
+(abstract fidelity, conclusions) as claim-integrity checks. Other passes flag only critical
+structural finds.
 
 Use `$STRUCT_JSON` from Step 3b plus the full paragraph JSON. This lens runs first because
 structural gaps (missing sections, severe imbalance) affect the validity of all other comments.
@@ -234,11 +318,11 @@ Conclusions at `severity: "major"`.
 
 Anchor all lens 1 comments using `last_para_idx` from `$STRUCT_JSON`.
 
-### Lens 2 — Initial assessment
+### Lens 2 — Initial assessment *(r2 primary)*
 Novelty, scope, and overall soundness. Does the paper address a real gap?
 Is the claim supported by the evidence presented?
 
-### Lens 3 — Section by section (content quality)
+### Lens 3 — Section by section (content quality) *(r2 primary)*
 Assess content quality within each section — not structural presence or balance (covered in
 lens 1). For each section: is the content accurate, complete, and appropriately scoped?
 - Abstract: clarity of contribution statement
@@ -249,19 +333,30 @@ lens 1). For each section: is the content accurate, complete, and appropriately 
   acknowledges limitations
 - References: representative and current
 
-### Lens 4 — Methodological rigor
+Beyond per-section quality, r2 runs two paper-wide checks:
+- **Whole-paper claim–evidence (scope: every claim in the body)** — walk `$SYNOPSIS_JSON.claims`
+  (pre-filtered by `--claims` when passed) and verify each factual/quantitative claim against the
+  evidence actually presented: number reported but never derived, result asserted in Discussion
+  but only shown in the Abstract, significance claimed without a test. This is the Lens 1e
+  abstract-fidelity pattern extended paper-wide. Central-claim support missing → `major`;
+  secondary overreach → `minor`.
+- **Statistics–claims consistency** — do the text's claims match the numbers in tables/figures
+  (n, uncertainty, significance level)?
+
+### Lens 4 — Methodological rigor *(r1 primary)*
 Statistics, controls, reproducibility, sample sizes.
 
-### Lens 5 — Reproducibility
+### Lens 5 — Reproducibility *(r1 primary)*
 Data/code availability, protocol detail, software versioning.
 
-### Lens 6 — Figures and data
+### Lens 6 — Figures and data *(r3 primary)*
 Visualization quality, axis labels, statistical annotations.
 
-### Lens 7 — Editorial compliance
+### Lens 7 — Editorial compliance *(r3 primary)*
 Conflict of interest, ethics statement, data availability, missing disclosures.
+With `--preprint`, journal format/fit items are out of scope (no format constraints).
 
-### Lens 8 — Writing quality
+### Lens 8 — Writing quality *(r3 primary)*
 Clarity, precision, logical flow; overstatement vs. actual evidence.
 
 **For computational chemistry papers** (DFT, MD, GCMC, periodic calculations): also apply the
@@ -277,33 +372,54 @@ issues, and reproducibility concerns.
 specific prior work gaps, flag whether methods are state-of-the-art for this subfield, and note
 whether the project's own stated goals are met by the manuscript.
 
-Output a JSON array — one entry per flagged paragraph. Target **5–12 comments** for a full
-manuscript, **2–5** for a short paper or section. Do not comment on every paragraph; focus on
-the most important issues.
+### Shared reviewer prompt — outputs C3 (one execution per pass)
+
+Stand: the Normal/Expert mode guidance above. Perform the review now, in-pane, using the full
+paragraph JSON, `$SYNOPSIS_JSON`, `$STRUCT_JSON`, condensed references, and expert context (if
+present). Your primary lenses from the redistribution map come first; secondary lenses only when
+a find is critical — never pad to fill a quota.
+
+Output exactly one object, no prose around it:
 
 ```json
-[
-  {
-    "para_idx": 3,
-    "severity": "major",
-    "comment": "The convergence criterion for the SCF calculation is not stated. Without this, the results are not reproducible.",
-    "suggestion": "Specify the SCF convergence threshold used (e.g., 'SCF convergence was set to 10^{-8} hartree')."
-  },
-  {
-    "para_idx": 7,
-    "severity": "minor",
-    "comment": "The claim that the method 'outperforms all prior approaches' is not supported by any citation or quantitative comparison.",
-    "suggestion": "Either cite prior benchmarks or replace with 'outperforms the approaches tested here, specifically [REF]'."
-  }
-]
+{
+  "reviewer": "r1",
+  "primary_lenses": ["4", "5"],
+  "comments": [
+    {
+      "id": "r1-01",
+      "para_idx": 3,
+      "section": "Methods",
+      "severity": "major",
+      "lens": "4",
+      "comment": "The convergence criterion for the SCF calculation is not stated. Without this, the results are not reproducible.",
+      "suggestion": "Specify the SCF convergence threshold used (e.g., 'SCF convergence was set to 10^{-8} hartree').",
+      "evidence": "convergence criterion for the SCF calculation",
+      "addresses": "obj1"
+    }
+  ]
+}
 ```
 
-Rules for comment text:
-- Do not include "Reviewer:" or "Suggested addition:" prefixes — the LaTeX environments provide them.
-- `comment`: state the problem precisely, as a real journal reviewer would write it.
-- `suggestion`: concrete, actionable fix — a sentence to add, a citation to include, a clarification to make.
-- `suggestion` is `null` if `--no-suggest` was passed.
+Requirements:
+- `reviewer`: the pass id (`r1`/`r2`/`r3`); `primary_lenses`: that pass's lenses as strings, from
+  the redistribution map.
+- Volume: **4–10 comments** for a full manuscript, **1–4** for a short paper or section. Do not
+  comment on every paragraph; deduplicate within the pass (the three sets merge in Step 5e).
+- `id`: `<reviewer>-NN`, zero-padded, ascending by priority within the pass (`r2-01`, `r2-02`, …).
+- `para_idx` + `section`: anchor from the paragraph JSON, `section` verbatim as extracted.
+- `lens`: the lens that motivated the comment, as a string (e.g. `"4"`, `"1e"`).
 - `severity`: `"major"` (blocks acceptance) or `"minor"` (should fix but not critical).
+- `comment`: state the problem precisely, as a real journal reviewer would write it. No
+  "Reviewer:" or "Suggested addition:" prefixes — the LaTeX environments provide them.
+- `suggestion`: concrete, actionable fix — a sentence to add, a citation to include, a
+  clarification to make. `null` if `--no-suggest` was passed.
+- `evidence`: **exact ≥8-character substring copied verbatim from some paragraph `text` or
+  `section` value** in C1 — or a literal number string from the manuscript. No paraphrase, no
+  reconstruction. `check_reviews.py` enforces this mechanically (anti-generic).
+- `addresses`: `obj1`/`obj2`/`obj3` when the comment stems from a synopsis objection, else
+  `null`. **At least 2 comments in every pass must have non-null `addresses`** (the shared-anchor
+  rule).
 - **Anti-generic filter**: before finalizing, reject any comment that could apply verbatim to a
   different paper without changing a word. Each comment must cite specific text, numbers, claims,
   or section content from this manuscript. Generic advice ("add more detail to methods") is not
@@ -314,7 +430,105 @@ Rules for comment text:
   against their own comprehensive literature search. Do not claim a contribution is non-novel
   without specific citation evidence.
 
+### Pass r1 — methods & reproducibility
+
+`reviewer: "r1"`, `primary_lenses: ["4", "5"]`. Primary: Lens 4 (controls, protocols, sample
+sizes), Lens 5 (reproducibility, data/code availability), and the comp-chem checks
+(`common_issues.md` §23–25 + the computational-chemistry section of `reporting_standards.md` —
+missing convergence criteria, force-field citations, k-point meshes, software versions block
+reproducibility → `major`).
+
+### Pass r2 — claims, novelty & statistics
+
+`reviewer: "r2"`, `primary_lenses: ["2", "1e", "1f", "3"]`. Primary: Lens 2 (gap, soundness,
+claim support), Lens 1e (abstract fidelity), Lens 1f (no new claims in Conclusions), Lens 3 plus
+its two paper-wide checks (whole-paper claim–evidence over `$SYNOPSIS_JSON.claims`,
+statistics–claims consistency).
+
+### Pass r3 — structure & editorial
+
+`reviewer: "r3"`, `primary_lenses: ["1a", "1b", "1c", "1d", "6", "7", "8"]`. Primary: drive
+Lens 1a–1d from `$STRUCT_JSON` (IMRaD mapping, presence, order, balance), then Lens 6 (figures
+and data), Lens 7 (disclosures/editorial compliance), Lens 8 (writing quality).
+
+### Validation after each pass
+
+```bash
+python3 "$CHECK_REVIEWS_SCRIPT" --reviews '<C3 from this pass>' --paragraphs '<C1>'
+```
+
+Must exit 0 with `"generic": []`. Any listed id: rewrite that comment with a verbatim evidence
+quote and re-run before starting the next pass.
+
+### Mode knobs
+
+- **`--passes N`** (default 3): three reviewer passes above; together with Steps 4b and 5e the
+  full run is 5 LLM calls (v1 used 1).
+- **`--passes 1`**: skip Steps 4b and 5e — one call, all 8 lenses, no synopsis (v1-equivalent
+  eval arm). Output goes straight to Step 6 as a C4 object: `header` (`summary` +
+  `recommendation` per the Step 5e mapping) with comments carrying `rank` = your priority order
+  1..N and `merged_from: []`; `addresses` always `null` (no synopsis exists).
+- **`--structural-only`**: v1 semantics — Lens 1 only, single pass, skip lenses 2–8, no
+  synopsis/synthesis. Output a plain v1 array `[{para_idx, severity, comment, suggestion}]` (no
+  envelope); Step 6 renders it in the legacy shape.
+
+## Step 5e — Synthesis (1 call)
+
+Merge the three C3 sets into the injector input. Perform this call now using `$SYNOPSIS_JSON` and
+the r1/r2/r3 outputs. Output exactly this C4 object and nothing else:
+
+```json
+{
+  "header": {"summary": "", "recommendation": "major"},
+  "comments": [
+    {
+      "id": "s-01",
+      "para_idx": 3,
+      "section": "Methods",
+      "severity": "major",
+      "lens": "4",
+      "comment": "",
+      "suggestion": "",
+      "evidence": "",
+      "merged_from": ["r1-01", "r2-03"],
+      "rank": 1
+    }
+  ]
+}
+```
+
+- `header.summary`: 3–5 sentences — what the paper does, the main verdict, the decisive reasons.
+- `header.recommendation` — apply the mapping mechanically:
+
+  | Recommendation | Rule |
+  |---|---|
+  | `accept` | 0 comments survive synthesis |
+  | `minor` | only `minor` comments survive |
+  | `major` | exactly 1–2 `major` comments |
+  | `reject` | ≥3 `major` comments, **or** any `major` on support for the central claim |
+
+- `comments`: one entry per distinct issue. When ≥2 passes raise the same issue, merge into ONE
+  comment listing every source id in `merged_from` (single-source comments list their single
+  source id as well — the field is never empty). On merge: sharper wording wins, `severity` =
+  highest raised, `evidence` copied verbatim from a source (must still satisfy the evidence
+  rule), `lens` of the primary source.
+- `rank`: 1..N, ascending importance (1 = most damaging); Step 6 injects in this order.
+  `id`: `s-01`, `s-02`, … assigned in rank order.
+- Keep every unique `major`; drop duplicate and nitpick minors; final set typically 6–15 comments.
+- `suggestion`: `null` if `--no-suggest`.
+
+Validate before Step 6:
+
+```bash
+python3 "$CHECK_REVIEWS_SCRIPT" --reviews '<C4>' --paragraphs '<C1>'
+```
+
+Must exit 0 with `"generic": []`; rewrite any listed id and re-run. Save as `$REVIEWS_JSON`.
+
 ## Step 6 — Preview and inject (atomic: reviews + preamble patch)
+
+Consumes `$REVIEWS_JSON` from Step 5e — a C4 object (legacy bare arrays from
+`--structural-only` also accepted, rendered exactly as v1).
 
 Pass the preamble JSON from Step 2 via `--preamble-json` so both the preamble patch and
 review injections happen in one operation. This ensures correct line numbers (the preamble
@@ -323,7 +537,7 @@ shift does not affect the body insertion positions).
 ```bash
 python3 "$INJECT_SCRIPT" \
   --file <root.tex> \
-  --reviews '<JSON from Step 5>' \
+  --reviews '<JSON from Step 5e — $REVIEWS_JSON>' \
   --paragraphs '<JSON from Step 3>' \
   --preamble-json '<ENV_JSON from Step 2>' \
   --dry-run [--no-suggest]
@@ -335,7 +549,7 @@ After approval, run without `--dry-run`:
 ```bash
 python3 "$INJECT_SCRIPT" \
   --file <root.tex> \
-  --reviews '<JSON from Step 5>' \
+  --reviews '<JSON from Step 5e — $REVIEWS_JSON>' \
   --paragraphs '<JSON from Step 3>' \
   --preamble-json '<ENV_JSON from Step 2>' \
   [--no-suggest]
@@ -367,6 +581,57 @@ Specify the SCF convergence threshold used...
 
 (If `--no-suggest`: only the `review` block is inserted.)
 
+### Editor block and block layout (C4 input)
+
+When `--reviews` is a C4 object (Step 5e or `--passes 1`), the injector renders:
+
+1. **Editor block first** — one block, before any comment block in document order: the
+   `revieweditor` env containing `header.summary` plus a
+   `Recommendation: <accept|minor|major|reject>` line (the env supplies the
+   `Editor summary: ` prefix). Fallback for manuscripts where the editor env cannot be added
+   (previously patched preambles): render the block in the `review` env with an `EDITOR SUMMARY:`
+   prefix in the text instead.
+2. **Comment blocks ascending by `rank`**, each immediately after its anchored paragraph: the
+   `review` block, then `addition-suggestion` when `suggestion` is non-null (unchanged).
+3. **Every block is prefixed with an invisible LaTeX comment line `% pr:<id>`** — `% pr:s-01` for
+   comments, `% pr:editor` for the editor block. No rendered change; `--check-resolved` matches
+   on these ids.
+4. New preamble patches define `\definecolor{reviewcolor}` (Step 2). Manuscripts patched by an
+   earlier skill version reuse their existing environments unchanged — blocks are injected as-is,
+   zero migration.
+5. **Legacy bare array input** (v1 shape / `--structural-only` output): renders exactly as v1 —
+   no editor block, no `% pr:` lines.
+
+`--dry-run` shows the editor block and `% pr:` lines in the diff like every other line; the
+approval gate and the atomic write are unchanged.
+
+## R&R round — `--check-resolved`
+
+When the author returns a revised manuscript, run the resolution scan instead of re-reviewing
+blindly. `--check-resolved` is a standalone mode: after Step 1 (locate scripts), run only the
+scan — skip Steps 2–6.
+
+```bash
+python3 "$CHECK_SCRIPT" --file <root.tex> --check-resolved --reviews '<C4.json>'
+```
+
+`--reviews` is optional: given C4, each comment is matched by its `evidence` quote; when omitted,
+the scanner falls back to the longest quoted span or number inside the injected comment text.
+
+Output — one entry per injected comment:
+
+```json
+[{"id": "s-01", "status": "unresolved", "matched_quote": "convergence criterion for the SCF calculation"}]
+```
+
+- `resolved` — the quoted text/number the comment anchored on no longer appears in the current paragraph.
+- `unresolved` — still present verbatim.
+- `uncertain` — partial or ambiguous match (paraphrase, common number); read the paragraph before deciding.
+
+Show the user the per-comment table. `unresolved` + `uncertain` comments scope the next round:
+re-run the pipeline (Steps 4b–5e) on the revised file targeting those; `resolved` comments need
+no action.
+
 ## Edge cases
 
 - **`\input{}`/`\include{}` files**: the extract script follows them; injections go into the
@@ -375,3 +640,7 @@ Specify the SCF convergence threshold used...
 - **Empty sections**: skip; do not comment on section headers with no content.
 - **Approval denied**: do not write anything; tell the user what was found and offer to adjust.
 - **No paragraphs extracted**: warn and stop; the .tex may be empty or contain only figures.
+- **`--journal <name>` with no `references/journals/<name>.md`**: fall back to the
+  reporting_standards "Journal-Specific Standards" section only; no error, continue.
+- **`--check-resolved` on a file with no injected review blocks**: warn and stop — nothing to check.
+- **`--journal` and `--preprint` both passed**: error out and ask the user which calibration applies.
