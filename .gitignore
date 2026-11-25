@@ -34,6 +34,9 @@ tools/pdf-to-md/venv/
 .agent/
 .agent-paths
 .pi-role
+
+# account-switch script: local machine convenience, pins live in tracked agent files anyway
+orchestration/scripts/switch-account.sh
 # --- bake-off: harness only. Fixtures that carry research content, the venv, and every run artifact
 # stay out of the public repo (see ../bakeoff-private and orchestration/bakeoff/README.md).
 orchestration/bakeoff/selection/
