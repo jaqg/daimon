@@ -14,6 +14,9 @@ cd "$R/repo" && git init -q -b main && git config user.email t@t && git config u
 bash "${PI_WORKTREE_SH:-$HOME/.pi/agent/scripts/worktree.sh}" init --repo "$R/repo" --vault "$R/vault" --part demo --test-cmd 'true' >/dev/null
 
 pass=0; fail=0
+# Provider prefix the agent-file pins must carry (P7/P11). Kept as a literal on purpose: an
+# assertion must not read the pin it is checking (tautology) — bump this when the provider renames.
+EXPECTED_PIN_PREFIX='opencode-go-3/'
 ok() { echo "PASS $1"; pass=$((pass+1)); }
 bad() { echo "FAIL $1"; fail=$((fail+1)); }
 
@@ -50,7 +53,7 @@ echo "$out" | grep -q "DELTA=$R/repo/.agent/status/$(date +%F)-demo.desc.md" \
 for role in brain worker calcs scout verifier integrator; do
   echo "$role" > "$R/repo/.pi-role"
   o=$(cd "$R/repo" && bash "$P" "$role" --dry 2>&1)
-  echo "$o" | grep -q "role=$role" && echo "$o" | grep -q 'model=opencode-go/' || { bad "P7 $role launches with a pin"; continue; }
+  echo "$o" | grep -q "role=$role" && echo "$o" | grep -q "model=$EXPECTED_PIN_PREFIX" || { bad "P7 $role launches with a pin"; continue; }
 done
 ok "P7 six tiers launch pinned"
 
@@ -80,7 +83,7 @@ rm -f "$R/repo/.pi-role"
 o=$(cd "$R/repo" && bash "$P" operator --dry 2>&1)
 { echo "$o" | grep -q 'role=operator' && echo "$o" | grep -q 'gate=none' \
   && echo "$o" | grep -q 'no .pi-role anywhere, which is the POINT' \
-  && echo "$o" | grep -q 'model=opencode-go/'; } \
+  && echo "$o" | grep -q "model=$EXPECTED_PIN_PREFIX"; } \
   && ok "P11 operator launches ungated, pinned, and says why" || bad "P11 operator launch" "${o:0:140}"
 
 # P12 — and it refuses --claim. Claiming `operator` writes a role name no profile knows: the gate stays
