@@ -2,11 +2,19 @@
 """Extract paragraphs from a LaTeX manuscript for peer-review analysis.
 
 Usage:
-    python3 extract_manuscript.py --file <root.tex>
+    python3 extract_manuscript.py --file <root.tex> [--claims]
 
 Output (stdout): JSON array of paragraph objects:
     [{"section": str, "section_level": int, "para_idx": int,
       "text": str, "source_file": str, "line_end": int}, ...]
+
+With --claims (contract C7) the output is an object instead:
+    {"paragraphs": [<C1 array>], "claims": [<candidates>]}
+Each candidate is {"id", "section", "para_idx", "text", "type"} with type in
+quantitative|factual|novelty|significance, extracted by deterministic regex
+heuristics (we show/demonstrate/report/find verbs, number+unit, significance
+terms, novelty terms). Pre-filter feeding the synopsis (Step 4b) and the
+Lens-3 claim-evidence check.
 
 section_level: 0 = preamble/abstract, 1 = \\section, 2 = \\subsection, 3 = \\subsubsection
 
@@ -24,7 +32,9 @@ from pathlib import Path
 MAX_PARA_CHARS = 600
 SKIP_ENVS = {"figure", "table", "figure*", "table*", "lstlisting", "verbatim", "Verbatim",
              "algorithmic", "algorithm", "tikzpicture", "equation", "equation*",
-             "align", "align*", "gather", "gather*", "multline", "multline*"}
+             "align", "align*", "gather", "gather*", "multline", "multline*",
+             # injected peer-review comments are not manuscript content
+             "review", "addition-suggestion", "revieweditor"}
 
 
 def strip_latex(text: str) -> str:
@@ -220,9 +230,74 @@ def _flush_para(lines_buf: list, start_line: int | None, current_section: list,
     para_idx[0] += 1
 
 
+# --- claim heuristics (C7) -------------------------------------------------
+
+_VERB_CLAIM = re.compile(
+    r"\bwe\s+(?:show|shows|showed|demonstrate|demonstrated|report|reported|"
+    r"find|found|observe|observed|establish|established|identify|identified|"
+    r"confirm|confirmed|conclude|concluded|reveal|revealed|prove|proved|"
+    r"argue|argued|propose|proposed)\b", re.IGNORECASE)
+
+_NUMBER_UNIT = re.compile(
+    r"\d+(?:[.,]\d+)?[- \t]*(?:%|percent|molecules?|atoms?|sites?|layers?|"
+    r"kcal/mol|kJ/mol|kcal|kJ|meV|keV|eV|V|g/mol|mmol|mol|kg|mg|ppm|"
+    r"Å|nm|pm|mm|cm|μm|µm|K|°C|Torr|GPa|MPa|kPa|bar|atm|"
+    r"hours?|days?|minutes?|seconds?|fs|ps|ns|ms|kHz|MHz|GHz|Hz|"
+    r"fold|×)(?![A-Za-z])", re.IGNORECASE)
+
+_NOVELTY = re.compile(
+    r"\b(?:novel|unprecedented|unexplored|unreported|outperform\w*|"
+    r"for the first time|state[- ]of[- ]the[- ]art|breakthrough|"
+    r"superior to)\b", re.IGNORECASE)
+
+_SIGNIFICANCE = re.compile(
+    r"\b(?:significantly|significant|dramatically|substantially|crucially|"
+    r"markedly|considerably|remarkably|dominant(?:ly)?)\b", re.IGNORECASE)
+
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(])")
+
+
+def classify_claim(sentence: str) -> str | None:
+    """Type of a claim-bearing sentence, or None if it carries no claim."""
+    if _NUMBER_UNIT.search(sentence):
+        return "quantitative"
+    if _NOVELTY.search(sentence):
+        return "novelty"
+    if _SIGNIFICANCE.search(sentence):
+        return "significance"
+    if _VERB_CLAIM.search(sentence):
+        return "factual"
+    return None
+
+
+def extract_claims(paragraphs: list) -> list:
+    """Heuristic claim candidates from C1 paragraphs (deterministic pre-filter)."""
+    claims = []
+    n = 0
+    for p in paragraphs:
+        for sentence in _SENTENCE_SPLIT.split(p.get("text", "")):
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            ctype = classify_claim(sentence)
+            if ctype is None:
+                continue
+            n += 1
+            claims.append({
+                "id": f"c{n}",
+                "section": p.get("section"),
+                "para_idx": p.get("para_idx"),
+                "text": sentence,
+                "type": ctype,
+            })
+    return claims
+
+
 def main():
     parser = argparse.ArgumentParser(description="Extract paragraphs from LaTeX manuscript")
     parser.add_argument("--file", required=True, help="Root .tex file")
+    parser.add_argument("--claims", action="store_true",
+                        help="Also emit heuristic claim candidates (C7)")
     args = parser.parse_args()
 
     root = Path(args.file).resolve()
@@ -240,7 +315,12 @@ def main():
     process_file(root, root_dir, current_section, current_section_level,
                  para_idx, paragraphs, in_document)
 
-    print(json.dumps(paragraphs, ensure_ascii=False, indent=2))
+    if args.claims:
+        output = {"paragraphs": paragraphs,
+                  "claims": extract_claims(paragraphs)}
+    else:
+        output = paragraphs
+    print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
