@@ -69,6 +69,92 @@
         "The output .tex file contains at least one \\begin{review} block",
         "The warning recommends running /open-manuscript"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Seeded-recall A/B protocol: run /peer-review --file evals/fixtures/seeded-a.tex --passes 1 (arm A) and record the review JSON to evals/runs/, repeat on evals/fixtures/seeded-b.tex for both arms, then run python3 evals/run_seeded_recall.py --arm-a <arm-a.json> --arm-b <arm-b.json>.",
+      "expected_output": "The skill runs the review under each arm (arm A = single pass, arm B = three passes with synopsis and synthesis), the agent records each arm's comment set as JSON without any LLM call inside the harness, and run_seeded_recall.py prints a recall@N table per defect type (missing_scf_criterion, section_inversion, abstract_overclaim, new_claim_in_conclusions, absent_data_availability) for both arms, the A/B verdict line, and a C5 precision pass over every produced comment set.",
+      "files": [
+        "evals/fixtures/seeded-a.tex",
+        "evals/fixtures/seeded-b.tex",
+        "evals/fixtures/seeded-defects.json",
+        "evals/run_seeded_recall.py"
+      ],
+      "expectations": [
+        "The recall table lists all 5 seeded defect types with A and B hit counts",
+        "The verdict line reports B >= A overall and whether B loses any type A catches",
+        "Every produced comment set passes check_reviews.py precision (RESULT: OK)",
+        "The harness itself makes no LLM calls (it only scores recorded arm JSONs)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Journal-calibrated review: run /peer-review --file evals/fixtures/minimal.tex --journal nature --dry-run",
+      "expected_output": "The skill loads the Journal-Specific Standards subsection of reporting_standards.md plus references/journals/nature.md when present, calibrates severity so format and fit violations become major, and shows the dry-run diff without writing.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "The journal calibration is applied because the --journal flag takes precedence over manuscript-context.md and the default",
+        "Format/fit violations are commented at severity major",
+        "The original .tex file is unchanged (dry-run only)"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Preprint-mode review: run /peer-review --file evals/fixtures/minimal.tex --preprint --dry-run",
+      "expected_output": "The skill skips journal format constraints (Lens 7 format items), downgrades Lens 1d structural balance to a signal, and adds the AI-unreliable caveat to any novelty comment, still producing a dry-run diff without writing.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "No format-compliance comments are produced in --preprint mode",
+        "Novelty comments carry the explicit AI-unreliable caveat",
+        "The original .tex file is unchanged (dry-run only)"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Blind review: run /peer-review --file evals/fixtures/expert-draft.tex --blind --dry-run",
+      "expected_output": "The skill skips Step 4 expert context entirely (no manuscript-context.md lookup, no project memory, no fallback warning), simulating a fresh external reviewer, while references condensation still runs, and shows the dry-run diff.",
+      "files": ["evals/fixtures/expert-draft.tex"],
+      "expectations": [
+        "No manuscript-context.md warning or /open-manuscript recommendation appears",
+        "References condensation is still applied (it is public knowledge a real reviewer has)",
+        "The original .tex file is unchanged (dry-run only)"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Claim extraction pre-filter: run python3 scripts/extract_manuscript.py --file evals/fixtures/seeded-a.tex --claims",
+      "expected_output": "The script prints a JSON object containing the unchanged paragraphs array (C1) plus a claims array of heuristic candidates covering regex patterns for we show/demonstrate/report/find, number+unit strings, and significance terms, pre-filtering the input for Step 4b and the Lens 3 claim-evidence check.",
+      "files": ["evals/fixtures/seeded-a.tex"],
+      "expectations": [
+        "The output is an object with a paragraphs list and a non-empty claims list",
+        "Claims include the we-show style sentence from the introduction",
+        "Claims include a number+unit candidate (e.g. the 520 eV cutoff or 1.9 W m-1 K-1)",
+        "Without --claims the output stays the plain C1 array (backward compatible)"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "R&R resolution check: run python3 scripts/check_review_envs.py --check-resolved --file <previously reviewed .tex> --reviews <synthesis C4.json>",
+      "expected_output": "The script scans the injected review environments against the current paragraph text and prints one entry per comment with id, status (resolved|unresolved|uncertain) and matched_quote, so the agent can see which round-one comments the revision addressed.",
+      "files": ["evals/fixtures/full-preamble.tex", "evals/fixtures/reviewcolor-preamble.tex"],
+      "expectations": [
+        "Every comment id from the reviews JSON appears in the output",
+        "Each status is one of resolved, unresolved, uncertain",
+        "matched_quote is a string (empty or the span found in the current text)",
+        "Both claudeorange and reviewcolor manuscripts are accepted"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Pass-count knob: run /peer-review --file evals/fixtures/minimal.tex --passes 1 --dry-run and then /peer-review --file evals/fixtures/minimal.tex --passes 3 --dry-run",
+      "expected_output": "With --passes 1 the skill runs one review call covering all lenses with no Step 4b synopsis (the v1-equivalent A arm). With --passes 3 (the default) it runs Step 4b synopsis, three sequential reviewer passes, and Step 5e synthesis before injection.",
+      "files": ["evals/fixtures/minimal.tex"],
+      "expectations": [
+        "--passes 1 produces a single review pass with no synopsis step",
+        "--passes 3 produces synopsis plus three reviewer passes plus synthesis",
+        "Both runs stay sequential in-pane (no subagent spawning)",
+        "Both runs show the diff and write nothing (dry-run)"
+      ]
     }
   ]
 }
