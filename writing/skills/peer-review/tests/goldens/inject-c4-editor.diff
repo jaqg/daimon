@@ -1,0 +1,63 @@
+--- a/minimal.tex
++++ b/minimal.tex
+@@ -6,6 +6,12 @@
+ \author{J.A. Quiñonero}
+ \date{2026}
+ 
++% peer-review annotations — inserted by /peer-review skill
++\usepackage{xcolor}
++\definecolor{reviewcolor}{HTML}{D97757}
++\newenvironment{review}{\par\noindent\color{reviewcolor}\textbf{Reviewer: }}{\par}
++\newenvironment{addition-suggestion}{\par\noindent\color{reviewcolor}\itshape\textbf{Suggested addition: }}{\par}
++\newenvironment{revieweditor}{\par\noindent\color{reviewcolor}\textbf{Editor summary: }}{\par}
+ \begin{document}
+ \maketitle
+ 
+@@ -14,6 +20,22 @@
+ monomer units on ZSM-5 zeolite frameworks. Density functional theory calculations were
+ performed and adsorption energies were computed. The results show strong physisorption
+ at the channel intersection sites.
++
++% pr:editor
++\begin{revieweditor}
++The manuscript is coherent but the methods reporting is incomplete.
++Recommendation: major.
++\end{revieweditor}
++
++% pr:s-01
++\begin{review}
++Rank probe: fed last but must render first by rank on the same paragraph.
++\end{review}
++
++% pr:s-02
++\begin{review}
++Rank probe: fed first but must render second by rank on the same paragraph.
++\end{review}
+ \end{abstract}
+ 
+ \section{Introduction}
+@@ -35,6 +57,14 @@
+ The ZSM-5 unit cell contains 96 tetrahedral sites and was fully relaxed prior to
+ adsorbate calculations.
+ 
++% pr:s-03
++\begin{review}
++Rank probe: convergence threshold absent from the methods description.
++\end{review}
++\begin{addition-suggestion}
++State the SCF convergence threshold used.
++\end{addition-suggestion}
++
+ \section{Results and Discussion}
+ 
+ Adsorption energies for the three adsorbates range from $-0.8$ to $-1.4$ eV.
+@@ -52,4 +82,9 @@
+ Future work will include grand canonical Monte Carlo simulations to predict
+ adsorption isotherms under experimental conditions.
+ 
++% pr:s-04
++\begin{review}
++Rank probe: fourth comment, must render last.
++\end{review}
++
+ \end{document}

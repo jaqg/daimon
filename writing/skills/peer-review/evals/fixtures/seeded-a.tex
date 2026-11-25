@@ -1,0 +1,62 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\title{Phonon Transport in Layered Magnesium Silicate Films: A First-Principles Account}
+\author{Author et al.}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Layered magnesium silicate films are candidates for high-temperature thermal barrier coatings.
+Here we show that our films achieve the lowest thermal conductivity ever reported for any
+silicate material, proving that the layered geometry alone suppresses phonon transport across
+the whole temperature range. First-principles calculations give lattice thermal conductivities
+from 1.4 to 1.9 W m-1 K-1 across the film thicknesses considered, and the layering trend is
+consistent across all superstructures examined in this work.
+\end{abstract}
+
+\section{Introduction}
+
+Thermal barrier coatings protect metallic components in hot sections of turbines. Current
+oxide coatings rely on bulk phonon scattering at grain boundaries, which degrades at high
+temperature. Layered silicates offer an alternative because their weak interlayer bonding
+introduces additional scattering channels for heat carriers.
+
+In this work we compute lattice thermal conductivity for four layered magnesium silicate
+films using density functional theory and the phonon Boltzmann transport equation. We compare
+the thickness dependence across superstructures and relate the trend to the interlayer spacing.
+
+\section{Methods}
+
+All electronic structure calculations were performed with the Vienna Ab initio Simulation
+Package using a plane-wave cutoff of 520 eV. The generalized gradient approximation was used
+for the exchange-correlation functional, and Brillouin-zone sampling used a 6x6x6
+Monkhorst-Pack grid. Spin-orbit coupling was included perturbatively for all atoms.
+
+Phonon dispersions were computed on a 4x4x4 q-point mesh with a finite-displacement method.
+Lattice thermal conductivity followed the iterative solution of the phonon Boltzmann transport
+equation, and results were converged with respect to the q-point mesh density.
+
+\section{Results}
+
+The computed lattice thermal conductivity decreases from 1.9 to 1.4 W m-1 K-1 as the film
+thickness grows from 12 to 48 atomic layers. The reduction saturates beyond 36 layers, and the
+trend is identical for all four superstructures tested.
+
+These values are comparable to the 1.2 to 2.0 W m-1 K-1 range reported for bulk oxide coatings,
+so the layering shifts the conductivity only modestly within that window. The interlayer
+spacing correlates with the conductivity across the series, but the effect size remains small.
+
+\section{Conclusions}
+
+Layered magnesium silicate films sustain lattice thermal conductivity in the range of bulk
+oxide coatings, and the thickness trend saturates beyond 36 atomic layers. The suppression of
+phonon transport is dominated by coherent tunneling of phonons across the silicate layers, a
+mechanism that explains the observed thickness trend without invoking grain-boundary scattering.
+
+Future work will extend the calculations to doped films under thermal cycling.
+
+\end{document}

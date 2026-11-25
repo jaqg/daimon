@@ -1,0 +1,44 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\definecolor{reviewcolor}{HTML}{2563EB}
+\newenvironment{review}{\par\noindent\color{reviewcolor}\textbf{Reviewer: }}{\par}
+\newenvironment{addition-suggestion}{\par\noindent\color{reviewcolor}\itshape\textbf{Suggested addition: }}{\par}
+
+\title{Solvation Free Energies of Small Ions in Bulk Water: A Benchmark Study}
+\author{Author et al.}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Solvation free energies of monovalent ions are benchmark quantities for force field
+development. We compute them for four ions with a thermodynamic integration protocol and
+compare the values against a standard hydration series.
+\end{abstract}
+
+\section{Introduction}
+
+Ion solvation controls selectivity in separation membranes and electrolyte design. Benchmark
+sets exist for monovalent ions, but the protocol details differ between studies.
+
+\section{Methods}
+
+Solvation free energies followed from thermodynamic integration in explicit water with a
+three-point water model. Each ion was decoupled over twenty windows, and the integrals were
+combined with the trapezoidal rule.
+
+\section{Results}
+
+The computed solvation free energies reproduce the hydration series to within 3 kJ mol-1 for
+three of the four ions studied. The remaining ion deviates by 9 kJ mol-1, which is larger than
+the integration uncertainty.
+
+\section{Conclusions}
+
+The integration protocol reproduces most of the hydration series, and the outlier marks the
+ion whose parameters need recalibration.
+
+\end{document}

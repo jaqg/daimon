@@ -1,0 +1,27 @@
+--- a/minimal.tex
++++ b/minimal.tex
+@@ -14,6 +14,13 @@
+ monomer units on ZSM-5 zeolite frameworks. Density functional theory calculations were
+ performed and adsorption energies were computed. The results show strong physisorption
+ at the channel intersection sites.
++
++\begin{review}
++Legacy golden comment one: the abstract claims strong physisorption without citing the binding analysis.
++\end{review}
++\begin{addition-suggestion}
++Add a qualifier linking the physisorption claim to the computed energies.
++\end{addition-suggestion}
+ \end{abstract}
+ 
+ \section{Introduction}
+@@ -35,6 +42,10 @@
+ The ZSM-5 unit cell contains 96 tetrahedral sites and was fully relaxed prior to
+ adsorbate calculations.
+ 
++\begin{review}
++Legacy golden comment two: the method parameters omit the convergence threshold.
++\end{review}
++
+ \section{Results and Discussion}
+ 
+ Adsorption energies for the three adsorbates range from $-0.8$ to $-1.4$ eV.
