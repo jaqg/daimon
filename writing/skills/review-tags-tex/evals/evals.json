@@ -1,47 +1,50 @@
 [
   {
-    "id": "ct_apply_change",
-    "description": "Single CT tag → apply rename, mark done",
+    "id": "ait_apply_change",
+    "description": "Single AIT tag → apply rename, mark done",
     "tags_json": [
       {
         "file": "/tmp/eval/main.tex",
         "line": 3,
-        "type": "CT",
+        "type": "AIT",
         "content": "rename to Introducción",
+        "anchor": "\\section{Introduction}   %AIT: rename to Introducción",
         "context_before": ["\\documentclass{article}", "\\begin{document}"],
         "context_after": ["Some text here.", "$V = x^4$", "\\end{document}"]
       }
     ],
-    "expected_behavior": "Edits /tmp/eval/main.tex line 3: renames \\section{Introduction} to \\section{Introducción}. Changes %CT: to %(done)CT: on same line. No Read tool call needed (context sufficient).",
-    "must_contain": ["Introducción", "%(done)CT:"],
-    "must_not_contain": ["%CT:", "\\section{Introduction}"]
+    "expected_behavior": "Edits /tmp/eval/main.tex using the anchor text: renames \\section{Introduction} to \\section{Introducción}. Changes %AIT: to %(done)AIT: on the anchor line. No Read tool call needed (context sufficient).",
+    "must_contain": ["Introducción", "%(done)AIT:"],
+    "must_not_contain": ["%AIT:", "\\section{Introduction}"]
   },
   {
-    "id": "cq_comment_mode",
-    "description": "Single CQ tag → insert %ANSWER comment below",
+    "id": "aiq_comment_mode",
+    "description": "Single AIQ tag → one atomic edit: done-mark + %ANSWER comment below",
     "tags_json": [
       {
         "file": "/tmp/eval/main.tex",
         "line": 5,
-        "type": "CQ",
+        "type": "AIQ",
         "content": "should this be in display math instead?",
+        "anchor": "The potential is $V = x^4$.  %AIQ: should this be in display math instead?",
         "context_before": ["\\section{Introduction}", "Some text.", ""],
         "context_after": ["More text.", "\\end{document}"]
       }
     ],
-    "expected_behavior": "Inserts %ANSWER: line immediately below line 5. Changes %CQ: to %(done)CQ:. Answer is concise (1-3 lines). No claude-answer environment used.",
-    "must_contain": ["%ANSWER:", "%(done)CQ:"],
-    "must_not_contain": ["\\begin{claude-answer}", "%(done)CQ(render):"]
+    "expected_behavior": "Single Edit replacing the anchor line: %AIQ: becomes %(done)AIQ: and a %ANSWER: line is inserted immediately below it. Answer is concise (1-3 lines). No AI-answer environment used. Edit oldText is the anchor string, not a line number.",
+    "must_contain": ["%ANSWER:", "%(done)AIQ:"],
+    "must_not_contain": ["\\begin{AI-answer}", "%(done)AIQ(render):"]
   },
   {
-    "id": "cqrender_render_mode",
-    "description": "CQrender tag → insert claude-answer environment",
+    "id": "aiqrender_render_mode",
+    "description": "AIQrender tag → rendered AI-answer environment",
     "tags_json": [
       {
         "file": "/tmp/eval/main.tex",
         "line": 8,
-        "type": "CQrender",
+        "type": "AIQrender",
         "content": "explain why we use discrete energy levels here",
+        "anchor": "The energy levels are $E_n$.  %AIQ(render): explain why we use discrete energy levels here",
         "context_before": [
           "The wavefunction $\\psi$ satisfies boundary conditions.",
           "The energy spectrum is $E_n = n^2 \\pi^2 / 2mL^2$."
@@ -49,9 +52,9 @@
         "context_after": ["\\end{document}"]
       }
     ],
-    "expected_behavior": "Inserts \\begin{claude-answer}...\\end{claude-answer} below line 8. Answer is LaTeX prose (not a brief comment). Checks if claude-answer env is defined in root file and adds it if missing. Marks %(done)CQ(render):.",
-    "must_contain": ["\\begin{claude-answer}", "\\end{claude-answer}", "%(done)CQ(render):"],
-    "must_not_contain": ["%ANSWER:", "%(done)CQ:"]
+    "expected_behavior": "Single Edit replacing the anchor line: %(done)AIQ(render): plus \\begin{AI-answer}...\\end{AI-answer} below. Answer is LaTeX prose (not a brief comment). Checks if AI-answer env is defined in root file and adds it (teal #1F6F8B) if missing.",
+    "must_contain": ["\\begin{AI-answer}", "\\end{AI-answer}", "%(done)AIQ(render):"],
+    "must_not_contain": ["%ANSWER:", "%(done)AIQ:"]
   },
   {
     "id": "empty_tags_stops",

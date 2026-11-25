@@ -5,9 +5,10 @@ Output schema:
   [
     {
       "file": str,
-      "line": int,          -- 1-based
-      "type": "CT" | "CQ" | "CQrender",
+      "line": int,          -- 1-based, at extraction time (advisory; edits shift lines)
+      "type": "AIT" | "AIQ" | "AIQrender",
       "content": str,       -- text after the tag prefix
+      "anchor": str,        -- complete raw tag line; use as Edit oldText, not line numbers
       "context_before": [str],  -- up to CONTEXT lines before tag
       "context_after": [str]    -- up to CONTEXT lines after tag
     }
@@ -26,21 +27,10 @@ from pathlib import Path
 
 CONTEXT = 15
 
-TAG_RE = re.compile(
-    r'%(?P<CT>CT)|%(?P<CQ>CQ\(render\))|%(?P<CQplain>CQ)(?!\(render\))'
-)
 DONE_RE = re.compile(r'%\(done\)')
 
 VERBATIM_BEGIN = re.compile(r'\\begin\{(lstlisting|verbatim|Verbatim)\}')
 VERBATIM_END   = re.compile(r'\\end\{(lstlisting|verbatim|Verbatim)\}')
-
-TAG_LINE_RE = re.compile(
-    r'(?:^|(?<=\s))%('
-    r'CT:'
-    r'|CQ\(render\):'
-    r'|CQ:'
-    r')'
-)
 
 
 def classify_tag_line(line: str):
@@ -51,18 +41,18 @@ def classify_tag_line(line: str):
     if DONE_RE.search(stripped):
         return None
 
-    # %CQ(render): must check before %CQ:
-    m = re.search(r'%CQ\(render\):\s*(.*)', line)
+    # %AIQ(render): must check before %AIQ:
+    m = re.search(r'%AIQ\(render\):\s*(.*)', line)
     if m:
-        return ('CQrender', m.group(1).strip())
+        return ('AIQrender', m.group(1).strip())
 
-    m = re.search(r'%CQ:\s*(.*)', line)
+    m = re.search(r'%AIQ:\s*(.*)', line)
     if m:
-        return ('CQ', m.group(1).strip())
+        return ('AIQ', m.group(1).strip())
 
-    m = re.search(r'%CT:\s*(.*)', line)
+    m = re.search(r'%AIT:\s*(.*)', line)
     if m:
-        return ('CT', m.group(1).strip())
+        return ('AIT', m.group(1).strip())
 
     return None
 
@@ -101,6 +91,7 @@ def extract_from_file(path: Path) -> list[dict]:
             'line': i + 1,
             'type': tag_type,
             'content': content,
+            'anchor': line,
             'context_before': before,
             'context_after': after,
         })
