@@ -71,7 +71,7 @@ LAYOUT_FIELDS = {"figsize", "nrows", "ncols", "sharex", "sharey", "letters", "pa
 PANEL_FIELDS = {"series", "axes", "legend", "annotations"}
 SERIES_FIELDS = {
     "data", "label", "color", "marker", "linestyle", "yerr",
-    "scale", "offset", "x_scale", "x_offset",
+    "scale", "offset", "x_scale", "x_offset", "kind",
 }
 DATA_FIELDS = {"file", "format", "x", "y", "column"}
 AXES_FIELDS = {"label", "lim", "log", "invert", "grid", "minor", "ticklabels"}
@@ -252,6 +252,9 @@ def _validate_series(s, where, preset):
             raise SpecError("%s: %s" % (where, exc))
     if "yerr" in s:
         _check_column_ref(s["yerr"], "%s.yerr" % where)
+    if "kind" in s and s["kind"] not in ("bar", "line"):
+        raise SpecError("%s: kind must be 'bar' or 'line'" % where,
+                        {"kind": s["kind"], "where": where})
     if preset == "heatmap":
         # matrix comes from the whole file; x/y refs are meaningless
         for key in ("x", "y"):
@@ -424,7 +427,10 @@ def render_series(ax, series, preset, table_cache, data_dir, where):
     marker = series.get("marker", preset_defaults.get("marker"))
     label = series.get("label")
 
-    if preset == "bar":
+    # kind: explicit per-series override; default = bar for the bar preset,
+    # line otherwise (mixed bar+line panels need kind on the line series).
+    kind = series.get("kind", "bar" if preset == "bar" else "line")
+    if kind == "bar":
         ax.bar(x, y, color=color, label=label, yerr=yerr, capsize=3)
     elif yerr is not None:
         ax.errorbar(x, y, yerr=yerr, color=color, marker=marker, linestyle=linestyle,

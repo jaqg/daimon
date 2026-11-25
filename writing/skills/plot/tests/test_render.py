@@ -96,6 +96,25 @@ with tempfile.TemporaryDirectory() as tmp:
         s["layout"]["panels"][0]["series"][0]["data"]["x"] = {"column": 0}
 
     expect_error("heatmap with x ref", _heatmap_with_x, "must not set data.x")
+    def _bad_kind(s):
+        s["layout"]["panels"][0]["series"][0].update(kind="boxes")
+
+    expect_error("bad kind", _bad_kind, "kind must be")
+
+# --- 2b. mixed bar+line panel (kind override) --------------------------------
+with tempfile.TemporaryDirectory() as tmp:
+    spec = load("gold_bar.json")
+    spec["layout"]["panels"][0]["series"].append({
+        "data": {"file": "bar.csv", "format": "csv",
+                 "x": {"column": "index"}, "y": {"column": "value"}},
+        "color": "#000000", "marker": "None", "linestyle": "--",
+        "kind": "line", "label": "Reference",
+    })
+    res = run(write_tmp(spec, tmp), ["--outdir", tmp, "--data-dir", FIXTURES])
+    out = json.loads(res.stdout)
+    assert res.returncode == 0, res.stdout + res.stderr
+    assert out["ok"] is True and out["warnings"] == [], out
+    ok("render mixed bar+line panel (kind=line)")
 
 # --- 3. usetex fallback: PATH without pdflatex/latex -------------------------
 with tempfile.TemporaryDirectory() as tmp:

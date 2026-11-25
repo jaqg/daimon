@@ -133,6 +133,10 @@ by header name, or by 0-based integer index (headerless files: `"0"`, `"1"`, …
 - **Single panel = one-element `panels` array.** No special case.
 - **Multipanel**: `nrows`/`ncols` (omit both → 1 × len(panels)); panels fill
   row-major; `sharex`/`sharey` booleans; `letters: "auto"` adds (a), (b), …
+- **`kind`**: series renderer override — `"bar"` or `"line"`. Default:
+  `bar` for the `bar` preset, `line` otherwise. Lets one panel mix bars
+  with a reference line (set `kind: "line"` + `linestyle` on the line
+  series). Unknown values are a hard error.
 - **`scale`/`offset`**: applied as `y' = y*scale + offset` (`x_*` for x).
 - **`axes.*.ticklabels`**: full-length array of label strings placed evenly across
   the current x-limits (energy profiles: `["", "Reactants", "TS", "Products", ""]`).
