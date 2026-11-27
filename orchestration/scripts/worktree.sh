@@ -80,6 +80,19 @@ paths_file() {
   mv "$tmp" "$f"
 }
 
+resolve_base() {  # where a NEW branch cuts from: the part's integration branch when that ref exists, else main.
+  # Refs only — never a worktree's checked-out HEAD (D22): the main worktree may sit on any branch with
+  # dirty WIP, and inheriting it drifted slice bases off integration/<part>, causing add/add conflicts at
+  # integrate (2 observed in maehtro). `add` and `integrate` both call this so the two copies of base
+  # logic cannot diverge again. An explicit --base still overrides. (`lab` resolves differently on
+  # purpose: a checker wants the newest agent branch when no integration branch exists.)
+  if git -C "$REPO" show-ref --verify --quiet "refs/heads/integration/$PART"; then
+    echo "integration/$PART"
+  else
+    echo "main"
+  fi
+}
+
 case "$CMD" in
   init)
     [[ -n "$VAULT" ]] || VAULT="$(old_val vault_project)"
@@ -135,7 +148,8 @@ case "$CMD" in
     if [[ -d "$WT" ]]; then
       echo "add: worktree already there: $WT ($BR)"
     else
-      [[ -n "$BASE" ]] || BASE="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
+      # D22: cut from a ref (integration/<part> else main), never from the main worktree's HEAD.
+      [[ -n "$BASE" ]] || BASE="$(resolve_base)"
       if git -C "$REPO" show-ref --verify --quiet "refs/heads/$BR"; then
         git -C "$REPO" worktree add "$WT" "$BR" >/dev/null
       else
@@ -190,9 +204,11 @@ case "$CMD" in
     WT="$WT_ROOT/integrate-$PART"
     mkdir -p "$WT_ROOT"
     if [[ ! -d "$WT" ]]; then
-      # --base defaults to main, NOT to wherever the brain happens to be standing, so an integration
-      # branch never silently inherits an unmerged feature tip.
-      [[ -n "$BASE" ]] || BASE="main"
+      # --base defaults through the shared resolver, NOT to wherever the brain happens to be standing,
+      # so an integration branch never silently inherits an unmerged feature tip. When this branch is
+      # being CREATED the integration ref cannot exist yet, so resolve_base returns main — same default
+      # as before, now from one source of truth (D22).
+      [[ -n "$BASE" ]] || BASE="$(resolve_base)"
       if git -C "$REPO" show-ref --verify --quiet "refs/heads/$INTEG_BRANCH"; then
         git -C "$REPO" worktree add "$WT" "$INTEG_BRANCH" >/dev/null
       else
